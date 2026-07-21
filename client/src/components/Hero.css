@@ -83,10 +83,20 @@
 .hero__media { position: relative; }
 
 @media (max-width: 940px) {
-  .hero__grid { grid-template-columns: 1fr; gap: 34px; }
-  .hero__textcarousel { min-height: 260px; }
+  /* Must match the base selector's specificity (.hero .hero__grid) so the
+     single-column layout actually wins on tablet/phone. */
+  .hero .hero__grid {
+    grid-template-columns: 1fr;
+    gap: 30px;
+    padding-top: 44px;
+    padding-bottom: 48px;
+  }
+  .hero__textcarousel { min-height: 250px; }
   .hero__media { max-width: 520px; margin: 0 auto; width: 100%; }
 }
 @media (max-width: 520px) {
-  .hero__textcarousel { min-height: 300px; }
+  .hero .hero__grid { padding-top: 34px; padding-bottom: 38px; }
+  .hero__title { font-size: clamp(30px, 8.5vw, 40px); }
+  .hero__lead { font-size: 15.5px; }
+  .hero__textcarousel { min-height: 280px; }
 }
