@@ -1,0 +1,57 @@
+.tf__grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 48px;
+  align-items: center;
+}
+.tf__col--join {
+  border-left: 1px solid var(--line);
+  padding-left: 48px;
+}
+
+/* Testimonials (left) */
+.tst__title { text-align: left; font-size: clamp(22px, 2.4vw, 28px); }
+.tst__list { margin-top: 24px; display: flex; flex-direction: column; gap: 16px; }
+.tst__card {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
+}
+.tst__card svg { flex: 0 0 auto; }
+.tst__quote { font-size: 14px; font-style: italic; color: var(--navy-800); }
+.tst__who { margin-top: 8px; font-size: 12.5px; color: var(--muted); }
+.tst__who strong { color: var(--navy-900); display: inline; }
+.tst__who span { margin-left: 4px; }
+.tst__stars { margin-top: 6px; color: var(--blue-600); font-size: 13px; letter-spacing: 2px; }
+
+/* Founding (right) — override centered/full styles for column context */
+.tf .founding__title,
+.tf .founding__sub { text-align: left; }
+.tf .founding__sub { margin-left: 0; }
+.tf .founding__grid { margin-top: 20px; }
+
+/* Embedded single-row logo marquee */
+.tf .partners { margin-top: 44px; padding-top: 32px; border-top: 1px solid var(--line); }
+.tf .partners__label {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 18px;
+}
+.tf .partners .marquee { margin-top: 0; }
+
+@media (max-width: 960px) {
+  .tf__grid { grid-template-columns: 1fr; gap: 40px; }
+  .tf__col--join { border-left: none; padding-left: 0; border-top: 1px solid var(--line); padding-top: 36px; }
+}
+@media (max-width: 520px) {
+  .tf .founding__grid { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,65 @@
+.hiw { height: 100%; }
+.hiw__title { text-align: left; font-size: clamp(24px, 2.6vw, 30px); }
+.hiw__sub { color: var(--muted); margin-top: 8px; font-size: 15px; }
+
+.hiw__steps { margin-top: 26px; display: flex; flex-direction: column; gap: 6px; }
+
+.hiw-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  gap: 16px;
+  padding-bottom: 22px;
+}
+/* Connecting vertical line between markers */
+.hiw-step:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 29px;
+  top: 60px;
+  bottom: 0;
+  width: 2px;
+  background: repeating-linear-gradient(180deg, var(--line) 0 6px, transparent 6px 12px);
+}
+
+.hiw-step__marker { position: relative; width: 60px; }
+.hiw-step__icon {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: var(--blue-50);
+  color: var(--blue-600);
+  display: grid; place-items: center;
+  border: 1px solid #d6e4f7;
+}
+.hiw-step__num {
+  position: absolute;
+  top: -4px; left: -4px;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--blue-600);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  display: grid; place-items: center;
+  border: 2px solid #fff;
+}
+
+.hiw-step__body { padding-top: 4px; }
+.hiw-step__title { font-size: 17px; font-weight: 800; color: var(--navy-900); }
+.hiw-step__text { margin-top: 6px; color: var(--muted); font-size: 14px; }
+
+.hiw__cta {
+  margin-top: 8px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  box-shadow: var(--shadow-sm);
+}
+.hiw__cta strong { display: block; font-size: 16px; color: var(--navy-900); }
+.hiw__cta span { color: var(--muted); font-size: 13px; }

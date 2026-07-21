@@ -1,0 +1,92 @@
+.hero {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(120deg, var(--navy-900) 0%, var(--blue-700) 55%, var(--blue-600) 100%);
+}
+.hero__bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(720px 340px at 88% 6%, rgba(255, 255, 255, 0.10), transparent 70%),
+    radial-gradient(560px 300px at 6% 92%, rgba(216, 30, 41, 0.14), transparent 70%),
+    repeating-linear-gradient(115deg, rgba(255,255,255,0.04) 0 2px, transparent 2px 26px);
+  pointer-events: none;
+}
+.hero .hero__grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 54px;
+  align-items: center;
+  padding-top: 88px;
+  padding-bottom: 88px;
+}
+
+/* Left text carousel */
+.hero__textcarousel { position: relative; min-height: 300px; }
+.hero__text {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.55s ease, transform 0.55s ease;
+  pointer-events: none;
+}
+.hero__text.is-active { opacity: 1; transform: none; pointer-events: auto; }
+
+/* Left copy */
+.hero__title {
+  font-size: clamp(34px, 4.6vw, 52px);
+  font-weight: 800;
+  color: #fff;
+}
+.hero__title-accent {
+  color: #fff;
+  border-bottom: 4px solid var(--red-500);
+  padding-bottom: 2px;
+}
+.hero__lead {
+  margin-top: 22px;
+  font-size: 17px;
+  color: #d6e2f5;
+  max-width: 520px;
+}
+.hero__trust {
+  list-style: none;
+  padding: 0;
+  margin: 24px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  font-size: 13.5px;
+  color: #c6d5ec;
+  font-weight: 600;
+}
+
+/* Carousel dots (left column) */
+.hero__dots {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-start;
+  margin-top: 22px;
+}
+.hero__dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.4);
+  transition: all 0.2s ease;
+}
+.hero__dot.is-active { background: #fff; width: 26px; border-radius: 6px; }
+
+/* Right column — calculator card */
+.hero__media { position: relative; }
+
+@media (max-width: 940px) {
+  .hero__grid { grid-template-columns: 1fr; gap: 34px; }
+  .hero__textcarousel { min-height: 260px; }
+  .hero__media { max-width: 520px; margin: 0 auto; width: 100%; }
+}
+@media (max-width: 520px) {
+  .hero__textcarousel { min-height: 300px; }
+}

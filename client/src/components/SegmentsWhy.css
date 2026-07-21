@@ -1,0 +1,74 @@
+.sw__grid {
+  display: grid;
+  grid-template-columns: 1.75fr 1fr;
+  gap: 40px;
+  align-items: center;
+}
+.sw__col--why {
+  border-left: 1px solid var(--line);
+  padding-left: 40px;
+}
+
+/* Left — Segments side by side (Individuals | circle | SMEs) */
+.sw .segments__stack {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+}
+.sw .segments__col { flex: 1; padding: 22px; }
+.sw .segments__mid { margin: auto -12px; align-self: center; z-index: 2; }
+.sw .segments__arrows { transform: none; }
+
+/* Right — Why choose as a compact vertical list */
+.sw .why__title { text-align: left; font-size: clamp(22px, 2.6vw, 28px); }
+.sw .why__sub { text-align: left; margin-left: 0; font-size: 13px; margin-top: 6px; }
+.sw .why__list {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sw .why__item {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: var(--shadow-sm);
+}
+.sw .why__item .why__icon {
+  flex: 0 0 auto;
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  margin: 0;
+  background: var(--blue-50);
+  display: grid; place-items: center;
+  font-size: 17px;
+}
+.sw .why__item-body h3 { font-size: 14.5px; color: var(--navy-900); }
+.sw .why__item-body p { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+/* Don't Negotiate Alone block (below Why Choose) */
+.sw .why__negotiate {
+  margin-top: 18px;
+  background: var(--navy-900);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  color: #fff;
+}
+.sw .why__negotiate-title { font-size: 19px; font-weight: 800; color: #fff; }
+.sw .why__negotiate-text { font-size: 13px; color: #c6d5ec; margin-top: 8px; }
+.sw .why__negotiate .btn { margin-top: 16px; }
+
+@media (max-width: 960px) {
+  .sw__grid { grid-template-columns: 1fr; gap: 40px; }
+  .sw__col--why { border-left: none; padding-left: 0; border-top: 1px solid var(--line); padding-top: 36px; }
+}
+/* Stack the two segment cards on small screens */
+@media (max-width: 620px) {
+  .sw .segments__stack { flex-direction: column; }
+  .sw .segments__mid { margin: -14px auto; }
+  .sw .segments__arrows { transform: rotate(90deg); }
+}
