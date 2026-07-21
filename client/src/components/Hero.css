@@ -21,6 +21,9 @@
   padding-top: 88px;
   padding-bottom: 88px;
 }
+/* Allow both columns to shrink below their content's intrinsic width so a
+   wide child (the calculator card) can't push the layout past the viewport. */
+.hero__copy, .hero__media { min-width: 0; }
 
 /* Left text carousel */
 .hero__textcarousel { position: relative; min-height: 300px; }

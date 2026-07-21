@@ -134,7 +134,7 @@ export default function BenchmarkCalculator({ onDetailedFeedback, compact = fals
             Manual entry
           </button>
           <button className={mode === 'paste' ? 'is-active' : ''} onClick={() => setMode('paste')}>
-            Paste statement / transaction
+            Paste statement
           </button>
         </div>
 

@@ -235,3 +235,15 @@
   .calcbox { grid-template-columns: 1fr; }
   .calcbox__form { border-right: none; border-bottom: 1px solid var(--line); }
 }
+
+/* Phone: keep everything inside the card width */
+@media (max-width: 560px) {
+  .calc-card { padding: 18px 16px; }
+  .calc-card .calc-modes { width: 100%; }
+  .calc-card .calc-modes button { min-width: 0; flex: 1; font-size: 12px; padding: 9px 6px; }
+  .calcbox__row { grid-template-columns: 1fr; }
+  .calc-card .calc-card__title { font-size: 18px; }
+}
+.calcbox__field select,
+.calcbox__field input,
+.calcbox__textarea { width: 100%; min-width: 0; max-width: 100%; }
