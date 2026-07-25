@@ -66,6 +66,8 @@
   font-weight: 600;
 }
 
+.hero__cta { margin-top: 24px; }
+
 /* Carousel dots (left column) */
 .hero__dots {
   display: flex;

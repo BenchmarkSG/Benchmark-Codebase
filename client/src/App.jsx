@@ -29,7 +29,7 @@ export default function App() {
     <>
       <Navbar onGetStarted={scrollToCalc} />
       <main>
-        <Hero onDetailedFeedback={openTiers} />
+        <Hero onDetailedFeedback={openTiers} onStart={scrollToCalc} />
         <WorksProducts onGetStarted={scrollToCalc} />
         <RealSavings />
         <SegmentsWhy onGetStarted={scrollToCalc} onConnect={() => openTiers()} />

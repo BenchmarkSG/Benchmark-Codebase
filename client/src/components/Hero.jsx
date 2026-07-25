@@ -23,7 +23,7 @@ const SLIDES = [
   },
 ];
 
-export default function Hero({ onDetailedFeedback }) {
+export default function Hero({ onDetailedFeedback, onStart }) {
   const [active, setActive] = useState(0);
 
   // Auto-advance the left-column text carousel.
@@ -57,6 +57,10 @@ export default function Hero({ onDetailedFeedback }) {
               />
             ))}
           </div>
+
+          <button className="btn btn--red hero__cta" onClick={onStart}>
+            Calculate Your Free Benchmark →
+          </button>
 
           <ul className="hero__trust">
             <li>🛡️ Trusted by SMEs &amp; professionals</li>
