@@ -2,7 +2,7 @@
   display: grid;
   grid-template-columns: 1.75fr 1fr;
   gap: 40px;
-  align-items: center;
+  align-items: start;
 }
 .sw__col--why {
   border-left: 1px solid var(--line);
