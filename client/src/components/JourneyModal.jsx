@@ -8,8 +8,8 @@ import { formatSGD, requestReveal } from '../api.js';
          'diy'  -> emailed self-serve playbook */
 const ACTIONS = {
   individual: [
-    { id: 'reveal', icon: '🔓', type: 'pay', price: 1, title: 'Reveal & Generate Report', desc: 'Unlock the winning bank’s name and your full side-by-side benchmark report.' },
     { id: 'negotiate', icon: '📝', type: 'diy', price: 0, title: 'Negotiate Direct', desc: 'Get the DIY negotiation playbook & script to reprice with your bank yourself.' },
+    { id: 'reveal', icon: '🔓', type: 'pay', price: 1, title: 'Reveal & Generate Report', desc: 'Unlock the winning bank’s name and your full side-by-side benchmark report.' },
     { id: 'call', icon: '📞', type: 'book', price: 10, title: 'Book a 15-min Call', desc: 'Talk to a specialist who walks you through your best options.' },
     { id: 'expert', icon: '🎓', type: 'book', price: 100, title: 'Book an Expert Consultation', desc: 'Deep-dive session — we can prepare and negotiate on your behalf.' },
   ],
