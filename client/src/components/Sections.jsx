@@ -240,7 +240,7 @@ export function Founding({ onGetStarted }) {
         <div className="founding__bar-label">5000 spots remaining</div>
         <div className="founding__bar-track"><div className="founding__bar-fill" /></div>
       </div>
-      <button className="btn btn--primary btn--block founding__cta" onClick={onGetStarted}>
+      <button className="btn btn--red btn--block founding__cta" onClick={onGetStarted}>
         Claim Your Founding Member Spot
       </button>
     </div>
