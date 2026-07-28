@@ -1,6 +1,6 @@
 .sw__grid {
   display: grid;
-  grid-template-columns: 1.75fr 1fr;
+  grid-template-columns: 1.6fr 1fr;
   gap: 40px;
   align-items: start;
 }
@@ -9,13 +9,19 @@
   padding-left: 40px;
 }
 
-/* Left — Segments side by side (Individuals | circle | SMEs) */
+/* Trim vertical whitespace around this section */
+.sw { padding-top: 46px; padding-bottom: 46px; }
+
+/* Left — Segments side by side (Individuals | circle | SMEs), centered in column */
 .sw .segments__stack {
   display: flex;
   flex-direction: row;
   align-items: stretch;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
 }
-.sw .segments__col { flex: 1; padding: 22px; }
+.sw .segments__col { flex: 1; padding: 18px; }
 .sw .segments__mid { margin: auto -12px; align-self: center; z-index: 2; }
 .sw .segments__arrows { transform: none; }
 
@@ -49,18 +55,6 @@
 }
 .sw .why__item-body h3 { font-size: 14.5px; color: var(--navy-900); }
 .sw .why__item-body p { color: var(--muted); font-size: 12px; margin-top: 2px; }
-
-/* Don't Negotiate Alone block (below Why Choose) */
-.sw .why__negotiate {
-  margin-top: 18px;
-  background: var(--navy-900);
-  border-radius: var(--radius);
-  padding: 20px 22px;
-  color: #fff;
-}
-.sw .why__negotiate-title { font-size: 19px; font-weight: 800; color: #fff; }
-.sw .why__negotiate-text { font-size: 13px; color: #c6d5ec; margin-top: 8px; }
-.sw .why__negotiate .btn { margin-top: 16px; }
 
 @media (max-width: 960px) {
   .sw__grid { grid-template-columns: 1fr; gap: 40px; }

@@ -4,7 +4,7 @@ import PartnerBanks from './PartnerBanks.jsx';
 
 export default function TrustedFounding({ onGetStarted }) {
   return (
-    <section className="section tf">
+    <section className="section section--blue tf">
       <div className="container tf__grid">
         <div className="tf__col tf__col--tst">
           <Testimonials />

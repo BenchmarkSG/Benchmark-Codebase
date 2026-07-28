@@ -50,15 +50,15 @@ export function Products() {
 const SAVINGS = [
   {
     tint: 'blue', icon: '🚢', tag: 'Shipping / Logistics SME',
-    lines: ['Current: High cross-border fees + fragmented sweeps', 'Benchmark: Centralized Singapore sweep + better FX'],
+    lines: ['Cross-border payments & cash sweeps'],
     big: 'SGD 28,000', bigSub: 'annual savings',
-    quote: '"Reduced overheads dramatically — similar to structures we implemented for international clients."',
+    quote: '"Reduced overheads dramatically — clear, credible benchmarks." ★★★★★',
   },
   {
     tint: 'red', icon: '🏠', tag: 'Homeowner',
-    lines: ['Mortgage rate comparison'],
-    big: 'SGD 5,800', bigSub: 'saved per year by switching lender terms.',
-    quote: null,
+    lines: ['Mortgage rates across lenders'],
+    big: 'SGD 5,800', bigSub: 'annual savings',
+    quote: '"Switched lender terms on the benchmark and never looked back." ★★★★★',
   },
   {
     tint: 'navy', icon: '🌐', tag: 'Importer / Exporter SME',
@@ -72,7 +72,7 @@ export function RealSavings() {
   // Duplicate so the marquee loops seamlessly (same trick as the bank logos).
   const loop = [...SAVINGS, ...SAVINGS];
   return (
-    <section className="section section--soft savings" id="savings">
+    <section className="section section--blue savings" id="savings">
       <div className="container">
         <h2 className="section-title">Real Savings Our Users Are Seeing</h2>
       </div>
@@ -83,9 +83,13 @@ export function RealSavings() {
             <article className={`savings__card savings__card--${s.tint}`} key={`${s.tag}-${i}`}>
               <div className="savings__icon">{s.icon}</div>
               <div className="savings__tag">{s.tag}</div>
-              {s.lines.map((l) => <p className="savings__line" key={l}>{l}</p>)}
-              <div className="savings__big">{s.big}</div>
-              <div className="savings__big-sub">{s.bigSub}</div>
+              <div className="savings__desc">
+                {s.lines.map((l) => <p className="savings__line" key={l}>{l}</p>)}
+              </div>
+              <div className="savings__metric">
+                <div className="savings__big">{s.big}</div>
+                <div className="savings__big-sub">{s.bigSub}</div>
+              </div>
               {s.quote && <p className="savings__quote">{s.quote}</p>}
             </article>
           ))}
@@ -154,7 +158,7 @@ const WHY = [
   { icon: '⚡', title: 'Fast & Free', body: 'Start free, upgrade only when you want the full report.' },
 ];
 
-export function WhyChoose({ onConnect }) {
+export function WhyChoose() {
   return (
     <div className="why">
       <h2 className="section-title why__title">Why Choose Bank<span className="accent-blue">Benchmark</span>.sg?</h2>
@@ -169,15 +173,6 @@ export function WhyChoose({ onConnect }) {
             </div>
           </article>
         ))}
-      </div>
-
-      <div className="why__negotiate">
-        <h3 className="why__negotiate-title">Don't Negotiate Alone</h3>
-        <p className="why__negotiate-text">
-          Our Negotiation Concierge will contact your bank on your behalf, armed with your
-          specific benchmarking data. You only pay if we deliver savings.
-        </p>
-        <button className="btn btn--blue" onClick={onConnect}>Book a Call →</button>
       </div>
     </div>
   );
@@ -252,14 +247,65 @@ export function Founding({ onGetStarted }) {
   );
 }
 
+/* -------- FAQ -------- */
+const FAQS = [
+  {
+    q: 'Is it really free?',
+    a: 'Yes — benchmarking your rates, fees and FX margins is completely free with no sign-up. You only ever pay a share of the savings if you choose our negotiator to renegotiate on your behalf. No savings, no fee.',
+  },
+  {
+    q: 'Do you store my bank statements or personal data?',
+    a: 'No. We don’t keep personal or account-identifying data. When you paste or upload transaction data we process it to benchmark and keep only anonymised metrics (fees, margins, volumes). Please mask beneficiary names and references before sharing.',
+  },
+  {
+    q: 'How does the negotiator work?',
+    a: 'Our Negotiation Concierge contacts your bank armed with your specific benchmarking data. It’s a success-fee model with zero upfront cost — you only pay a percentage of the first-year savings we actually deliver.',
+  },
+];
+
+export function FAQ() {
+  const [open, setOpen] = useState(0);
+  return (
+    <section className="section section--blue faq" id="faq">
+      <div className="container faq__inner">
+        <h2 className="section-title">Frequently Asked Questions</h2>
+        <p className="section-sub">Everything you need to know before you start.</p>
+
+        <div className="faq__list">
+          {FAQS.map((f, i) => (
+            <div className={`faq__item ${open === i ? 'is-open' : ''}`} key={f.q}>
+              <button
+                className="faq__q"
+                onClick={() => setOpen(open === i ? null : i)}
+                aria-expanded={open === i}
+              >
+                <span>{f.q}</span>
+                <span className="faq__icon" aria-hidden="true">{open === i ? '−' : '+'}</span>
+              </button>
+              <div className="faq__a"><p>{f.a}</p></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* -------- Final CTA banner -------- */
-export function FinalCTA({ onGetStarted }) {
+export function FinalCTA({ onGetStarted, onConnect }) {
   return (
     <section className="finalcta">
       <div className="container finalcta__inner">
         <h2 className="finalcta__title">Don't Let Your Bank Keep Overcharging</h2>
         <p className="finalcta__sub">Compare free today and discover how much you could be saving.</p>
-        <button className="btn finalcta__btn" onClick={onGetStarted}>Get My Free Benchmark Now</button>
+        <p className="finalcta__note">
+          And you don't have to negotiate alone — our Negotiation Concierge contacts your bank
+          on your behalf, armed with your specific benchmarking data. You only pay if we deliver savings.
+        </p>
+        <div className="finalcta__actions">
+          <button className="btn finalcta__btn" onClick={onGetStarted}>Get My Free Benchmark Now</button>
+          <button className="btn finalcta__btn-alt" onClick={onConnect}>Book a Call →</button>
+        </div>
       </div>
     </section>
   );
@@ -287,6 +333,19 @@ export function Footer() {
           <a href="#top">Privacy</a><a href="#top">Terms</a><a href="#top">Disclaimer</a>
         </div>
       </div>
+
+      <p className="container footer__legal">
+        BankBenchmark.sg is an independent rate- and fee-benchmarking service, currently operated
+        as a prototype. It is not a bank, a financial adviser, or a Capital Markets Services licence
+        holder, and is not licensed or regulated by the Monetary Authority of Singapore (MAS).
+        Nothing on this site constitutes financial, legal, or tax advice, or an offer to buy or sell
+        any product. Benchmarks are indicative and based on curated market data together with
+        anonymised, crowdsourced figures; your actual rates depend on your own circumstances. Bank
+        names and logos are shown for identification only — we are not affiliated with, or endorsed
+        by, any bank. Figures are illustrative. For regulated financial advice, please consult a
+        MAS-licensed institution.
+      </p>
+
       <div className="container footer__bottom">
         <span>© {new Date().getFullYear()} BankBenchmark.sg — Prototype. Figures are illustrative.</span>
         <span>Don't let your bank keep the difference.</span>

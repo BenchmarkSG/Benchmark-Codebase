@@ -9,16 +9,31 @@
   padding-left: 48px;
 }
 
-/* Products laid out for the right column — keep card style, fit 2-up */
-.wp .products__title,
-.wp .products__sub { text-align: left; }
-.wp .products__sub { margin-left: 0; }
-.wp .products__toggle { margin: 22px 0 0; }
-.wp .products__grid {
-  margin-top: 22px;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
+/* Uniform heading sizes across both columns of this section */
+.wp .hiw__title,
+.wp .products__title {
+  font-size: clamp(24px, 2.6vw, 30px);
+  text-align: left;
 }
+.wp .hiw__sub,
+.wp .products__sub {
+  font-size: 15px;
+  text-align: left;
+  margin-left: 0;
+}
+
+/* Products laid out for the right column — keep card style, fit 2-up */
+.wp .products__toggle { margin: 18px 0 0; }
+.wp .products__grid {
+  margin-top: 18px;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+/* Compact cards — trim internal whitespace so the boxes feel tighter */
+.wp .products__card { padding: 14px 16px; }
+.wp .products__card h3 { font-size: 16px; }
+.wp .products__card p { font-size: 13px; margin-top: 4px; }
+.wp .products__link { margin-top: 10px; font-size: 13px; }
 
 @media (max-width: 960px) {
   .wp__grid { grid-template-columns: 1fr; gap: 40px; }

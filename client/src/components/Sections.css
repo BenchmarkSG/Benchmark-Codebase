@@ -60,12 +60,17 @@
 .savings__card--blue { background: var(--blue-50); }
 .savings__card--red { background: var(--red-50); text-align: center; }
 .savings__card--navy { background: #f3f6fb; }
-.savings__icon { font-size: 26px; }
-.savings__tag { font-weight: 800; color: var(--navy-900); margin-top: 8px; font-size: 15px; }
-.savings__line { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
-.savings__big { font-size: 30px; font-weight: 800; color: var(--blue-600); margin-top: 14px; }
+.savings__icon { font-size: 36px; line-height: 1; }
+.savings__tag { font-weight: 800; color: var(--navy-900); margin-top: 12px; font-size: 15px; }
+/* Reserved single-line description zone so the headline metric starts at the
+   same height on every card. Descriptions are kept to one line. */
+.savings__desc { min-height: 22px; }
+.savings__line { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+.savings__metric { margin-top: 16px; }
+.savings__big { font-size: 30px; font-weight: 800; color: var(--blue-600); }
 .savings__big-sub { font-size: 13px; color: var(--muted); font-weight: 600; }
-.savings__quote { font-size: 12.5px; font-style: italic; color: var(--navy-700); margin-top: 12px; }
+/* Pin quotes to the card bottom with a reserved height so they line up too. */
+.savings__quote { font-size: 12.5px; font-style: italic; color: var(--navy-700); margin-top: auto; padding-top: 14px; min-height: 34px; }
 .savings__foot { text-align: center; color: var(--muted); font-size: 13px; margin-top: 22px; }
 
 /* Segments */
@@ -151,26 +156,91 @@
 .founding__cta { margin-top: 22px; background: var(--red-600); box-shadow: 0 8px 20px rgba(216,30,41,0.28); }
 .founding__cta:hover { background: #b91820; }
 
-/* Final CTA banner */
+/* FAQ */
+.faq__inner { max-width: 780px; margin: 0 auto; }
+.faq__list { margin-top: 34px; display: flex; flex-direction: column; gap: 12px; }
+.faq__item {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.faq__item.is-open { border-color: #c3d8f5; box-shadow: var(--shadow-sm); }
+.faq__q {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 18px 20px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--navy-900);
+}
+.faq__q:hover { color: var(--blue-600); }
+.faq__icon {
+  flex: 0 0 auto;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: var(--blue-50);
+  color: var(--blue-600);
+  display: grid; place-items: center;
+  font-size: 18px; font-weight: 800;
+  line-height: 1;
+}
+.faq__a { max-height: 0; overflow: hidden; transition: max-height 0.28s ease; }
+.faq__item.is-open .faq__a { max-height: 360px; }
+.faq__a p {
+  padding: 0 20px 18px;
+  color: var(--muted);
+  font-size: 14.5px;
+  margin: 0;
+}
+
+/* Final CTA banner — light background */
 .finalcta {
-  background: linear-gradient(120deg, var(--blue-700) 0%, var(--blue-600) 60%, var(--blue-500) 100%);
+  background: #fff;
   padding: 64px 0;
   text-align: center;
 }
 .finalcta__title {
   font-size: clamp(26px, 3.4vw, 38px);
   font-weight: 800;
-  color: #fff;
+  color: var(--navy-900);
 }
-.finalcta__sub { color: #dbe7fa; font-size: 17px; margin-top: 12px; }
-.finalcta__btn {
+.finalcta__sub { color: var(--navy-700); font-size: 17px; margin-top: 12px; }
+.finalcta__note {
+  color: var(--muted);
+  font-size: 14.5px;
+  line-height: 1.6;
+  margin: 12px auto 0;
+  max-width: 640px;
+}
+.finalcta__actions {
   margin-top: 26px;
-  background: #fff;
-  color: var(--blue-700);
-  box-shadow: 0 10px 24px rgba(11, 31, 58, 0.22);
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.finalcta__btn {
+  background: var(--blue-600);
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(29, 99, 196, 0.28);
   padding: 15px 30px;
 }
-.finalcta__btn:hover { background: #f2f6fd; }
+.finalcta__btn:hover { background: var(--blue-700); }
+.finalcta__btn-alt {
+  background: transparent;
+  color: var(--navy-800);
+  border: 1.5px solid var(--navy-600);
+  padding: 15px 30px;
+}
+.finalcta__btn-alt:hover { background: var(--bg-soft); border-color: var(--navy-800); }
 
 /* Footer */
 .footer { background: var(--navy-900); color: #cbd6e8; padding: 54px 0 26px; }
@@ -181,8 +251,14 @@
 .footer__grid h4 { color: #fff; font-size: 14px; margin-bottom: 12px; }
 .footer__grid a { display: block; font-size: 14px; color: #9fb0cc; padding: 4px 0; }
 .footer__grid a:hover { color: #fff; }
+.footer__legal {
+  margin-top: 30px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: #7f92b0;
+}
 .footer__bottom {
-  margin-top: 34px; padding-top: 20px;
+  margin-top: 22px; padding-top: 20px;
   border-top: 1px solid rgba(255,255,255,0.1);
   display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
   font-size: 12.5px; color: #8296b4;

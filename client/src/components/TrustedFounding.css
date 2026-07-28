@@ -48,6 +48,11 @@
 }
 .tf .partners .marquee { margin-top: 0; }
 
+/* Dividers/labels legible on the blue panel */
+.tf.section--blue .tf__col--join { border-left-color: rgba(255, 255, 255, 0.22); }
+.tf.section--blue .partners { border-top-color: rgba(255, 255, 255, 0.22); }
+.tf.section--blue .partners__label { color: #cddef5; }
+
 @media (max-width: 960px) {
   .tf__grid { grid-template-columns: 1fr; gap: 40px; }
   .tf__col--join { border-left: none; padding-left: 0; border-top: 1px solid var(--line); padding-top: 36px; }

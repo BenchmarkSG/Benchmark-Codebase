@@ -25,17 +25,17 @@
    wide child (the calculator card) can't push the layout past the viewport. */
 .hero__copy, .hero__media { min-width: 0; }
 
-/* Left text carousel */
-.hero__textcarousel { position: relative; min-height: 300px; }
+/* Left text carousel — slides in from the right, moving left */
+.hero__textcarousel { position: relative; min-height: 300px; overflow: hidden; }
 .hero__text {
   position: absolute;
   inset: 0;
   opacity: 0;
-  transform: translateY(14px);
+  transform: translateX(48px);
   transition: opacity 0.55s ease, transform 0.55s ease;
   pointer-events: none;
 }
-.hero__text.is-active { opacity: 1; transform: none; pointer-events: auto; }
+.hero__text.is-active { opacity: 1; transform: translateX(0); pointer-events: auto; }
 
 /* Left copy */
 .hero__title {

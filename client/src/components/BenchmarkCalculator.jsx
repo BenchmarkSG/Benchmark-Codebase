@@ -2,6 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import './BenchmarkCalculator.css';
 import { getReference, calcBenchmark, parseStatement, formatSGD } from '../api.js';
 
+// SMEs and Corporates share the same product set, so they're combined into one tab.
+const SEGMENT_TABS = [
+  { key: 'individual', label: 'For Individuals' },
+  { key: 'sme', label: 'For SMEs / Corporates' },
+];
+
 const SAMPLE_STATEMENT = `Outward TT / telegraphic transfer fee SGD 30
 Intermediary agent fee SGD 25
 Beneficiary receiving deduction SGD 15
@@ -129,14 +135,7 @@ export default function BenchmarkCalculator({ onDetailedFeedback, compact = fals
           </>
         )}
 
-        <div className="calc-modes">
-          <button className={mode === 'manual' ? 'is-active' : ''} onClick={() => setMode('manual')}>
-            Manual entry
-          </button>
-          <button className={mode === 'paste' ? 'is-active' : ''} onClick={() => setMode('paste')}>
-            Paste statement
-          </button>
-        </div>
+        {/* Paste-statement mode temporarily disabled — manual entry only. */}
 
         {mode === 'manual' ? (
           <div className={`calcbox ${compact ? 'calcbox--compact' : ''}`}>
@@ -144,17 +143,16 @@ export default function BenchmarkCalculator({ onDetailedFeedback, compact = fals
             {(!compact || !result) && (
             <form className="calcbox__form" onSubmit={computeManual}>
               <div className="calcbox__seg">
-                {ref &&
-                  Object.entries(ref.segments).map(([key, label]) => (
-                    <button
-                      type="button"
-                      key={key}
-                      className={`calcbox__seg-btn ${form.segment === key ? 'is-active' : ''}`}
-                      onClick={() => changeSegment(key)}
-                    >
-                      {label}
-                    </button>
-                  ))}
+                {SEGMENT_TABS.map(({ key, label }) => (
+                  <button
+                    type="button"
+                    key={key}
+                    className={`calcbox__seg-btn ${form.segment === key ? 'is-active' : ''}`}
+                    onClick={() => changeSegment(key)}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
 
               <div className="calcbox__row">

@@ -15,12 +15,6 @@ const SLIDES = [
     ),
     lead: 'See exactly where you stand versus the most competitive rates in Singapore & SEA — then act with confidence in a few taps.',
   },
-  {
-    title: (
-      <>Don't Negotiate<br /><span className="hero__title-accent">Alone.</span></>
-    ),
-    lead: 'Powered by ex-JPM, Citi & SCB experts. We benchmark, then negotiate on your behalf — you only pay a share of what you actually save.',
-  },
 ];
 
 export default function Hero({ onDetailedFeedback, onStart }) {

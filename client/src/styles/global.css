@@ -66,6 +66,19 @@ img { max-width: 100%; display: block; }
 .section--soft { background: var(--bg-soft); }
 .section--navy { background: var(--navy-900); color: #fff; }
 
+/* Saturated hero-blue panel (gradient + subtle diagonal stripes). Direct text
+   flips to light; white/tinted cards inside keep their own explicit colors. */
+.section--blue {
+  color: #eaf1fc;
+  background:
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px 26px),
+    linear-gradient(120deg, var(--blue-700) 0%, var(--blue-600) 100%);
+}
+.section--blue .section-title { color: #fff; }
+.section--blue .section-sub { color: #cddef5; }
+.section--blue .savings__foot { color: #cddef5; }
+.section--blue .founding__bar-label { color: #fff; }
+
 .eyebrow {
   display: inline-block;
   font-size: 13px;

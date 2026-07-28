@@ -36,6 +36,14 @@
 }
 .marquee__item:hover { filter: none; transform: translateY(-3px); }
 
+.marquee__logo {
+  max-height: 40px;
+  max-width: 130px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
 @keyframes scroll-x {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }

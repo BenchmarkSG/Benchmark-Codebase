@@ -7,6 +7,7 @@ import TrustedFounding from './components/TrustedFounding.jsx';
 import JourneyModal from './components/JourneyModal.jsx';
 import {
   RealSavings,
+  FAQ,
   FinalCTA,
   Footer,
 } from './components/Sections.jsx';
@@ -32,9 +33,10 @@ export default function App() {
         <Hero onDetailedFeedback={openTiers} onStart={scrollToCalc} />
         <WorksProducts onGetStarted={scrollToCalc} />
         <RealSavings />
-        <SegmentsWhy onGetStarted={scrollToCalc} onConnect={() => openTiers()} />
+        <SegmentsWhy onGetStarted={scrollToCalc} />
         <TrustedFounding onGetStarted={() => openTiers({ segment: 'sme' })} />
-        <FinalCTA onGetStarted={scrollToCalc} />
+        <FinalCTA onGetStarted={scrollToCalc} onConnect={() => openTiers()} />
+        <FAQ />
       </main>
       <Footer />
       <JourneyModal open={tiersOpen} onClose={closeTiers} context={context} />
