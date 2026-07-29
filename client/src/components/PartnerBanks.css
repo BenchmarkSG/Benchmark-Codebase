@@ -22,23 +22,18 @@
 
 .marquee__item {
   flex: 0 0 auto;
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 16px 22px;
-  min-width: 168px;
+  padding: 12px 26px;
+  min-width: 150px;
   height: 74px;
   display: grid;
   place-items: center;
-  box-shadow: var(--shadow-sm);
-  filter: grayscale(0.15);
-  transition: filter 0.2s ease, transform 0.2s ease;
+  transition: transform 0.2s ease;
 }
-.marquee__item:hover { filter: none; transform: translateY(-3px); }
+.marquee__item:hover { transform: translateY(-3px); }
 
 .marquee__logo {
-  max-height: 40px;
-  max-width: 130px;
+  max-height: 48px;
+  max-width: 150px;
   width: auto;
   height: auto;
   object-fit: contain;

@@ -1,33 +1,48 @@
+/* No bottom padding: the white logo band reaches the section's bottom edge
+   so there's no blue strip beneath it. Two-class selector so it beats the
+   `.section { padding: 72px 0 }` shorthand from global.css (which loads later). */
+.tf.section { padding-bottom: 0; }
+
 .tf__grid {
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
   gap: 48px;
-  align-items: center;
+  align-items: start;
 }
 .tf__col--join {
   border-left: 1px solid var(--line);
   padding-left: 48px;
 }
 
-/* Testimonials (left) */
+/* Testimonials (left) — grid of boxes */
 .tst__title { text-align: left; font-size: clamp(22px, 2.4vw, 28px); }
-.tst__list { margin-top: 24px; display: flex; flex-direction: column; gap: 16px; }
+.tst__list {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
 .tst__card {
   display: flex;
-  gap: 16px;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 12px;
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 14px;
-  padding: 18px;
+  padding: 16px 18px;
   box-shadow: var(--shadow-sm);
 }
-.tst__card svg { flex: 0 0 auto; }
-.tst__quote { font-size: 14px; font-style: italic; color: var(--navy-800); }
-.tst__who { margin-top: 8px; font-size: 12.5px; color: var(--muted); }
+.tst__quote { font-size: 13.5px; font-style: italic; color: var(--navy-800); line-height: 1.5; }
+.tst__foot { display: flex; gap: 12px; align-items: center; margin-top: auto; }
+.tst__foot svg { flex: 0 0 auto; width: 40px; height: 40px; }
+.tst__who { font-size: 12px; color: var(--muted); }
 .tst__who strong { color: var(--navy-900); display: inline; }
 .tst__who span { margin-left: 4px; }
-.tst__stars { margin-top: 6px; color: var(--blue-600); font-size: 13px; letter-spacing: 2px; }
+.tst__stars { margin-top: 3px; color: var(--blue-600); font-size: 12px; letter-spacing: 2px; }
+
+@media (max-width: 620px) {
+  .tst__list { grid-template-columns: 1fr; }
+}
 
 /* Founding (right) — override centered/full styles for column context */
 .tf .founding__title,
@@ -35,8 +50,14 @@
 .tf .founding__sub { margin-left: 0; }
 .tf .founding__grid { margin-top: 20px; }
 
-/* Embedded single-row logo marquee */
-.tf .partners { margin-top: 44px; padding-top: 32px; border-top: 1px solid var(--line); }
+/* Embedded single-row logo marquee — sits on its own full-width white band
+   so the logos are not on the blue section background. */
+.tf .partners {
+  margin-top: 48px;
+  padding: 30px 24px 32px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+}
 .tf .partners__label {
   text-align: center;
   font-size: 13px;
@@ -48,10 +69,8 @@
 }
 .tf .partners .marquee { margin-top: 0; }
 
-/* Dividers/labels legible on the blue panel */
+/* Divider legible on the blue panel */
 .tf.section--blue .tf__col--join { border-left-color: rgba(255, 255, 255, 0.22); }
-.tf.section--blue .partners { border-top-color: rgba(255, 255, 255, 0.22); }
-.tf.section--blue .partners__label { color: #cddef5; }
 
 @media (max-width: 960px) {
   .tf__grid { grid-template-columns: 1fr; gap: 40px; }

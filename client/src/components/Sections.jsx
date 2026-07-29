@@ -183,6 +183,9 @@ const TESTIMONIALS = [
   { quote: 'Saved us over $20k a year on fees and FX. The benchmark report was eye-opening.', name: 'Operations Director', role: 'Trading Company' },
   { quote: 'Finally, a tool that shows real comparisons. Helped us negotiate a much better loan rate.', name: 'Homeowner', role: 'Singapore' },
   { quote: 'Excellent insights on cross-border payments. Reduced our costs significantly.', name: 'Finance Manager', role: 'Import/Export SME' },
+  { quote: 'Cut our monthly FX spread almost in half. Wish we had found this years ago.', name: 'CFO', role: 'Manufacturing SME' },
+  { quote: 'Clear, unbiased and fast. We renegotiated our mortgage within a week.', name: 'Property Investor', role: 'Singapore' },
+  { quote: 'The benchmark gave us real leverage in the conversation with our bank.', name: 'Managing Director', role: 'Logistics Firm' },
 ];
 
 const Avatar = () => (
@@ -203,11 +206,13 @@ export function Testimonials() {
       <div className="tst__list">
         {TESTIMONIALS.map((t) => (
           <article className="tst__card" key={t.quote}>
-            <Avatar />
-            <div className="tst__body">
-              <p className="tst__quote">“{t.quote}”</p>
-              <div className="tst__who"><strong>{t.name},</strong><span>{t.role}</span></div>
-              <Stars />
+            <p className="tst__quote">“{t.quote}”</p>
+            <div className="tst__foot">
+              <Avatar />
+              <div>
+                <div className="tst__who"><strong>{t.name},</strong><span>{t.role}</span></div>
+                <Stars />
+              </div>
             </div>
           </article>
         ))}

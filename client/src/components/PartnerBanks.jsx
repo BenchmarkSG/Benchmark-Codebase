@@ -2,14 +2,14 @@ import { useState } from 'react';
 import './PartnerBanks.css';
 import { BANK_LOGOS } from './BankLogos.jsx';
 
-/* Renders a real logo image, falling back to the SVG wordmark on load error. */
+/* Renders the local logo image, falling back to the SVG wordmark on load error. */
 function BankLogo({ bank }) {
   const [failed, setFailed] = useState(false);
-  if (failed || !bank.domain) return bank.el;
+  if (failed || !bank.img) return bank.el;
   return (
     <img
       className="marquee__logo"
-      src={`https://logo.clearbit.com/${bank.domain}`}
+      src={bank.img}
       alt={bank.name}
       loading="lazy"
       onError={() => setFailed(true)}
