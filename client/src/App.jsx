@@ -5,6 +5,7 @@ import WorksProducts from './components/WorksProducts.jsx';
 import SegmentsWhy from './components/SegmentsWhy.jsx';
 import TrustedFounding from './components/TrustedFounding.jsx';
 import JourneyModal from './components/JourneyModal.jsx';
+import AuthModal from './components/AuthModal.jsx';
 import {
   RealSavings,
   FAQ,
@@ -15,6 +16,7 @@ import {
 export default function App() {
   const [tiersOpen, setTiersOpen] = useState(false);
   const [context, setContext] = useState(null);
+  const [authOpen, setAuthOpen] = useState(false);
 
   const scrollToCalc = useCallback(() => {
     document.getElementById('calculator')?.scrollIntoView({ behavior: 'smooth' });
@@ -26,9 +28,12 @@ export default function App() {
   }, []);
   const closeTiers = useCallback(() => setTiersOpen(false), []);
 
+  const openAuth = useCallback(() => setAuthOpen(true), []);
+  const closeAuth = useCallback(() => setAuthOpen(false), []);
+
   return (
     <>
-      <Navbar onGetStarted={scrollToCalc} />
+      <Navbar onGetStarted={scrollToCalc} onSignIn={openAuth} />
       <main>
         <Hero onDetailedFeedback={openTiers} onStart={scrollToCalc} />
         <WorksProducts onGetStarted={scrollToCalc} />
@@ -40,6 +45,7 @@ export default function App() {
       </main>
       <Footer />
       <JourneyModal open={tiersOpen} onClose={closeTiers} context={context} />
+      <AuthModal open={authOpen} onClose={closeAuth} />
     </>
   );
 }

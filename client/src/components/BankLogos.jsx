@@ -20,7 +20,7 @@ export const BANK_LOGOS = [
   { name: 'OCBC', img: `${LOGO_DIR}/OCBCBank.png`, el: wrap(<><rect x="20" y="12" width="16" height="16" rx="3" fill="#d81e29" />{text('OCBC', '#1a3763', 88, 20)}</>) },
   { name: 'UOB', img: `${LOGO_DIR}/UobBank.png`, el: wrap(<>{text('UOB', '#0b3f8c', 62, 24)}<rect x="104" y="12" width="7" height="16" fill="#0b3f8c" /><rect x="114" y="12" width="7" height="16" fill="#d6001c" /></>) },
   { name: 'Standard Chartered', img: `${LOGO_DIR}/standardChartered.png`, el: wrap(text('Standard Chartered', '#0473ea', 75, 12.5, 700)) },
-  { name: 'Citibank', img: `${LOGO_DIR}/Citi.svg.webp`, el: wrap(<>{text('citi', '#004685', 62, 24)}<path d="M96 15 q10 -8 20 0" stroke="#d6001c" strokeWidth="3" fill="none" /></>) },
+  { name: 'Citibank', img: `${LOGO_DIR}/Citi.png`, el: wrap(<>{text('citi', '#004685', 62, 24)}<path d="M96 15 q10 -8 20 0" stroke="#d6001c" strokeWidth="3" fill="none" /></>) },
   { name: 'HSBC', img: `${LOGO_DIR}/HSBC-Logo.png`, el: wrap(<><path d="M22 12 l10 8 -10 8 -10 -8 z" fill="#db0011" />{text('HSBC', '#1a3763', 90, 20)}</>) },
   { name: 'Maybank', img: `${LOGO_DIR}/logo-bank-maybank copy.jpg`, el: wrap(<>{text('Maybank', '#ffc61e', 82, 18)}<path d="M18 26 q6 -12 12 0" fill="#000" /></>) },
   { name: 'Bank of China', img: `${LOGO_DIR}/Bank-of-China-logo.png`, el: wrap(text('Bank of China', '#c8102e', 75, 15)) },

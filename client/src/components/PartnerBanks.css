@@ -31,11 +31,12 @@
 }
 .marquee__item:hover { transform: translateY(-3px); }
 
+/* Normalise on a single fixed height so every logo reads the same size,
+   regardless of aspect ratio. Width flows from the height. */
 .marquee__logo {
-  max-height: 48px;
-  max-width: 150px;
+  height: 38px;
   width: auto;
-  height: auto;
+  max-width: 160px;
   object-fit: contain;
 }
 
