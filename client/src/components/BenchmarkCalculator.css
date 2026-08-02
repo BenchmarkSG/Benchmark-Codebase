@@ -105,18 +105,6 @@
   text-align: center;
 }
 
-/* Parsed statement items */
-.res__items { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
-.res__item { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
-.res__item-top { display: flex; justify-content: space-between; align-items: baseline; }
-.res__item-label { font-size: 13px; font-weight: 700; color: var(--navy-900); }
-.res__item-save { font-size: 12px; font-weight: 800; color: var(--blue-600); }
-.res__item-rates { margin-top: 4px; font-size: 14px; color: var(--navy-800); display: flex; align-items: baseline; gap: 6px; }
-.res__item-rates small { color: var(--muted); font-size: 10.5px; }
-.res__item-arrow { color: var(--muted); font-weight: 700; font-size: 12px; }
-.res__item-note { font-size: 11px; color: var(--muted); margin-top: 4px; }
-.res__empty { font-size: 13px; color: var(--muted); text-align: center; padding: 30px 10px; }
-
 .calcbox {
   margin-top: 36px;
   display: grid;

@@ -1,8 +1,12 @@
 node_modules
 dist
+dev-dist
 .DS_Store
 *.log
 .env
 .env.local
 .env.*.local
 **/.env.local
+
+# SQL schema/setup files (kept out of version control per request)
+*.sql

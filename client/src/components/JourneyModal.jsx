@@ -1,44 +1,106 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import './JourneyModal.css';
-import { formatSGD, requestReveal } from '../api.js';
+import { formatMoney } from '../api.js';
 
-/* Segment-specific action lists, mirroring the sketched user journeys.
-   type: 'pay'  -> Stripe-style one-off unlock
-         'book' -> Calendly-style slot booking
-         'diy'  -> emailed self-serve playbook */
-const ACTIONS = {
-  individual: [
-    { id: 'negotiate', icon: '📝', type: 'diy', price: 0, title: 'Negotiate Direct', desc: 'Get the DIY negotiation playbook & script to reprice with your bank yourself.' },
-    { id: 'reveal', icon: '🔓', type: 'pay', price: 1, title: 'Reveal & Generate Report', desc: 'Unlock the winning bank’s name and your full side-by-side benchmark report.' },
-    { id: 'call', icon: '📞', type: 'book', price: 10, title: 'Book a 15-min Call', desc: 'Talk to a specialist who walks you through your best options.' },
-    { id: 'expert', icon: '🎓', type: 'book', price: 100, title: 'Book an Expert Consultation', desc: 'Deep-dive session — we can prepare and negotiate on your behalf.' },
-  ],
-  sme: [
-    { id: 'reveal', icon: '🔓', type: 'pay', price: 1, title: 'Reveal & Generate Report', desc: 'Unlock providers + a full multi-product benchmark report.' },
-    { id: 'review', icon: '📊', type: 'pay', price: 100, title: 'Full Benchmark Review', desc: 'Comprehensive treasury & banking-cost review across all products.' },
-    { id: 'call', icon: '📞', type: 'book', price: 10, title: 'Book a Call', desc: '15-min intro with a transaction-banking specialist.' },
-    { id: 'expert', icon: '🎓', type: 'book', price: 100, title: 'Book an Expert', desc: 'Dedicated expert to prepare and lead your bank negotiation.' },
-  ],
-  corporate: [
-    { id: 'reveal', icon: '🔓', type: 'pay', price: 1, title: 'Generate Report', desc: 'Reveal providers and generate your corporate benchmark report.' },
-    { id: 'call', icon: '📞', type: 'book', price: 10, title: 'Book Tele Call', desc: 'Introductory call with a treasury specialist.' },
-    { id: 'expert', icon: '🎓', type: 'book', price: 100, title: 'Book Expert', desc: 'Expert consultation for complex, multi-entity structures.' },
-    { id: 'review', icon: '📋', type: 'book', price: 250, title: 'Full Forensic Review', desc: 'End-to-end forensic review of banking costs across all entities.' },
-  ],
-};
+/* Screen 3 — the "reveal + act on it" screen. Same layout for both segments.
+   Three vertical tiers: negotiate yourself (free), get help (call), or hire an
+   expert. Payment is intentionally NOT wired yet (demo first); bookings hand off
+   to Calendly, which emails the invite to both the user and the advisor. */
 
-const SEG_LABEL = { individual: 'Individual', sme: 'SME', corporate: 'Corporate' };
-const SLOTS = ['Tomorrow · 10:00', 'Tomorrow · 15:30', 'Thu · 11:00', 'Fri · 16:00'];
+const CALENDLY_URL = import.meta.env.VITE_CALENDLY_URL || '';
+const SEG_LABEL = { individual: 'Individual', sme: 'SME / Corporate' };
+
+const TIERS = [
+  {
+    id: 'email', price: 'Free', accent: 'green',
+    title: 'Negotiate directly with my bank',
+    desc: 'We draft a ready-to-send email you can fire off to your relationship manager today.',
+    cta: 'Generate Email',
+  },
+  {
+    id: 'call', price: '$99', accent: 'blue',
+    title: 'Get help to negotiate',
+    desc: 'Book a call — a BankBenchmark specialist reviews your numbers and coaches you through it.',
+    cta: 'Book a Call',
+  },
+  {
+    id: 'expert', price: '$199', accent: 'red',
+    title: 'Have an expert negotiate for me',
+    desc: 'Pick a specialist advisor who prepares and leads the negotiation with your bank on your behalf.',
+    cta: 'Get me an Expert',
+  },
+];
+
+// Demo advisor directory for "Find an expert". Real signed-up advisors get wired
+// in later via a PII-safe public view.
+const SAMPLE_EXPERTS = [
+  { id: 'e1', name: 'Priya Menon', role: 'Trade Finance Specialist', company: 'ex-Standard Chartered', years: 14, blurb: 'LC structuring & working-capital pricing for SMEs across SEA.', accent: '#2f7bd8' },
+  { id: 'e2', name: 'Daniel Lim', role: 'SME Lending Advisor', company: 'ex-DBS', years: 11, blurb: 'Overdraft and term-loan repricing; former relationship manager.', accent: '#e0574b' },
+  { id: 'e3', name: 'Aisha Rahman', role: 'FX & Treasury Expert', company: 'ex-HSBC', years: 9, blurb: 'Cross-border payments and FX spread reduction for corporates.', accent: '#1a9d6a' },
+];
+
+// A Calendly booking panel (embed if configured, else a clear placeholder).
+function Scheduler({ note }) {
+  return (
+    <div className="jny-sched">
+      {CALENDLY_URL ? (
+        <>
+          <iframe className="jny-sched__frame" src={CALENDLY_URL} title="Pick a time" />
+          <a className="jny-sched__link" href={CALENDLY_URL} target="_blank" rel="noreferrer">
+            Open the scheduler in a new tab ↗
+          </a>
+        </>
+      ) : (
+        <div className="jny-sched__ph">
+          <span className="jny-sched__ph-icon">📅</span>
+          <strong>Calendly scheduler appears here</strong>
+          <p>Pick a slot and both you and your advisor get a calendar invite automatically.</p>
+          <small>Set <code>VITE_CALENDLY_URL</code> to go live.</small>
+        </div>
+      )}
+      {note && <p className="jny-note">{note}</p>}
+    </div>
+  );
+}
 
 export default function JourneyModal({ open, onClose, context }) {
-  const [step, setStep] = useState('options'); // 'options' | 'action' | 'done'
-  const [action, setAction] = useState(null);
-  const [email, setEmail] = useState('');
-  const [slot, setSlot] = useState(SLOTS[0]);
-  const [busy, setBusy] = useState(false);
+  const [view, setView] = useState('options'); // 'options' | 'email' | 'call' | 'expert'
+  const [expert, setExpert] = useState(null);
+  const [emailTo, setEmailTo] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [shared, setShared] = useState(false);
 
-  const segment = context?.segment && ACTIONS[context.segment] ? context.segment : 'individual';
-  const savings = context?.annualSaving ?? context?.totalAnnualSaving ?? null;
+  const segment = context?.segment && SEG_LABEL[context.segment] ? context.segment : 'individual';
+  const savings = context?.annualSaving ?? null;
+  const savingsCcy = context?.currency || 'SGD';
+  const fmtSaving = (n) => formatMoney(n, savingsCcy);
+  const isYield = context?.direction === 'higher';
+  const bank = context?.bestBank || null;
+  const productLabel = context?.product || 'banking product';
+
+  // Build the negotiation email from the benchmark context.
+  const emailSubject = `Request to review my ${productLabel} pricing`;
+  const defaultBody = useMemo(() => {
+    const u = context?.unit ? ` ${context.unit}` : '%';
+    const saveLine = savings
+      ? `\n• That's roughly ${fmtSaving(savings)} a year I could ${isYield ? 'earn' : 'save'}.`
+      : '';
+    return `Dear Relationship Manager,
+
+I've been reviewing my ${productLabel} and comparing it against current market rates.
+
+• My current rate: ${context?.yourRate ?? '—'}${u}
+• Best available in the market: ~${context?.benchmarkRate ?? '—'}${u}${saveLine}
+
+I'd like to request a review of my pricing to bring it in line with the market's best rate. I'd prefer to stay with you if we can agree a competitive arrangement — otherwise I'll need to consider moving.
+
+Could we set up a short call this week to discuss?
+
+Kind regards,
+[Your name]`;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [context]);
 
   useEffect(() => {
     if (!open) return;
@@ -51,29 +113,37 @@ export default function JourneyModal({ open, onClose, context }) {
     };
   }, [open, onClose]);
 
-  // Reset the flow whenever the modal reopens.
+  // Reset whenever the modal reopens.
   useEffect(() => {
-    if (open) { setStep('options'); setAction(null); setEmail(''); setSlot(SLOTS[0]); }
+    if (open) { setView('options'); setExpert(null); setEmailTo(''); setEmailBody(defaultBody); setCopied(false); setShared(false); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   if (!open) return null;
 
-  function choose(a) { setAction(a); setStep('action'); }
+  const savingLine = savings
+    ? (isYield
+        ? <>You could earn an extra <strong>{fmtSaving(savings)}</strong> a year by switching.</>
+        : <>You're overpaying — save up to <strong>{fmtSaving(savings)}</strong> a year if you negotiate.</>)
+    : <>Here's how you can act on your benchmark.</>;
 
-  async function submit(e) {
-    e.preventDefault();
-    setBusy(true);
-    // Prototype: no real Stripe/Calendly/email. Just capture the email.
-    try { await requestReveal(email); } catch { /* prototype: ignore */ }
-    setBusy(false);
-    setStep('done');
-  }
+  const share = async () => {
+    const verb = isYield ? 'earn an extra' : 'save';
+    const text = `I could ${verb} ${savings ? fmtSaving(savings) : 'money'}/year on my ${productLabel} — I just benchmarked my bank on BankBenchmark.sg`;
+    const url = typeof window !== 'undefined' ? window.location.origin : 'https://bankbenchmark.sg';
+    try {
+      if (navigator.share) { await navigator.share({ title: 'BankBenchmark.sg', text, url }); }
+      else { await navigator.clipboard.writeText(`${text} ${url}`); setShared(true); setTimeout(() => setShared(false), 2000); }
+    } catch { /* user dismissed share sheet */ }
+  };
 
-  const cta =
-    !action ? '' :
-    action.type === 'pay' ? (action.price ? `Pay ${formatSGD(action.price)} →` : 'Continue →') :
-    action.type === 'book' ? 'Confirm Booking →' :
-    'Email Me the Playbook →';
+  const copyEmail = async () => {
+    try { await navigator.clipboard.writeText(emailBody); setCopied(true); setTimeout(() => setCopied(false), 2000); }
+    catch { /* clipboard blocked */ }
+  };
+  const mailtoHref = `mailto:${encodeURIComponent(emailTo)}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+
+  const back = () => { setView('options'); setExpert(null); };
 
   return (
     <div className="jny" role="dialog" aria-modal="true" aria-label="Your next steps">
@@ -81,95 +151,113 @@ export default function JourneyModal({ open, onClose, context }) {
       <div className="jny__panel">
         <button className="jny__close" onClick={onClose} aria-label="Close">×</button>
 
-        {/* Header — the "you are overpaying" summary from the journey */}
-        <div className="jny__head">
-          <span className="eyebrow">{SEG_LABEL[segment]} journey</span>
-          {savings ? (
-            <h3 className="jny__title">
-              You’re overpaying <span className="accent-red">{formatSGD(savings)}</span> a year
-            </h3>
-          ) : (
-            <h3 className="jny__title">Your personalised next steps</h3>
-          )}
-          <p className="jny__sub">Choose how you’d like to capture your savings. The winning provider is revealed once you continue.</p>
+        {/* Reveal panel — the winning bank + saving, with a share button */}
+        <div className="jny-reveal">
+          <div className="jny-reveal__top">
+            <span className="jny-reveal__eyebrow">{SEG_LABEL[segment]} · your result</span>
+            <button className="jny-reveal__share" onClick={share} title="Share">
+              {shared ? 'Copied ✓' : '↗ Share'}
+            </button>
+          </div>
+          <div className="jny-reveal__bankline">
+            <span className="jny-reveal__label">Your best-match bank</span>
+            <span className="jny-reveal__bank">{bank || 'Top provider unlocked'}</span>
+          </div>
+          <p className="jny-reveal__save">{savingLine}</p>
         </div>
 
-        {/* Step tracker */}
-        <div className="jny__steps">
-          <span className={step === 'options' ? 'is-active' : 'is-done'}>1 · Choose</span>
-          <span className={step === 'action' ? 'is-active' : step === 'done' ? 'is-done' : ''}>2 · Confirm</span>
-          <span className={step === 'done' ? 'is-active' : ''}>3 · Next steps</span>
-        </div>
+        {/* OPTIONS — three vertical tiers */}
+        {view === 'options' && (
+          <>
+            <h4 className="jny-sectlabel">How would you like to act on this?</h4>
+            <div className="jny-tiers">
+              {TIERS.map((t) => (
+                <div className={`jny-tier jny-tier--${t.accent}`} key={t.id}>
+                  <div className="jny-tier__price">{t.price}</div>
+                  <div className="jny-tier__body">
+                    <div className="jny-tier__title">{t.title}</div>
+                    <div className="jny-tier__desc">{t.desc}</div>
+                  </div>
+                  <button className="jny-tier__cta" onClick={() => setView(t.id)}>{t.cta} →</button>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
 
-        {/* STEP 1 — options */}
-        {step === 'options' && (
-          <div className="jny__options">
-            {ACTIONS[segment].map((a) => (
-              <button className="jny-opt" key={a.id} onClick={() => choose(a)}>
-                <span className="jny-opt__icon">{a.icon}</span>
-                <span className="jny-opt__body">
-                  <span className="jny-opt__title">{a.title}</span>
-                  <span className="jny-opt__desc">{a.desc}</span>
-                </span>
-                <span className="jny-opt__price">
-                  {a.price ? formatSGD(a.price) : 'Free'}
-                  <small>{a.type === 'book' ? 'Calendly' : a.type === 'pay' ? 'Secure pay' : 'Instant'}</small>
-                </span>
-              </button>
-            ))}
+        {/* GENERATE EMAIL */}
+        {view === 'email' && (
+          <div className="jny-sub">
+            <button className="jny__back" onClick={back}>← Back to options</button>
+            <h4 className="jny-sub__title">Your negotiation email</h4>
+            <p className="jny-sub__sub">Copy it, or open it in your mail app. Edit anything before sending.</p>
+
+            <label className="jny-field">
+              <span className="jny-label">To — your bank's email (optional)</span>
+              <input type="email" placeholder="relationship.manager@yourbank.com" value={emailTo} onChange={(e) => setEmailTo(e.target.value)} />
+            </label>
+            <label className="jny-field">
+              <span className="jny-label">Subject</span>
+              <input type="text" value={emailSubject} readOnly />
+            </label>
+            <textarea className="jny-textarea" rows={12} value={emailBody} onChange={(e) => setEmailBody(e.target.value)} />
+
+            <div className="jny-actions">
+              <button className="btn btn--primary" onClick={copyEmail}>{copied ? 'Copied ✓' : 'Copy email'}</button>
+              <a className="btn btn--red" href={mailtoHref}>Open in mail app →</a>
+            </div>
+            <p className="jny-note">Demo — nothing is sent from our side yet.</p>
           </div>
         )}
 
-        {/* STEP 2 — confirm selected action */}
-        {step === 'action' && action && (
-          <form className="jny__action" onSubmit={submit}>
-            <button type="button" className="jny__back" onClick={() => setStep('options')}>← Back to options</button>
-            <div className="jny-detail">
-              <span className="jny-detail__icon">{action.icon}</span>
-              <div>
-                <h4>{action.title}</h4>
-                <p>{action.desc}</p>
-              </div>
-              <span className="jny-detail__price">{action.price ? formatSGD(action.price) : 'Free'}</span>
-            </div>
-
-            {action.type === 'book' && (
-              <div className="jny-slots">
-                <span className="jny-label">Pick a slot</span>
-                <div className="jny-slots__grid">
-                  {SLOTS.map((s) => (
-                    <button type="button" key={s} className={`jny-slot ${slot === s ? 'is-active' : ''}`} onClick={() => setSlot(s)}>{s}</button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <label className="jny-field">
-              <span className="jny-label">Email for your next steps</span>
-              <input type="email" required placeholder="you@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-            </label>
-
-            <button className="btn btn--red btn--block" type="submit" disabled={busy}>
-              {busy ? 'Processing…' : cta}
-            </button>
-            <p className="jny-note">
-              {action.type === 'pay'
-                ? 'Prototype — no real payment is taken (Stripe placeholder).'
-                : action.type === 'book'
-                  ? 'Prototype — no real calendar booking is made (Calendly placeholder).'
-                  : 'Prototype — no email is actually sent.'}
+        {/* BOOK A CALL */}
+        {view === 'call' && (
+          <div className="jny-sub">
+            <button className="jny__back" onClick={back}>← Back to options</button>
+            <h4 className="jny-sub__title">Book your specialist call</h4>
+            <p className="jny-sub__sub">
+              <span className="jny-pill">$99</span> A BankBenchmark specialist coaches you through the negotiation.
+              Payment is added later — for now, just pick a time.
             </p>
-          </form>
+            <Scheduler note="You and the specialist both receive the calendar invite from Calendly." />
+          </div>
         )}
 
-        {/* STEP 3 — confirmation */}
-        {step === 'done' && (
-          <div className="jny__done">
-            <div className="jny__done-icon">✅</div>
-            <h4>You’re all set{action?.type === 'book' ? ` for ${slot}` : ''}!</h4>
-            <p>Check your email — we’ve sent your next steps{email ? ` to ${email}` : ''}.</p>
-            {savings ? <div className="jny__done-save">On track to save <strong>{formatSGD(savings)}/year</strong></div> : null}
-            <button className="btn btn--primary" onClick={onClose}>Done</button>
+        {/* GET ME AN EXPERT */}
+        {view === 'expert' && (
+          <div className="jny-sub">
+            <button className="jny__back" onClick={expert ? () => setExpert(null) : back}>
+              ← {expert ? 'Back to experts' : 'Back to options'}
+            </button>
+
+            {!expert ? (
+              <>
+                <h4 className="jny-sub__title">Find an expert · select one</h4>
+                <p className="jny-sub__sub"><span className="jny-pill">$199</span> An expert prepares and leads the negotiation for you.</p>
+                <div className="jny-experts">
+                  {SAMPLE_EXPERTS.map((x) => (
+                    <div className="jny-expert" key={x.id}>
+                      <span className="jny-expert__avatar" style={{ background: x.accent }}>
+                        {x.name.split(' ').map((w) => w[0]).join('').slice(0, 2)}
+                      </span>
+                      <div className="jny-expert__body">
+                        <div className="jny-expert__name">{x.name}</div>
+                        <div className="jny-expert__role">{x.role} · {x.company} · {x.years} yrs</div>
+                        <div className="jny-expert__blurb">{x.blurb}</div>
+                      </div>
+                      <button className="jny-expert__pick" onClick={() => setExpert(x)}>Select →</button>
+                    </div>
+                  ))}
+                </div>
+                <p className="jny-note">Sample advisors for the demo — real founding advisors get listed here once approved.</p>
+              </>
+            ) : (
+              <>
+                <h4 className="jny-sub__title">Book with {expert.name}</h4>
+                <p className="jny-sub__sub">{expert.role} · {expert.company} · {expert.years} yrs experience</p>
+                <Scheduler note={`${expert.name} and you both receive the calendar invite from Calendly.`} />
+              </>
+            )}
           </div>
         )}
       </div>

@@ -23,7 +23,7 @@ const STEPS = [
     n: 1,
     Icon: IconDoc,
     title: 'Tell Us About Your Banking',
-    body: 'Share basic details about your current provider and usage — or paste a statement line. Takes < 1 minute. Anonymous.',
+    body: 'Share basic details about your current provider and usage. Takes < 1 minute. Anonymous.',
   },
   {
     n: 2,
@@ -41,7 +41,7 @@ const STEPS = [
 
 export default function HowItWorks({ onGetStarted }) {
   return (
-    <div className="hiw" id="how-anchor">
+    <div className="hiw">
       <h2 className="section-title hiw__title">
         How Bank<span className="accent-blue">Benchmark</span>.sg Works
       </h2>

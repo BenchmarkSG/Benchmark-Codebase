@@ -25,11 +25,15 @@ keys. Until you do, the app still runs and the auth dialog shows a friendly
 
 ## 2. Create the database tables
 
-Open **SQL Editor → New query**, paste the contents of
-[`supabase/schema.sql`](supabase/schema.sql), and click **Run**. This creates the
-`profiles` table, Row Level Security policies, and a trigger that auto-creates a
-profile whenever someone signs up. (Accounts themselves live in Supabase's managed
-`auth.users` table automatically.)
+Open **SQL Editor → New query** and run the project's SQL files in order:
+[`supabase/rates_schema.sql`](supabase/rates_schema.sql),
+[`supabase/admin.sql`](supabase/admin.sql), then
+[`supabase/user_profiles.sql`](supabase/user_profiles.sql). The last one creates
+the `user_profiles` table, Row Level Security policies, and a trigger that
+auto-creates a profile (name, email, phone, monthly income) whenever someone signs
+up. (Accounts themselves live in Supabase's managed `auth.users` table
+automatically.) See [PRODUCT_DATA.md](PRODUCT_DATA.md) and [ADMIN.md](ADMIN.md) for
+the full data/admin setup.
 
 ## 3. Set the redirect URLs
 
@@ -81,10 +85,12 @@ Then redeploy. Add your Vercel URL to the Supabase redirect URLs (step 3).
   methods.
 - `client/src/components/Navbar.jsx` — "Sign in" button when logged out; avatar +
   dropdown with sign out when logged in.
-- `supabase/schema.sql` — `profiles` table, RLS, and the new-user trigger.
+- `supabase/user_profiles.sql` — `user_profiles` table, RLS, and the new-user
+  trigger that captures name / email / phone / monthly income.
 
 ## Notes on data governance
 
-This aligns with the project's data policy (see `scope.md`): we store only account
-identity (id, name, email) needed to log a user in. No bank statements or
+This aligns with the project's data policy (see `scope.md`): we store the sign-up
+details a user gives us (id, name, email, WhatsApp phone, monthly-income bracket)
+so we can tailor benchmarks and follow up. No bank statements or
 account-identifying transactional data are persisted by the auth layer.

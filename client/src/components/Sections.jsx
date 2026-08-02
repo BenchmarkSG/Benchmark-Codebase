@@ -221,20 +221,21 @@ export function Testimonials() {
   );
 }
 
-/* -------- Founding members (column content) -------- */
-export function Founding({ onGetStarted }) {
+/* -------- Founding advisors (column content) -------- */
+export function Founding({ onBecomeMember }) {
   return (
     <div className="founding">
-      <h2 className="section-title founding__title">Join Our Founding Members</h2>
+      <h2 className="section-title founding__title">Join Our Founding Advisors</h2>
       <p className="section-sub founding__sub">
-        Be among the first 5,000 SME founders to access BankBenchmark. Founding members enjoy:
+        Be among the first banking specialists on BankBenchmark and get matched with the individuals
+        and businesses who need your expertise. Founding advisors enjoy:
       </p>
       <div className="founding__grid">
         {[
-          ['🏅', 'Lifetime badge', 'recognizing your early adoption'],
-          ['⚡', 'Priority concierge', 'for bank negotiations'],
-          ['👥', 'Exclusive community', 'of high-performing SMEs'],
-          ['📈', 'First access', 'to new features and benchmarks'],
+          ['🏅', 'Founding advisor badge', 'on your public profile'],
+          ['🤝', 'Priority client matches', 'ahead of later advisors'],
+          ['👥', 'Exclusive advisor network', 'of top banking specialists'],
+          ['📈', 'First access', 'to new markets, products & tools'],
         ].map(([i, t, s]) => (
           <div className="founding__item" key={t}>
             <span>{i}</span><div><strong>{t}</strong> {s}</div>
@@ -242,11 +243,11 @@ export function Founding({ onGetStarted }) {
         ))}
       </div>
       <div className="founding__bar">
-        <div className="founding__bar-label">5000 spots remaining</div>
+        <div className="founding__bar-label">Limited founding advisor spots remaining</div>
         <div className="founding__bar-track"><div className="founding__bar-fill" /></div>
       </div>
-      <button className="btn btn--red btn--block founding__cta" onClick={onGetStarted}>
-        Claim Your Founding Member Spot
+      <button className="btn btn--red btn--block founding__cta" onClick={onBecomeMember}>
+        Claim Your Founding Advisor Spot
       </button>
     </div>
   );

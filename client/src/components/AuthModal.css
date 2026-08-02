@@ -77,7 +77,8 @@
 .auth__form { display: flex; flex-direction: column; gap: 12px; }
 .auth__field { display: flex; flex-direction: column; gap: 5px; }
 .auth__field span { font-size: 12.5px; font-weight: 700; color: var(--navy-800); }
-.auth__field input {
+.auth__field input,
+.auth__select {
   width: 100%;
   padding: 11px 12px;
   border: 1px solid var(--line);
@@ -86,7 +87,9 @@
   color: var(--navy-900);
   background: #fff;
 }
-.auth__field input:focus { outline: none; border-color: var(--blue-500); box-shadow: 0 0 0 3px rgba(47, 123, 216, 0.15); }
+.auth__select { appearance: none; cursor: pointer; }
+.auth__field input:focus,
+.auth__select:focus { outline: none; border-color: var(--blue-500); box-shadow: 0 0 0 3px rgba(47, 123, 216, 0.15); }
 
 .auth__error {
   padding: 9px 11px; border-radius: 8px;
@@ -99,6 +102,15 @@
   color: var(--blue-700); font-size: 12.5px;
 }
 .auth__submit { margin-top: 4px; }
+
+.auth__forgot {
+  align-self: flex-end;
+  margin-top: -2px;
+  border: none; background: transparent;
+  color: var(--blue-600); font-weight: 700; font-size: 12.5px;
+  cursor: pointer;
+}
+.auth__forgot:hover { text-decoration: underline; }
 
 .auth__switch { margin-top: 18px; text-align: center; font-size: 13px; color: var(--muted); }
 .auth__switch button {

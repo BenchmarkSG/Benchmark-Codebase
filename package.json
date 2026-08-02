@@ -8,10 +8,15 @@
     "install:all": "npm install --prefix server && npm install --prefix client",
     "dev": "concurrently -n server,client -c blue,green \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
     "dev:server": "npm run dev --prefix server",
-    "dev:client": "npm run dev --prefix client"
+    "dev:client": "npm run dev --prefix client",
+    "seed:rates": "node scripts/seed-rates.mjs",
+    "seed:rates:dry": "node scripts/seed-rates.mjs --dry",
+    "create:admin": "node scripts/create-admin.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.111.0",
     "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
     "express": "^4.21.2"
   },
   "devDependencies": {

@@ -1,107 +1,97 @@
-// Unit tests for the pure benchmarking logic.
+// Unit tests for the pure benchmarking logic (no DB, no HTTP).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  amortisedMonthly,
-  computeBenchmark,
-  parseStatement,
-  buildOtherAreas,
-} from '../benchmark.js';
+import { PRODUCTS, getProduct, benchmarkValues, buildBenchmarkResult } from '../benchmark.js';
 
-test('amortisedMonthly: known amortisation', () => {
-  // 500k @ 2.45% over 20y = 2,637.35/mo (standard annuity formula)
-  const m = amortisedMonthly(500000, 2.45, 20);
-  assert.ok(Math.abs(m - 2637.35) < 1, `expected ~2637.35, got ${m}`);
+test('PRODUCTS: known calculator products are exposed with metadata + segments', () => {
+  assert.ok(PRODUCTS.length >= 5);
+  const od = getProduct('overdraft');
+  assert.equal(od.unit, '% p.a.');
+  assert.equal(od.currencyMode, 'localusd');
+  assert.ok(od.segments.includes('sme'));
+  // both segments are represented
+  assert.ok(PRODUCTS.some((p) => p.segments.includes('individual')));
+  assert.ok(getProduct('mortgage').segments.includes('individual'));
+  assert.equal(getProduct('savings').rateType, 'yield');
+  assert.equal(getProduct('nope'), null);
 });
 
-test('amortisedMonthly: zero interest is straight division', () => {
-  assert.equal(amortisedMonthly(12000, 0, 1), 1000);
+test('benchmarkValues: yield product is higher-is-better', () => {
+  const b = benchmarkValues([1.8, 2.2, 2.5, 3.0], { yourRate: 1.8, amount: 100000, rateType: 'yield' });
+  assert.equal(b.direction, 'higher');
+  assert.equal(b.best, 3.0); // highest yield wins
+  // extra earned = (3.0 - 1.8)/100 * 100,000 = 1,200
+  assert.equal(b.annualSaving, 1200);
 });
 
-test('amortisedMonthly: zero/invalid tenor does not divide by zero', () => {
-  assert.equal(amortisedMonthly(1000, 5, 0), 0);
+test('benchmarkValues: best/median/market from a value list', () => {
+  const b = benchmarkValues([8, 6, 7, 9, 10], { yourRate: 9, amount: 1000000 });
+  assert.equal(b.best, 6);
+  assert.equal(b.poolSize, 5);
+  // saving = (9 - 6)/100 * 1,000,000 = 30,000
+  assert.equal(b.annualSaving, 30000);
+  assert.equal(b.monthlySaving, 2500);
 });
 
-test('computeBenchmark: mortgage floating produces positive saving + monthly repayments', () => {
-  const r = computeBenchmark({ bank: 'DBS', product: 'mortgage', variant: 'floating', amount: 500000, tenorYears: 20 });
+test('benchmarkValues: annualiser multiplies the saving (e.g. LC per quarter)', () => {
+  const b = benchmarkValues([0.2, 0.3, 0.4], { yourRate: 0.4, amount: 1000000, annualiser: 4 });
+  // (0.4 - 0.2)/100 * 1,000,000 * 4 = 8,000
+  assert.equal(b.annualSaving, 8000);
+});
+
+test('benchmarkValues: missing yourRate assumes market-typical (no negative saving)', () => {
+  const b = benchmarkValues([5, 6, 7, 8], { amount: 100000 });
+  assert.equal(b.yourRate, b.marketTypical);
+  assert.ok(b.annualSaving >= 0);
+});
+
+test('benchmarkValues: empty list returns null', () => {
+  assert.equal(benchmarkValues([], { yourRate: 5, amount: 1000 }), null);
+});
+
+test('buildBenchmarkResult: masked result shape for a known product', () => {
+  const r = buildBenchmarkResult({
+    product: 'overdraft', country: 'SG', currency: 'SGD',
+    values: [6.5, 7.2, 8.0, 8.5], yourRate: 8.5, amount: 1000000,
+  });
   assert.equal(r.direction, 'lower');
+  assert.equal(r.benchmarkMasked, true);
+  assert.equal(r.benchmarkRate, 6.5);
   assert.ok(r.yourRate > r.benchmarkRate);
   assert.ok(r.annualSaving > 0);
-  assert.ok(r.yourMonthly > r.benchmarkMonthly);
-  assert.equal(r.benchmarkMasked, true);
-  assert.ok(r.poolSize > 0);
+  assert.match(r.benchmarkLabel, /hidden/);
 });
 
-test('computeBenchmark: fixed variant differs from floating', () => {
-  const fixed = computeBenchmark({ product: 'mortgage', variant: 'fixed', amount: 500000, tenorYears: 20 });
-  const floating = computeBenchmark({ product: 'mortgage', variant: 'floating', amount: 500000, tenorYears: 20 });
-  assert.notEqual(fixed.benchmarkRate, floating.benchmarkRate);
+test('buildBenchmarkResult: reveals the lowest-cost bank (apr) from items', () => {
+  const r = buildBenchmarkResult({
+    product: 'overdraft', country: 'SG', currency: 'SGD',
+    values: [7, 6.5, 8],
+    items: [{ bank: 'A', value: 7 }, { bank: 'DBS', value: 6.5 }, { bank: 'C', value: 8 }],
+    yourRate: 8, amount: 100000,
+  });
+  assert.equal(r.bestBank, 'DBS'); // lowest apr wins
+  assert.equal(r.benchmarkRate, 6.5);
 });
 
-test('computeBenchmark: yield product (savings) is higher-is-better', () => {
-  const r = computeBenchmark({ product: 'savings', amount: 100000, tenorYears: 1 });
-  assert.equal(r.direction, 'higher');
-  assert.ok(r.benchmarkRate > r.yourRate);
-  assert.ok(r.annualSaving > 0);
-  assert.equal(r.yourMonthly, null); // deposits have no repayment
+test('buildBenchmarkResult: yield reveals the highest-rate bank', () => {
+  const r = buildBenchmarkResult({
+    product: 'savings', country: 'SG', currency: 'SGD',
+    values: [1.8, 2.5, 2.0],
+    items: [{ bank: 'X', value: 1.8 }, { bank: 'Digi', value: 2.5 }, { bank: 'Y', value: 2.0 }],
+    yourRate: 1.8, amount: 100000,
+  });
+  assert.equal(r.bestBank, 'Digi'); // highest yield wins
 });
 
-test('computeBenchmark: FX margin is volume-based (annualised x12)', () => {
-  const monthly = 40000;
-  const r = computeBenchmark({ product: 'fx_margin', corridor: 'SGD-INR', amount: monthly, tenorYears: 1 });
-  // saving = monthly * 12 * (1.6 - 0.35)/100
-  const expected = Math.round(monthly * 12 * (1.6 - 0.35) / 100);
-  assert.equal(r.annualSaving, expected);
+test('buildBenchmarkResult: bestBank is null when items are absent', () => {
+  const r = buildBenchmarkResult({ product: 'overdraft', values: [6.5, 7.2], yourRate: 7.2, amount: 1000 });
+  assert.equal(r.bestBank, null);
 });
 
-test('computeBenchmark: unknown product returns error', () => {
-  assert.equal(computeBenchmark({ product: 'nope' }).error, 'Unknown product');
+test('buildBenchmarkResult: unknown product -> error', () => {
+  assert.equal(buildBenchmarkResult({ product: 'zzz', values: [1] }).error, 'Unknown product');
 });
 
-test('computeBenchmark: negative amount is clamped to 0 (no negative saving)', () => {
-  const r = computeBenchmark({ product: 'mortgage', amount: -999, tenorYears: 20 });
-  assert.equal(r.principal, 0);
-  assert.equal(r.annualSaving, 0);
-});
-
-test('computeBenchmark: tenor is clamped to [1,40]', () => {
-  const r = computeBenchmark({ product: 'mortgage', amount: 100000, tenorYears: 999 });
-  assert.equal(r.tenorYears, 40);
-});
-
-test('buildOtherAreas: excludes the current product, returns 3', () => {
-  const areas = buildOtherAreas('fx_margin');
-  assert.equal(areas.length, 3);
-  assert.ok(!areas.some((a) => a.id === 'fx_margin'));
-});
-
-test('parseStatement: sample statement detects fees and totals savings', () => {
-  const sample = `Outward TT fee SGD 30
-Intermediary agent fee SGD 25
-Beneficiary receiving deduction SGD 15
-FX conversion margin to India 1.8% on SGD 40,000
-Overdraft interest 8.25%`;
-  const r = parseStatement(sample);
-  assert.ok(r.itemsDetected >= 4, `detected ${r.itemsDetected}`);
-  assert.equal(r.benchmarkMasked, true);
-  // outward 30-5=25, intermediary 25-0=25, beneficiary 15-0=15, fx 40000*(1.8-0.35)/100=580
-  assert.ok(r.totalAnnualSaving >= 25 + 25 + 15 + 580 - 1);
-});
-
-test('parseStatement: percent-only line has no dollar saving', () => {
-  const r = parseStatement('Overdraft interest 8.25%');
-  assert.equal(r.items[0].category, 'overdraft');
-  assert.equal(r.items[0].annualSaving, null);
-});
-
-test('parseStatement: empty text yields zero items with guidance note', () => {
-  const r = parseStatement('');
-  assert.equal(r.itemsDetected, 0);
-  assert.match(r.note, /No priced fee lines/);
-});
-
-test('parseStatement: corridor detection changes benchmark', () => {
-  const india = parseStatement('FX margin to India 2% on SGD 10000').items[0];
-  const philippines = parseStatement('FX margin to Philippines 2% on SGD 10000').items[0];
-  assert.notEqual(india.benchmarkValue, philippines.benchmarkValue);
+test('buildBenchmarkResult: no values -> error', () => {
+  assert.match(buildBenchmarkResult({ product: 'overdraft', values: [] }).error, /No benchmark data/);
 });

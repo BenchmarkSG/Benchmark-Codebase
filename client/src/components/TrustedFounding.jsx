@@ -2,7 +2,7 @@ import './TrustedFounding.css';
 import { Testimonials, Founding } from './Sections.jsx';
 import PartnerBanks from './PartnerBanks.jsx';
 
-export default function TrustedFounding({ onGetStarted }) {
+export default function TrustedFounding({ onBecomeMember }) {
   return (
     <section className="section section--blue tf">
       <div className="container tf__grid">
@@ -10,7 +10,7 @@ export default function TrustedFounding({ onGetStarted }) {
           <Testimonials />
         </div>
         <div className="tf__col tf__col--join">
-          <Founding onGetStarted={onGetStarted} />
+          <Founding onBecomeMember={onBecomeMember} />
         </div>
       </div>
 

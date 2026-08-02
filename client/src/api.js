@@ -21,14 +21,16 @@ export async function getReference() {
 }
 
 export const calcBenchmark = (payload) => post('/benchmark', payload);
-export const parseStatement = (text) => post('/parse', { text });
-export const requestReveal = (email) => post('/reveal', { email });
 
-export function formatSGD(n) {
+const CCY_LOCALE = { SGD: 'en-SG', USD: 'en-US', INR: 'en-IN', MYR: 'ms-MY', IDR: 'id-ID', THB: 'th-TH' };
+
+export function formatMoney(n, currency = 'SGD') {
   if (n == null || Number.isNaN(n)) return '—';
-  return new Intl.NumberFormat('en-SG', {
-    style: 'currency',
-    currency: 'SGD',
-    maximumFractionDigits: 0,
-  }).format(n);
+  try {
+    return new Intl.NumberFormat(CCY_LOCALE[currency] || 'en-US', {
+      style: 'currency', currency, maximumFractionDigits: 0,
+    }).format(n);
+  } catch {
+    return `${currency} ${Math.round(n).toLocaleString()}`;
+  }
 }
