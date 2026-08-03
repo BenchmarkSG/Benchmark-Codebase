@@ -59,8 +59,10 @@ export default defineConfig({
         ],
       },
       devOptions: {
-        // Lets you test installability while running `npm run dev`.
-        enabled: true,
+        // Service worker DISABLED in `npm run dev` — it was caching stale JS/CSS
+        // and hiding live edits. The PWA still works fully in the production build;
+        // test installability with `npm run build && npm run preview`.
+        enabled: false,
         type: 'module',
         navigateFallback: 'index.html',
       },

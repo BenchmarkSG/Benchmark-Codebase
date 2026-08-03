@@ -2,6 +2,20 @@ import { useState, useRef, useEffect } from 'react';
 import './Navbar.css';
 import { useAuth } from '../context/AuthContext.jsx';
 
+const LINKS = [
+  ['#how', 'How it works'],
+  ['#products', 'Products'],
+  ['#savings', 'Real savings'],
+  ['#partners', 'Partners'],
+];
+
+const ProfileIcon = () => (
+  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" />
+  </svg>
+);
+
 function initials(user) {
   const name = user?.user_metadata?.full_name || user?.email || '';
   const parts = name.replace(/@.*/, '').split(/[.\s_-]+/).filter(Boolean);
@@ -35,31 +49,66 @@ function UserMenu({ user, onSignOut }) {
 
 export default function Navbar({ onGetStarted, onSignIn }) {
   const { user, signOut } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setMenuOpen(false); };
+    const onKey = (e) => e.key === 'Escape' && setMenuOpen(false);
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey); };
+  }, [menuOpen]);
+
+  const close = () => setMenuOpen(false);
 
   return (
-    <header className="nav">
+    <header className="nav" ref={ref}>
       <div className="container nav__inner">
-        <a className="nav__brand" href="#top">
+        <a className="nav__brand" href="#top" onClick={close}>
           Bank<span className="nav__brand-accent">Benchmark</span>
           <span className="nav__tld">.sg</span>
         </a>
         <nav className="nav__links">
-          <a href="#how">How it works</a>
-          <a href="#products">Products</a>
-          <a href="#savings">Real savings</a>
-          <a href="#partners">Partners</a>
+          {LINKS.map(([href, label]) => <a key={href} href={href}>{label}</a>)}
         </nav>
         <div className="nav__actions">
           {user ? (
             <UserMenu user={user} onSignOut={signOut} />
           ) : (
-            <button className="btn btn--ghost nav__signin" onClick={onSignIn}>Sign in</button>
+            <>
+              {/* Desktop: text button. Phone: replaced by the profile icon below. */}
+              <button className="btn btn--ghost nav__signin" onClick={onSignIn}>Sign in</button>
+              <button className="nav__signin-icon" onClick={onSignIn} aria-label="Sign in">
+                <ProfileIcon />
+              </button>
+            </>
           )}
+          {/* CTA is hidden on phones (see Navbar.css). */}
           <button className="btn btn--primary nav__cta" onClick={onGetStarted}>
             Get My Free Benchmark
           </button>
+          <button
+            className={`nav__burger ${menuOpen ? 'is-open' : ''}`}
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-label="Menu" aria-expanded={menuOpen}
+          >
+            <span /><span /><span />
+          </button>
         </div>
       </div>
+
+      {menuOpen && (
+        <div className="nav__mobile">
+          {LINKS.map(([href, label]) => (
+            <a key={href} href={href} onClick={close}>{label}</a>
+          ))}
+          <button className="btn btn--primary nav__mobile-cta" onClick={() => { close(); onGetStarted(); }}>
+            Get My Free Benchmark
+          </button>
+        </div>
+      )}
     </header>
   );
 }

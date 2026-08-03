@@ -104,4 +104,6 @@
   .hero__title { font-size: clamp(30px, 8.5vw, 40px); }
   .hero__lead { font-size: 15.5px; }
   .hero__textcarousel { min-height: 280px; }
+  .hero__cta { width: 100%; justify-content: center; margin-top: 20px; }
+  .hero__trust { gap: 10px 16px; margin-top: 20px; }
 }

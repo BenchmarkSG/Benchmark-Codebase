@@ -17,6 +17,10 @@
   font-size: 22px;
   color: var(--navy-900);
   letter-spacing: -0.03em;
+  white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .nav__brand-accent { color: var(--blue-600); }
 .nav__tld { color: var(--muted); font-weight: 700; }
@@ -31,9 +35,65 @@
 }
 .nav__links a:hover { color: var(--blue-600); }
 
-.nav__actions { display: flex; align-items: center; gap: 12px; }
-.nav__cta { padding: 11px 18px; font-size: 15px; }
-.nav__signin { padding: 10px 16px; font-size: 15px; }
+.nav__actions { display: flex; align-items: center; gap: 12px; flex: 0 0 auto; }
+.nav__cta { padding: 11px 18px; font-size: 15px; white-space: nowrap; flex: 0 0 auto; }
+.nav__signin { padding: 10px 16px; font-size: 15px; white-space: nowrap; flex: 0 0 auto; }
+
+/* Profile icon — phone-only replacement for the "Sign in" button */
+.nav__signin-icon {
+  display: none;
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line);
+  background: #fff;
+  color: var(--navy-800);
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+.nav__signin-icon:hover { border-color: var(--navy-600); color: var(--blue-600); }
+
+/* Hamburger (mobile only) */
+.nav__burger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 42px; height: 42px;
+  padding: 0 9px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  flex: 0 0 auto;
+}
+.nav__burger span {
+  display: block; height: 2px; width: 100%;
+  background: var(--navy-800); border-radius: 2px;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.nav__burger.is-open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.nav__burger.is-open span:nth-child(2) { opacity: 0; }
+.nav__burger.is-open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* Mobile dropdown menu */
+.nav__mobile {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+  box-shadow: var(--shadow-md);
+  padding: 6px 18px 14px;
+  animation: navdrop 0.18s ease;
+}
+@keyframes navdrop { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+.nav__mobile a {
+  padding: 13px 4px;
+  font-size: 15.5px; font-weight: 600;
+  color: var(--navy-800);
+  border-bottom: 1px solid var(--line);
+}
+.nav__mobile a:active { color: var(--blue-600); }
+.nav__mobile-cta { margin-top: 14px; width: 100%; justify-content: center; }
 
 /* Account avatar + dropdown */
 .nav__user { position: relative; }
@@ -78,10 +138,20 @@
 
 @media (max-width: 900px) {
   .nav__links { display: none; }
-  .nav__actions { margin-left: auto; }
+  .nav__brand { margin-right: auto; }
+  .nav__burger { display: flex; }
+  /* Two-class selectors so these beat global.css `.btn { display: inline-flex }`,
+     which loads later and would otherwise keep these visible on mobile. */
+  .nav__actions .nav__signin { display: none; }   /* phone: replaced by the profile icon */
+  .nav__signin-icon { display: inline-flex; }
+  .nav__actions .nav__cta { display: none; }       /* phone: Free Benchmark moved into the menu */
 }
-@media (max-width: 520px) {
-  .nav__cta { font-size: 13px; padding: 10px 14px; }
-  .nav__signin { font-size: 13px; padding: 9px 12px; }
-  .nav__brand { font-size: 19px; }
+@media (max-width: 560px) {
+  .nav__inner { gap: 12px; height: 60px; }
+  .nav__actions { gap: 8px; }
+  .nav__brand { font-size: 18px; }
+}
+@media (max-width: 400px) {
+  .nav__inner { gap: 8px; }
+  .nav__brand { font-size: 16.5px; }
 }
