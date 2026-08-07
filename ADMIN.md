@@ -30,6 +30,13 @@ The password is **not** in the code. Instead:
    Then run [`supabase/advisors.sql`](supabase/advisors.sql) — it adds the
    `advisors` table (founding-member applications) + the `advisor-photos` storage
    bucket, with public apply / admin-only read.
+   Then run [`supabase/product_model_v2.sql`](supabase/product_model_v2.sql) — it
+   adds `product_rates.variant`, remittance settlement time, and the
+   `treasury_profiles` table (efficiency-questionnaire submissions).
+   Then run [`supabase/dashboards.sql`](supabase/dashboards.sql) — it adds the
+   `saved_benchmarks` and `leads` tables, advisor self-service policies and the
+   `advisor_directory` view that power the user & advisor dashboards
+   (see [DASHBOARDS.md](DASHBOARDS.md)).
 3. Create the admin account (uses the service-role key):
    ```bash
    export SUPABASE_URL="https://<ref>.supabase.co"
@@ -44,21 +51,24 @@ The password is **not** in the code. Instead:
 ## Using it
 
 1. Go to `/#admin` and sign in with the admin credentials.
-2. Pick a section (Overdraft, Loans & trade finance, Remittance, Negotiation
-   thresholds, Individual product rates, Registered users, Advisor applications,
-   Banks, Countries) and, where relevant, a country. **Registered users** is
-   read-only — it lists every sign-up with name, email, WhatsApp phone and
+2. Pick a section (Remittance, Negotiation thresholds, Product rates, Treasury
+   health checks, Registered users, Advisor applications, Banks, Countries) and,
+   where relevant, a country. **Product rates** is the unified rate pool (product
+   + `variant` + currency) — it holds overdraft, loan and trade-finance rates,
+   which each used to have their own (now-retired) tab. **Registered
+   users** is read-only — every sign-up with name, email, WhatsApp phone and
    monthly-income bracket. **Advisor applications** lists founding-member
-   applicants (name, contact, specialization, products, photo); only **Status**
-   is editable (mark `approved` / `rejected`).
+   applicants; only **Status** is editable (mark `approved` / `rejected`).
+   **Treasury health checks** lists efficiency-questionnaire submissions (contact,
+   score, band) — read-only.
 3. Each row shows current values. Click the **pencil** to edit, change the
    value(s), then **Save** — that's when the update is written to Supabase. The
    row briefly highlights green on success. **Cancel** discards changes.
 
 ## Editable fields
 
-- **Overdraft** — min/max rate, indicative flag
-- **Loans & trade finance** — interest rate, arrangement/other fees, tenor
+- **Product rates** — rate, currency, variant, indicative flag (the unified pool
+  for loans, deposits, overdraft, trade finance, etc.)
 - **Remittance** — upfront/intermediary/lifting fees, FX spread
 - **Negotiation thresholds** — target saving, threshold, switching cost/weeks, worthwhile
 - **Banks** — name, category, order

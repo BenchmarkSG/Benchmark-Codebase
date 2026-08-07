@@ -56,6 +56,8 @@
 .adm-header__brand span { color: #6ea8ff; }
 .adm-header__right { display: flex; align-items: center; gap: 14px; }
 .adm-header__user { font-size: 13px; color: #cbd6e8; }
+.adm-header__home { font-size: 13px; font-weight: 700; color: #cbd6e8; text-decoration: none; }
+.adm-header__home:hover { color: #fff; }
 
 .adm-tabs {
   display: flex; flex-wrap: wrap; gap: 4px;
@@ -104,6 +106,9 @@
 .adm-btn--save:disabled { opacity: 0.6; cursor: default; }
 .adm-btn--ghost { background: transparent; border: 1px solid var(--line); color: var(--navy); }
 .adm-btn--ghost:hover { background: #f4f8fd; }
+/* On the dark navy header the ghost button needs light text to be readable. */
+.adm-header .adm-btn--ghost { border-color: rgba(255, 255, 255, 0.35); color: #fff; }
+.adm-header .adm-btn--ghost:hover { background: rgba(255, 255, 255, 0.12); border-color: rgba(255, 255, 255, 0.6); }
 
 .adm-error {
   padding: 10px 12px; margin-bottom: 12px; border-radius: 8px;

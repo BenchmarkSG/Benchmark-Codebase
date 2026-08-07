@@ -123,18 +123,22 @@
 .nav__menu-name { font-size: 13.5px; font-weight: 800; color: var(--navy-900); }
 .nav__menu-email { font-size: 12px; color: var(--muted); margin-top: 2px; word-break: break-all; }
 .nav__menu-item {
-  margin-top: 10px;
+  display: block;
+  margin-top: 8px;
   width: 100%;
   text-align: left;
   border: none;
   border-top: 1px solid var(--line);
-  padding: 10px 4px 2px;
+  padding: 9px 4px 2px;
   background: transparent;
-  color: var(--red-600);
+  color: var(--navy-800);
   font-size: 13.5px; font-weight: 700;
+  text-decoration: none;
   cursor: pointer;
 }
-.nav__menu-item:hover { color: #b91820; }
+.nav__menu-item:hover { color: var(--blue-600); }
+.nav__menu-item--danger { color: var(--red-600); }
+.nav__menu-item--danger:hover { color: #b91820; }
 
 @media (max-width: 900px) {
   .nav__links { display: none; }

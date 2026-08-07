@@ -161,6 +161,14 @@ export default function AuthModal({ open, onClose }) {
           <button type="submit" className="btn btn--primary btn--block auth__submit" disabled={busy}>
             {submitLabel}
           </button>
+
+          {mode === 'signup' && (
+            <p className="auth__legal">
+              By creating an account you agree to our{' '}
+              <a href="#terms" target="_blank" rel="noopener noreferrer">Terms &amp; Conditions</a> and{' '}
+              <a href="#privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.
+            </p>
+          )}
         </form>
 
         <p className="auth__switch">

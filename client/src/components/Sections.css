@@ -28,12 +28,18 @@
   gap: 18px;
 }
 .products__card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 24px;
   background: #fff;
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
+.products__card:focus-visible { outline: 2px solid var(--blue-500); outline-offset: 2px; }
 .products__card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); border-color: #cdd8ec; }
 .products__card h3 { font-size: 18px; color: var(--navy-900); }
 .products__card p { color: var(--muted); font-size: 14px; margin-top: 6px; }

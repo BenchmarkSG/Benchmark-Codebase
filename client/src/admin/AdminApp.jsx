@@ -5,38 +5,14 @@ import { supabase } from '../lib/supabase.js';
 import EditableTable from './EditableTable.jsx';
 import { INCOME_LABELS } from '../lib/profileFields.js';
 import { SERVES_LABELS } from '../lib/advisorFields.js';
-
-const ADMIN_EMAIL = 'admin@benchmark.com';
+import { ADMIN_EMAIL } from '../lib/roles.js';
 
 // Which tables the portal can edit, and how each row is shown/edited.
+// NOTE: overdraft and loan/trade-finance rates now live in the unified
+// `product_rates` table (the "Product rates" section). The old `overdraft_rates`
+// and `loan_products` tables were retired in the v2 model, so their tabs were
+// removed — the seeder no longer populates them.
 const SECTIONS = [
-  {
-    key: 'overdraft', title: 'Overdraft rates', table: 'overdraft_rates', pk: 'id',
-    select: 'id, currency, rate_min, rate_max, is_indicative, banks!inner(name, country_code)',
-    byCountry: 'banks.country_code',
-    columns: [
-      { key: 'bank', label: 'Bank', get: (r) => r.banks?.name },
-      { key: 'currency', label: 'Ccy' },
-      { key: 'rate_min', label: 'Min %', type: 'number', step: 0.01, editable: true },
-      { key: 'rate_max', label: 'Max %', type: 'number', step: 0.01, editable: true },
-      { key: 'is_indicative', label: 'Indicative', type: 'boolean', editable: true },
-    ],
-  },
-  {
-    key: 'loans', title: 'Loans & trade finance', table: 'loan_products', pk: 'id',
-    select: 'id, product_type, currency, interest_rate, tenor_months, arrangement_fee, other_fees, is_indicative, banks!inner(name, country_code)',
-    byCountry: 'banks.country_code',
-    columns: [
-      { key: 'bank', label: 'Bank', get: (r) => r.banks?.name },
-      { key: 'product_type', label: 'Product' },
-      { key: 'currency', label: 'Ccy' },
-      { key: 'interest_rate', label: 'Rate %', type: 'number', step: 0.01, editable: true },
-      { key: 'arrangement_fee', label: 'Arr. fee %', type: 'number', step: 0.001, editable: true },
-      { key: 'other_fees', label: 'Other %', type: 'number', step: 0.001, editable: true },
-      { key: 'tenor_months', label: 'Tenor(m)', type: 'number', step: 1, editable: true },
-      { key: 'is_indicative', label: 'Indicative', type: 'boolean', editable: true },
-    ],
-  },
   {
     key: 'remittance', title: 'Remittance charges', table: 'remittance_charges', pk: 'id',
     select: 'id, direction, counterparty, upfront_fee, intermediary_fee, lifting_fee, fee_currency, fx_spread_pct, is_indicative, banks!inner(name, country_code)',
@@ -67,16 +43,32 @@ const SECTIONS = [
     ],
   },
   {
-    key: 'product_rates', title: 'Individual product rates', table: 'product_rates', pk: 'id',
-    select: 'id, product, bank, currency, rate, rate_type, is_indicative, country_code',
+    key: 'product_rates', title: 'Product rates', table: 'product_rates', pk: 'id',
+    select: 'id, product, variant, bank, currency, rate, rate_type, is_indicative, country_code',
     byCountry: 'country_code', order: 'product',
     columns: [
       { key: 'product', label: 'Product' },
+      { key: 'variant', label: 'Variant' },
       { key: 'bank', label: 'Bank' },
       { key: 'currency', label: 'Ccy' },
       { key: 'rate', label: 'Rate %', type: 'number', step: 0.01, editable: true },
       { key: 'rate_type', label: 'Type' },
       { key: 'is_indicative', label: 'Indicative', type: 'boolean', editable: true },
+    ],
+  },
+  {
+    key: 'treasury_profiles', title: 'Treasury health checks', table: 'treasury_profiles', pk: 'id',
+    select: 'id, questionnaire, full_name, company, email, phone, score, band, created_at',
+    order: 'created_at', desc: true, emptyText: 'No health-check submissions yet.',
+    columns: [
+      { key: 'questionnaire', label: 'Assessment' },
+      { key: 'full_name', label: 'Name' },
+      { key: 'company', label: 'Company' },
+      { key: 'email', label: 'Email' },
+      { key: 'phone', label: 'Phone' },
+      { key: 'score', label: 'Score' },
+      { key: 'band', label: 'Band' },
+      { key: 'created_at', label: 'Submitted', get: (r) => (r.created_at ? new Date(r.created_at).toLocaleDateString() : '') },
     ],
   },
   {
@@ -224,6 +216,7 @@ function Editor({ onSignOut, email }) {
       <header className="adm-header">
         <div className="adm-header__brand">Bank<span>Benchmark</span> · Admin</div>
         <div className="adm-header__right">
+          <a className="adm-header__home" href="#top">↗ View site</a>
           <span className="adm-header__user">{email}</span>
           <button className="adm-btn adm-btn--ghost" onClick={onSignOut}>Sign out</button>
         </div>

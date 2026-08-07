@@ -1,0 +1,69 @@
+/* Status banner */
+.adv-status {
+  display: flex; gap: 14px; align-items: flex-start;
+  border-radius: 14px; padding: 16px 18px; margin-bottom: 20px; border: 1px solid var(--line);
+}
+.adv-status--pending { background: #fff8e8; border-color: #f2e0b0; }
+.adv-status--approved { background: #ecfaf1; border-color: #b6e6ca; }
+.adv-status--rejected { background: #fdeceb; border-color: #f2c4c0; }
+.adv-status__icon { font-size: 24px; }
+.adv-status__title { font-size: 15px; font-weight: 800; color: var(--navy-900); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.adv-status__badge { font-size: 11px; font-weight: 800; color: #b26b00; background: #ffedc2; border-radius: 999px; padding: 2px 9px; }
+.adv-status__text { font-size: 13px; color: var(--muted); margin-top: 3px; }
+
+/* Leads */
+.alead__list { display: flex; flex-direction: column; gap: 12px; }
+.alead {
+  background: #fff; border: 1px solid var(--line); border-radius: 14px;
+  padding: 16px 18px; box-shadow: var(--shadow-sm);
+}
+.alead__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.alead__name { font-size: 15px; font-weight: 800; color: var(--navy-900); }
+.alead__meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.alead__pill { font-size: 11px; font-weight: 800; border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+.alead__pill--new { background: var(--blue-50); color: var(--blue-700); }
+.alead__pill--contacted { background: #eef1f6; color: var(--navy-700); }
+.alead__pill--negotiating { background: #fff3d6; color: #a6771a; }
+.alead__pill--closed_won { background: #ecfaf1; color: #0f7a44; }
+.alead__pill--closed_lost { background: #fdeceb; color: var(--red-600); }
+.alead__contact { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+.alead__contact a { font-size: 13px; font-weight: 700; color: var(--blue-600); text-decoration: none; }
+.alead__contact a:hover { text-decoration: underline; }
+.alead__msg { font-size: 13px; color: var(--navy-700); margin-top: 8px; font-style: italic; }
+.alead__cal { display: inline-block; margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--blue-600); text-decoration: none; }
+
+.alead__stages { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.alead__stage {
+  border: 1px solid var(--line); background: #fff; cursor: pointer;
+  padding: 6px 11px; border-radius: 999px; font-size: 12px; font-weight: 700; color: var(--muted);
+}
+.alead__stage.is-current { background: var(--navy-800); border-color: var(--navy-800); color: #fff; }
+.alead__won { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; }
+.alead__won label { font-size: 12px; font-weight: 700; color: var(--navy-800); display: flex; flex-direction: column; gap: 5px; }
+.alead__won input {
+  width: 150px; border: 1.5px solid var(--line); border-radius: 9px; padding: 8px 10px;
+  font-size: 14px; font-weight: 600; color: var(--navy-900);
+}
+.alead__won input:focus { outline: none; border-color: var(--blue-500); }
+
+/* Profile editor */
+.aprof { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 22px; box-shadow: var(--shadow-sm); max-width: 720px; }
+.aprof__note { font-size: 12.5px; color: var(--muted); margin-bottom: 16px; }
+.aprof__row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.aprof__field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700; color: var(--navy-800); margin-bottom: 14px; }
+.aprof__field input, .aprof__field select, .aprof__field textarea {
+  border: 1.5px solid var(--line); border-radius: 10px; padding: 11px 12px;
+  font-size: 14px; font-weight: 600; color: var(--navy-900); font-family: inherit;
+}
+.aprof__field input:focus, .aprof__field select:focus, .aprof__field textarea:focus { outline: none; border-color: var(--blue-500); }
+.aprof__chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.aprof__chip {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600;
+  border: 1px solid var(--line); border-radius: 999px; padding: 7px 12px; cursor: pointer; color: var(--navy-800);
+}
+.aprof__chip.is-on { background: var(--blue-50); border-color: #c3d8f5; color: var(--blue-700); }
+.aprof__chip input { accent-color: var(--blue-600); }
+.aprof__actions { display: flex; align-items: center; gap: 14px; margin-top: 6px; }
+.aprof__saved { color: #0f7a44; font-weight: 800; font-size: 13px; }
+
+@media (max-width: 620px) { .aprof__row { grid-template-columns: 1fr; } }

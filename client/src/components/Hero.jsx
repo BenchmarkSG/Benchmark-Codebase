@@ -17,7 +17,7 @@ const SLIDES = [
   },
 ];
 
-export default function Hero({ onDetailedFeedback, onStart }) {
+export default function Hero({ onDetailedFeedback, onStart, calcSelection, onRequireAuth }) {
   const [active, setActive] = useState(0);
 
   // Auto-advance the left-column text carousel.
@@ -59,13 +59,13 @@ export default function Hero({ onDetailedFeedback, onStart }) {
           <ul className="hero__trust">
             <li>🛡️ Trusted by SMEs &amp; professionals</li>
             <li>🔒 Anonymous &amp; Secure</li>
-            <li>🔄 Data updated weekly</li>
+            <li>🔄 Data updated daily</li>
           </ul>
         </div>
 
         {/* Right column — free benchmark calculator */}
         <div className="hero__media">
-          <BenchmarkCalculator compact onDetailedFeedback={onDetailedFeedback} />
+          <BenchmarkCalculator compact onDetailedFeedback={onDetailedFeedback} selection={calcSelection} onRequireAuth={onRequireAuth} />
         </div>
       </div>
     </section>

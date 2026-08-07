@@ -1,28 +1,20 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import './Sections.css';
+import { getReference } from '../api.js';
 
-/* -------- Banking products we compare -------- */
-const PRODUCTS = {
-  individual: [
-    { title: 'Mortgages', sub: 'Home loan rates & conditions' },
-    { title: 'Savings Accounts', sub: 'Interest rates & account fees' },
-    { title: 'Fixed Deposits', sub: 'Maturity rates & terms' },
-    { title: 'Personal Loans', sub: 'Interest rates & processing fees' },
-    { title: 'FX & Remittance', sub: 'Exchange rates & transfer fees' },
-    { title: 'Credit Cards', sub: 'Rewards & annual fees' },
-  ],
-  sme: [
-    { title: 'Current Accounts', sub: 'Interest & maintenance fees' },
-    { title: 'Business Loans', sub: 'Working capital & term loans' },
-    { title: 'Trade Finance', sub: 'LC, BG, invoice financing' },
-    { title: 'FX Margins', sub: 'Spreads on business FX' },
-    { title: 'Bulk Payments', sub: 'Payroll & vendor payouts' },
-    { title: 'Cash Management', sub: 'Sweeps & liquidity structures' },
-  ],
-};
-
-export function Products() {
+/* -------- Banking products we compare --------
+   Sourced from the same /api/reference catalog as the benchmark calculator, so
+   the two never drift. Clicking a card selects that product in the calculator. */
+export function Products({ onCompare }) {
   const [seg, setSeg] = useState('individual');
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    getReference().then((r) => setProducts(r.products || [])).catch(() => {});
+  }, []);
+
+  const list = products.filter((p) => p.segments?.includes(seg));
+
   return (
     <div className="products" id="products">
       <h2 className="section-title products__title">Banking Products We Compare</h2>
@@ -34,12 +26,17 @@ export function Products() {
       </div>
 
       <div className="products__grid">
-        {PRODUCTS[seg].map((p) => (
-          <article className="products__card" key={p.title}>
-            <h3>{p.title}</h3>
-            <p>{p.sub}</p>
+        {list.map((p) => (
+          <button
+            type="button"
+            className="products__card"
+            key={p.id}
+            onClick={() => onCompare?.({ segment: seg, productId: p.id })}
+          >
+            <h3>{p.label}</h3>
+            <p>{p.blurb}</p>
             <span className="products__link">Compare Now →</span>
-          </article>
+          </button>
         ))}
       </div>
     </div>
@@ -102,7 +99,8 @@ export function RealSavings() {
 }
 
 /* -------- For individuals vs SMEs split -------- */
-export function Segments({ onGetStarted }) {
+export function Segments({ onGetStarted, onCompare }) {
+  const compare = (segment) => (onCompare ? onCompare({ segment }) : onGetStarted?.());
   return (
     <div className="segments">
       <div className="segments__stack">
@@ -114,7 +112,7 @@ export function Segments({ onGetStarted }) {
             <li>Personal Loans</li><li>Savings Accounts</li>
             <li>Credit Cards</li><li>Insurance</li>
           </ul>
-          <button className="btn btn--navy btn--block" onClick={onGetStarted}>Compare Now</button>
+          <button className="btn btn--navy btn--block" onClick={() => compare('individual')}>Compare Now</button>
         </article>
 
         <div className="segments__mid">
@@ -143,7 +141,7 @@ export function Segments({ onGetStarted }) {
             <li>Business Loans</li><li>Bulk Payments</li>
             <li>Trade Finance</li><li>Cash Management</li>
           </ul>
-          <button className="btn btn--primary btn--block" onClick={onGetStarted}>Compare Now</button>
+          <button className="btn btn--primary btn--block" onClick={() => compare('sme')}>Compare Now</button>
         </article>
       </div>
     </div>
@@ -188,13 +186,39 @@ const TESTIMONIALS = [
   { quote: 'The benchmark gave us real leverage in the conversation with our bank.', name: 'Managing Director', role: 'Logistics Firm' },
 ];
 
-const Avatar = () => (
-  <svg viewBox="0 0 48 48" width="52" height="52" aria-hidden="true">
-    <circle cx="24" cy="24" r="24" fill="#e4ecf7" />
-    <circle cx="24" cy="19" r="8" fill="#9db4d4" />
-    <path d="M8 42c2-9 9-13 16-13s14 4 16 13z" fill="#9db4d4" />
-  </svg>
-);
+// Distinct illustrated avatars (self-contained, no external assets). Varied skin
+// tone, hair and clothing so each testimonial reads as a different person —
+// clearly illustrations, not photos of specific individuals. Swap for real
+// customer headshots (with consent) by dropping images in public/images.
+const FACES = [
+  { skin: '#eebd97', hair: '#3b2a1e', bg: '#e7eef8', shirt: '#2f5fbf', long: true },
+  { skin: '#a5714a', hair: '#171717', bg: '#efe7f7', shirt: '#7a3ea0', long: false },
+  { skin: '#e8b48c', hair: '#6b4a2b', bg: '#fbe9e7', shirt: '#d0544a', long: false },
+  { skin: '#c98d5e', hair: '#242424', bg: '#e6f6ee', shirt: '#1a9d6a', long: true },
+  { skin: '#f2d1b3', hair: '#9aa0a8', bg: '#eef1f6', shirt: '#334155', long: false },
+  { skin: '#b57a4e', hair: '#201811', bg: '#fdf0e3', shirt: '#e0894b', long: true },
+];
+
+const Avatar = ({ i = 0 }) => {
+  const f = FACES[i % FACES.length];
+  const cid = `avc-${i}`;
+  return (
+    <svg className="tst__avatar" viewBox="0 0 48 48" width="52" height="52" role="img" aria-label="Customer avatar">
+      <defs><clipPath id={cid}><circle cx="24" cy="24" r="24" /></clipPath></defs>
+      <g clipPath={`url(#${cid})`}>
+        <rect width="48" height="48" fill={f.bg} />
+        <path d="M4 48c0-11 9-16 20-16s20 5 20 16z" fill={f.shirt} />
+        <path d="M20 28h8v6a4 4 0 0 1-8 0z" fill={f.skin} />
+        <circle cx="24" cy="20" r="10.5" fill={f.skin} />
+        {f.long ? (
+          <path d="M11 30c-1-4-1-9 1-13 2-5 7-7 12-7s10 2 12 7c2 4 2 9 1 13c0-2-1-4-2-6c0-8-4-9-11-9s-11 1-11 9c-1 2-2 4-2 6z" fill={f.hair} />
+        ) : (
+          <path d="M13.5 20c0-8 4.5-11 10.5-11s10.5 3 10.5 11c-1.5-4-4.5-6-10.5-6s-9 2-10.5 6z" fill={f.hair} />
+        )}
+      </g>
+    </svg>
+  );
+};
 const Stars = () => (
   <div className="tst__stars">{'★★★★★'.split('').map((s, i) => <span key={i}>★</span>)}</div>
 );
@@ -204,11 +228,11 @@ export function Testimonials() {
     <div className="tst">
       <h2 className="section-title tst__title">Trusted by Businesses &amp; Professionals</h2>
       <div className="tst__list">
-        {TESTIMONIALS.map((t) => (
+        {TESTIMONIALS.map((t, i) => (
           <article className="tst__card" key={t.quote}>
             <p className="tst__quote">“{t.quote}”</p>
             <div className="tst__foot">
-              <Avatar />
+              <Avatar i={i} />
               <div>
                 <div className="tst__who"><strong>{t.name},</strong><span>{t.role}</span></div>
                 <Stars />
@@ -225,7 +249,7 @@ export function Testimonials() {
 export function Founding({ onBecomeMember }) {
   return (
     <div className="founding">
-      <h2 className="section-title founding__title">Join Our Founding Advisors</h2>
+      <h2 className="section-title founding__title">Join Our Advisors Community</h2>
       <p className="section-sub founding__sub">
         Be among the first banking specialists on BankBenchmark and get matched with the individuals
         and businesses who need your expertise. Founding advisors enjoy:
@@ -243,7 +267,7 @@ export function Founding({ onBecomeMember }) {
         ))}
       </div>
       <div className="founding__bar">
-        <div className="founding__bar-label">Limited founding advisor spots remaining</div>
+        <div className="founding__bar-label">Limited advisor spots remaining</div>
         <div className="founding__bar-track"><div className="founding__bar-fill" /></div>
       </div>
       <button className="btn btn--red btn--block founding__cta" onClick={onBecomeMember}>
@@ -336,7 +360,7 @@ export function Footer() {
         </div>
         <div>
           <h4>Legal</h4>
-          <a href="#top">Privacy</a><a href="#top">Terms</a><a href="#top">Disclaimer</a>
+          <a href="#privacy">Privacy Policy</a><a href="#terms">Terms &amp; Conditions</a><a href="#disclaimer">Disclaimer</a>
         </div>
       </div>
 

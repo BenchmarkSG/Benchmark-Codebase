@@ -112,6 +112,16 @@
 }
 .auth__forgot:hover { text-decoration: underline; }
 
+.auth__legal {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.auth__legal a { color: var(--blue-600); font-weight: 700; text-decoration: none; }
+.auth__legal a:hover { text-decoration: underline; }
+
 .auth__switch { margin-top: 18px; text-align: center; font-size: 13px; color: var(--muted); }
 .auth__switch button {
   border: none; background: transparent;

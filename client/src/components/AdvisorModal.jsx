@@ -184,7 +184,9 @@ export default function AdvisorModal({ open, onClose }) {
               </label>
               <label className="adv__check">
                 <input type="checkbox" required checked={form.accepted_terms} onChange={set('accepted_terms')} />
-                <span>I accept the Terms &amp; Conditions and Privacy Policy. <em>(required)</em></span>
+                <span>I accept the{' '}
+                  <a href="#terms" target="_blank" rel="noopener noreferrer">Terms &amp; Conditions</a> and{' '}
+                  <a href="#privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>. <em>(required)</em></span>
               </label>
 
               {error && <div className="adv__error">{error}</div>}

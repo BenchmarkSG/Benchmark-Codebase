@@ -96,61 +96,51 @@ export async function getThresholds(country) {
   });
 }
 
-/* Maps a calculator product to its source table + how to extract the comparable
-   numeric value from each row. Used by getProductValues() below. */
-const PRODUCT_SOURCES = {
-  overdraft: { kind: 'overdraft' },
-  short_term_local: { kind: 'loan', type: 'short_term_local', field: 'interest_rate' },
-  short_term_usd: { kind: 'loan', type: 'short_term_usd', field: 'interest_rate' },
-  import_lc: { kind: 'loan', type: 'import_lc', field: 'arrangement_fee' },
-  export_lc_discount: { kind: 'loan', type: 'export_lc_discount', field: 'interest_rate' },
-  remittance: { kind: 'remittance', direction: 'outward', field: 'fx_spread_pct' },
-  // Individual products live in the generic product_rates table.
-  mortgage: { kind: 'generic', product: 'mortgage' },
-  personal_loan: { kind: 'generic', product: 'personal_loan' },
-  savings: { kind: 'generic', product: 'savings' },
-  fixed_deposit: { kind: 'generic', product: 'fixed_deposit' },
-};
-
-export async function getGenericRates(country, product, currency) {
+/* Unified rate pool. Every 'rate'-family product (loans, deposits, current
+   account, overdraft, short-term & unfunded facilities) lives in product_rates,
+   keyed by product id + optional `variant` (funded/unfunded type). */
+export async function getGenericRates(country, product, currency, variant) {
   if (!isSupabaseConfigured) return null;
-  return cached(`pr:${country}:${product}:${currency || ''}`, async () => {
-    let q = supabase.from('product_rates').select('bank, currency, rate, rate_type')
+  return cached(`pr:${country}:${product}:${currency || ''}:${variant || ''}`, async () => {
+    let q = supabase.from('product_rates').select('bank, currency, rate, rate_type, variant')
       .eq('country_code', country).eq('product', product);
     if (currency) q = q.eq('currency', currency);
+    if (variant) q = q.eq('variant', variant);
     const { data, error } = await q;
     if (error) throw error;
     return data;
   });
 }
 
-/* Returns the comparable rate values (with the bank behind each) for a calculator
-   product, or null when Supabase isn't configured (so the API can 503).
-   Shape: { items: [{ bank, value }], values: [value] } — `items` lets callers
-   reveal the best-priced bank; `values` is kept for the pure benchmark maths. */
-export async function getProductValues(country, product, currency) {
+/* Cross-border: turn each bank's remittance row into an all-in cost % (FX spread
+   plus fees expressed as a % of the notional) so it's comparable to the user's
+   computed cost. Benchmarks the outgoing leg. */
+export async function getCrossBorderCostPool(country) {
   if (!isSupabaseConfigured) return null;
-  const src = PRODUCT_SOURCES[product];
-  const pack = (items) => ({ items, values: items.map((i) => i.value) });
-  if (!src) return pack([]);
+  const rows = await getRemittance(country, 'outgoing');
+  const items = (rows || []).map((r) => {
+    const amt = Number(r.amount) || 0;
+    const fees = Number(r.upfront_fee || 0) + Number(r.intermediary_fee || 0) + Number(r.lifting_fee || 0);
+    const feePct = amt > 0 ? (fees / amt) * 100 : 0;
+    const costPct = Number(r.fx_spread_pct || 0) + feePct;
+    return { bank: r.banks?.name || null, value: Math.round(costPct * 100) / 100 };
+  });
+  return { items, values: items.map((i) => i.value) };
+}
 
-  if (src.kind === 'overdraft') {
-    const rows = await getOverdraft(country, currency || undefined);
-    return pack((rows || []).map((r) => ({ bank: r.banks?.name || null, value: (Number(r.rate_min) + Number(r.rate_max)) / 2 })));
+/* Returns the comparable values (with the bank behind each) for a product, or
+   null when Supabase isn't configured. Shape: { items:[{bank,value}], values:[] }. */
+export async function getProductValues(country, product, currency, variant) {
+  if (!isSupabaseConfigured) return null;
+  const meta = getProduct(product);
+  const pack = (items) => ({ items, values: items.map((i) => i.value) });
+  if (!meta) return pack([]);
+
+  if (meta.family === 'crossborder') {
+    return getCrossBorderCostPool(country);
   }
-  if (src.kind === 'loan') {
-    const rows = await getLoans(country, src.type);
-    return pack((rows || []).map((r) => ({ bank: r.banks?.name || null, value: Number(r[src.field]) })));
-  }
-  if (src.kind === 'remittance') {
-    const rows = await getRemittance(country, src.direction);
-    return pack((rows || []).map((r) => ({ bank: r.banks?.name || null, value: Number(r[src.field]) })));
-  }
-  if (src.kind === 'generic') {
-    const rows = await getGenericRates(country, src.product, currency);
-    return pack((rows || []).map((r) => ({ bank: r.bank || null, value: Number(r.rate) })));
-  }
-  return pack([]);
+  const rows = await getGenericRates(country, product, currency, variant);
+  return pack((rows || []).map((r) => ({ bank: r.bank || null, value: Number(r.rate) })));
 }
 
 /* Benchmark summary for a rate product: masks bank identities (per the product's

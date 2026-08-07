@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import './JourneyModal.css';
 import { formatMoney } from '../api.js';
+import { useAuth } from '../context/AuthContext.jsx';
+import { listAdvisorDirectory, createLead } from '../lib/dashboardApi.js';
 
 /* Screen 3 — the "reveal + act on it" screen. Same layout for both segments.
    Three vertical tiers: negotiate yourself (free), get help (call), or hire an
@@ -63,19 +65,26 @@ function Scheduler({ note }) {
   );
 }
 
-export default function JourneyModal({ open, onClose, context }) {
+export default function JourneyModal({ open, onClose, context, onRequireAuth }) {
+  const { user } = useAuth();
   const [view, setView] = useState('options'); // 'options' | 'email' | 'call' | 'expert'
   const [expert, setExpert] = useState(null);
   const [emailTo, setEmailTo] = useState('');
   const [emailBody, setEmailBody] = useState('');
   const [copied, setCopied] = useState(false);
   const [shared, setShared] = useState(false);
+  const [advisors, setAdvisors] = useState([]);
+  const [sentTo, setSentTo] = useState(null); // advisor id once a lead is created
 
   const segment = context?.segment && SEG_LABEL[context.segment] ? context.segment : 'individual';
   const savings = context?.annualSaving ?? null;
   const savingsCcy = context?.currency || 'SGD';
   const fmtSaving = (n) => formatMoney(n, savingsCcy);
   const isYield = context?.direction === 'higher';
+  const ahead = context?.status === 'ahead';
+  const standing = context?.beatsAll
+    ? `all ${context?.poolSize} providers we benchmark`
+    : `${context?.percentileBeaten}% of the providers we benchmark`;
   const bank = context?.bestBank || null;
   const productLabel = context?.product || 'banking product';
 
@@ -83,6 +92,21 @@ export default function JourneyModal({ open, onClose, context }) {
   const emailSubject = `Request to review my ${productLabel} pricing`;
   const defaultBody = useMemo(() => {
     const u = context?.unit ? ` ${context.unit}` : '%';
+    if (ahead) {
+      return `Dear Relationship Manager,
+
+I've been benchmarking my ${productLabel} against the market, and I'm pleased that my current terms are already among the most competitive available.
+
+• My current rate: ${context?.yourRate ?? '—'}${u}
+• Market's best: ~${context?.benchmarkRate ?? '—'}${u}
+
+I'd like your confirmation that you'll continue to keep my pricing in line with the market's best as rates move, so I have no reason to review my options elsewhere.
+
+Could we set up a short call this week to confirm?
+
+Kind regards,
+[Your name]`;
+    }
     const saveLine = savings
       ? `\n• That's roughly ${fmtSaving(savings)} a year I could ${isYield ? 'earn' : 'save'}.`
       : '';
@@ -115,21 +139,62 @@ Kind regards,
 
   // Reset whenever the modal reopens.
   useEffect(() => {
-    if (open) { setView('options'); setExpert(null); setEmailTo(''); setEmailBody(defaultBody); setCopied(false); setShared(false); }
+    if (open) { setView('options'); setExpert(null); setEmailTo(''); setEmailBody(defaultBody); setCopied(false); setShared(false); setSentTo(null); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  // Load the real approved-advisor directory for the expert picker.
+  useEffect(() => {
+    if (!open) return;
+    listAdvisorDirectory().then(setAdvisors).catch(() => setAdvisors([]));
+  }, [open]);
+
+  // Real advisors if any are approved; otherwise the labelled demo set.
+  const experts = advisors.length
+    ? advisors.map((a) => ({
+        id: a.id, real: true, name: a.full_name,
+        role: a.specialization || 'Banking specialist',
+        company: a.company || '', years: a.years_experience || null,
+        blurb: a.description || '', photo: a.photo_url || null, accent: '#2f7bd8',
+      }))
+    : SAMPLE_EXPERTS;
+
+  // Selecting a real advisor while signed in creates an assigned lead (their inbox).
+  const connectExpert = async (adv) => {
+    setExpert(adv);
+    if (!adv?.real || sentTo === adv.id) return;
+    if (!user) return; // a sign-in prompt is shown in the booking view
+    try {
+      await createLead({
+        advisor_id: adv.id,
+        source: 'expert',
+        segment: context?.segment || 'individual',
+        product_label: context?.product || null,
+        annual_saving: context?.annualSaving ?? null,
+        full_name: user.user_metadata?.full_name || null,
+        email: user.email,
+        phone: user.user_metadata?.phone || null,
+        booked: true,
+      });
+      setSentTo(adv.id);
+    } catch { /* non-blocking in the demo */ }
+  };
+
   if (!open) return null;
 
-  const savingLine = savings
-    ? (isYield
-        ? <>You could earn an extra <strong>{fmtSaving(savings)}</strong> a year by switching.</>
-        : <>You're overpaying — save up to <strong>{fmtSaving(savings)}</strong> a year if you negotiate.</>)
-    : <>Here's how you can act on your benchmark.</>;
+  const savingLine = ahead
+    ? <>You're already ahead of the market — you're beating <strong>{standing}</strong>. 🎉</>
+    : savings
+      ? (isYield
+          ? <>You could earn an extra <strong>{fmtSaving(savings)}</strong> a year by switching.</>
+          : <>You're overpaying — save up to <strong>{fmtSaving(savings)}</strong> a year if you negotiate.</>)
+      : <>Here's how you can act on your benchmark.</>;
 
   const share = async () => {
     const verb = isYield ? 'earn an extra' : 'save';
-    const text = `I could ${verb} ${savings ? fmtSaving(savings) : 'money'}/year on my ${productLabel} — I just benchmarked my bank on BankBenchmark.sg`;
+    const text = ahead
+      ? `My ${productLabel} is already ahead of the market — I just benchmarked my bank on BankBenchmark.sg`
+      : `I could ${verb} ${savings ? fmtSaving(savings) : 'money'}/year on my ${productLabel} — I just benchmarked my bank on BankBenchmark.sg`;
     const url = typeof window !== 'undefined' ? window.location.origin : 'https://bankbenchmark.sg';
     try {
       if (navigator.share) { await navigator.share({ title: 'BankBenchmark.sg', text, url }); }
@@ -160,7 +225,7 @@ Kind regards,
             </button>
           </div>
           <div className="jny-reveal__bankline">
-            <span className="jny-reveal__label">Your best-match bank</span>
+            <span className="jny-reveal__label">{ahead ? 'Market-leading provider (you beat it)' : 'Your best-match bank'}</span>
             <span className="jny-reveal__bank">{bank || 'Top provider unlocked'}</span>
           </div>
           <p className="jny-reveal__save">{savingLine}</p>
@@ -235,26 +300,45 @@ Kind regards,
                 <h4 className="jny-sub__title">Find an expert · select one</h4>
                 <p className="jny-sub__sub"><span className="jny-pill">$199</span> An expert prepares and leads the negotiation for you.</p>
                 <div className="jny-experts">
-                  {SAMPLE_EXPERTS.map((x) => (
+                  {experts.map((x) => (
                     <div className="jny-expert" key={x.id}>
-                      <span className="jny-expert__avatar" style={{ background: x.accent }}>
-                        {x.name.split(' ').map((w) => w[0]).join('').slice(0, 2)}
-                      </span>
+                      {x.photo ? (
+                        <img className="jny-expert__avatar jny-expert__avatar--img" src={x.photo} alt="" />
+                      ) : (
+                        <span className="jny-expert__avatar" style={{ background: x.accent }}>
+                          {x.name.split(' ').map((w) => w[0]).join('').slice(0, 2)}
+                        </span>
+                      )}
                       <div className="jny-expert__body">
                         <div className="jny-expert__name">{x.name}</div>
-                        <div className="jny-expert__role">{x.role} · {x.company} · {x.years} yrs</div>
-                        <div className="jny-expert__blurb">{x.blurb}</div>
+                        <div className="jny-expert__role">{x.role}{x.company ? ` · ${x.company}` : ''}{x.years ? ` · ${x.years} yrs` : ''}</div>
+                        {x.blurb && <div className="jny-expert__blurb">{x.blurb}</div>}
                       </div>
-                      <button className="jny-expert__pick" onClick={() => setExpert(x)}>Select →</button>
+                      <button className="jny-expert__pick" onClick={() => connectExpert(x)}>Select →</button>
                     </div>
                   ))}
                 </div>
-                <p className="jny-note">Sample advisors for the demo — real founding advisors get listed here once approved.</p>
+                {!advisors.length && (
+                  <p className="jny-note">Sample advisors for the demo — real founding advisors get listed here once approved.</p>
+                )}
               </>
             ) : (
               <>
                 <h4 className="jny-sub__title">Book with {expert.name}</h4>
-                <p className="jny-sub__sub">{expert.role} · {expert.company} · {expert.years} yrs experience</p>
+                <p className="jny-sub__sub">{expert.role}{expert.company ? ` · ${expert.company}` : ''}{expert.years ? ` · ${expert.years} yrs experience` : ''}</p>
+
+                {expert.real && !user && (
+                  <div className="jny-note jny-note--warn">
+                    Sign in to connect with {expert.name} and track this in your dashboard.
+                    <button className="jny-linkbtn" onClick={() => onRequireAuth?.()}>Sign in</button>
+                  </div>
+                )}
+                {expert.real && user && sentTo === expert.id && (
+                  <div className="jny-note jny-note--ok">
+                    ✓ Request sent to {expert.name} — they’ll reach out, and it’s now in your dashboard.
+                  </div>
+                )}
+
                 <Scheduler note={`${expert.name} and you both receive the calendar invite from Calendly.`} />
               </>
             )}

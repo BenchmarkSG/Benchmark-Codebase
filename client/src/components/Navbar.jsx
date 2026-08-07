@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import './Navbar.css';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useAdvisorRow } from '../hooks/useAdvisorRow.js';
+import { isAdminEmail } from '../lib/roles.js';
 
 const LINKS = [
   ['#how', 'How it works'],
@@ -25,12 +27,15 @@ function initials(user) {
 function UserMenu({ user, onSignOut }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const { advisor } = useAdvisorRow();
+  const admin = isAdminEmail(user);
   useEffect(() => {
     const close = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
     document.addEventListener('mousedown', close);
     return () => document.removeEventListener('mousedown', close);
   }, []);
   const name = user?.user_metadata?.full_name || user?.email;
+  const go = () => setOpen(false);
   return (
     <div className="nav__user" ref={ref}>
       <button className="nav__avatar" onClick={() => setOpen((o) => !o)} aria-label="Account menu">
@@ -40,7 +45,15 @@ function UserMenu({ user, onSignOut }) {
         <div className="nav__menu">
           <div className="nav__menu-name">{name}</div>
           <div className="nav__menu-email">{user?.email}</div>
-          <button className="nav__menu-item" onClick={onSignOut}>Sign out</button>
+          {admin ? (
+            <a className="nav__menu-item" href="#admin" onClick={go}>Admin portal</a>
+          ) : (
+            <a className="nav__menu-item" href="#dashboard" onClick={go}>My dashboard</a>
+          )}
+          {advisor && !admin && (
+            <a className="nav__menu-item" href="#advisor" onClick={go}>Advisor dashboard</a>
+          )}
+          <button className="nav__menu-item nav__menu-item--danger" onClick={onSignOut}>Sign out</button>
         </div>
       )}
     </div>

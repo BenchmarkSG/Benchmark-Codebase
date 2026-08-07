@@ -1,7 +1,11 @@
 import express from 'express';
 import cors from 'cors';
-import { PRODUCTS, buildBenchmarkResult } from './benchmark.js';
+import {
+  PRODUCTS, QUESTIONNAIRES, getProduct,
+  buildBenchmarkResult, crossBorderCostPct, scoreQuestionnaire,
+} from './benchmark.js';
 import * as ratesRepo from './ratesRepo.js';
+import * as fxModule from './fx.js';
 
 // Wrap an async handler so rejected promises become clean 5xx responses.
 const asyncRoute = (fn) => (req, res) => fn(req, res).catch((err) => {
@@ -12,10 +16,10 @@ const asyncRoute = (fn) => (req, res) => fn(req, res).catch((err) => {
 const SG_FALLBACK = { code: 'SG', name: 'Singapore', currency: 'SGD', currency_symbol: 'S$' };
 
 /**
- * Create the Express app. `repo` is injectable so tests can supply fixtures
- * instead of a live Supabase connection. Defaults to the real Supabase repo.
+ * Create the Express app. `repo` and `fx` are injectable so tests can supply
+ * fixtures instead of live Supabase / network calls.
  */
-export function createApp({ repo = ratesRepo } = {}) {
+export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
   const app = express();
   app.use(cors());
   app.use(express.json({ limit: '256kb' }));
@@ -23,26 +27,35 @@ export function createApp({ repo = ratesRepo } = {}) {
   app.get('/api/health', (_req, res) =>
     res.json({ ok: true, ratesSource: repo.ratesConfigured ? 'supabase' : 'local' }));
 
-  // Reference data to populate the calculator: countries + product metadata.
+  // Reference data for the calculator: countries + product schemas + questionnaires.
   app.get('/api/reference', asyncRoute(async (_req, res) => {
     const countries = (await repo.getCountries()) ?? [SG_FALLBACK];
-    res.json({ countries, products: PRODUCTS });
+    res.json({ countries, products: PRODUCTS, questionnaires: QUESTIONNAIRES });
   }));
 
-  // Instant benchmark for a product, computed from the Supabase rate data.
+  // Instant benchmark. Rate products compare a single rate; cross-border derives
+  // the all-in cost from the mid-market FX rate.
   app.post('/api/benchmark', asyncRoute(async (req, res) => {
-    const { country = 'SG', product, currency, yourRate, amount } = req.body || {};
-    if (!PRODUCTS.some((p) => p.id === product)) {
-      return res.status(400).json({ error: 'Unknown product' });
-    }
-    const data = await repo.getProductValues(country, product, currency);
-    if (!data) {
-      return res.status(503).json({ error: 'Rate database not configured. See PRODUCT_DATA.md.' });
-    }
+    const { country = 'SG', product, currency, variant, yourRate, amount } = req.body || {};
+    const meta = getProduct(product);
+    if (!meta) return res.status(400).json({ error: 'Unknown product' });
+
+    if (meta.family === 'crossborder') return handleCrossBorder(req, res, { repo, fx }, meta, country);
+
+    const data = await repo.getProductValues(country, product, currency, variant);
+    if (!data) return res.status(503).json({ error: 'Rate database not configured. See PRODUCT_DATA.md.' });
     const result = buildBenchmarkResult({ product, country, currency, values: data.values, items: data.items, yourRate, amount });
     if (result.error) return res.status(404).json({ error: result.error });
     res.json(result);
   }));
+
+  // Efficiency questionnaires → maturity score + expert hand-off.
+  app.post('/api/questionnaire/score', (req, res) => {
+    const { id, answers } = req.body || {};
+    const result = scoreQuestionnaire(id, answers || {});
+    if (result.error) return res.status(400).json(result);
+    res.json(result);
+  });
 
   // ---- Raw rate data (also fetched from Supabase) ----------------------------
   app.get('/api/countries', asyncRoute(async (_req, res) => {
@@ -51,30 +64,6 @@ export function createApp({ repo = ratesRepo } = {}) {
 
   app.get('/api/banks', asyncRoute(async (req, res) => {
     res.json((await repo.getBanks(req.query.country)) ?? []);
-  }));
-
-  app.get('/api/rates/overdraft', asyncRoute(async (req, res) => {
-    const data = await repo.getOverdraft(req.query.country || 'SG', req.query.currency);
-    if (!data) return res.status(503).json({ error: 'Rates DB not configured. Run scripts/seed-rates.mjs.' });
-    res.json(data);
-  }));
-
-  app.get('/api/rates/remittance', asyncRoute(async (req, res) => {
-    const data = await repo.getRemittance(req.query.country || 'SG', req.query.direction);
-    if (!data) return res.status(503).json({ error: 'Rates DB not configured. Run scripts/seed-rates.mjs.' });
-    res.json(data);
-  }));
-
-  app.get('/api/rates/loans', asyncRoute(async (req, res) => {
-    const data = await repo.getLoans(req.query.country || 'SG', req.query.type);
-    if (!data) return res.status(503).json({ error: 'Rates DB not configured. Run scripts/seed-rates.mjs.' });
-    res.json(data);
-  }));
-
-  app.get('/api/rates/thresholds', asyncRoute(async (req, res) => {
-    const data = await repo.getThresholds(req.query.country || 'SG');
-    if (!data) return res.status(503).json({ error: 'Rates DB not configured. Run scripts/seed-rates.mjs.' });
-    res.json(data);
   }));
 
   app.get('/api/rates/benchmark', asyncRoute(async (req, res) => {
@@ -91,12 +80,35 @@ export function createApp({ repo = ratesRepo } = {}) {
     if (!ok) return res.status(400).json({ error: 'A valid email is required to request a reveal.' });
     res.json({
       status: 'received',
-      message:
-        'Request received. In production a specialist would contact you to reveal providers and discuss savings.',
+      message: 'Request received. In production a specialist would contact you to reveal providers and discuss savings.',
     });
   });
 
   return app;
+}
+
+/* Cross-border: compute the customer's all-in cost from what they sent vs.
+   received, priced against the live mid-market rate, then benchmark it. */
+async function handleCrossBorder(req, res, { repo, fx }, meta, country) {
+  const { send_currency, receive_currency, sent_amount, received_amount, amount, time_taken_hours } = req.body || {};
+  const data = await repo.getProductValues(country, meta.id, null);
+  if (!data) return res.status(503).json({ error: 'Rate database not configured. See PRODUCT_DATA.md.' });
+
+  let yourCostPct;
+  if (sent_amount && received_amount && send_currency && receive_currency) {
+    const midRate = await fx.getMidRate(send_currency, receive_currency);
+    if (midRate == null) return res.status(502).json({ error: 'Could not fetch a live FX rate right now. Please try again.' });
+    yourCostPct = crossBorderCostPct({ sent: sent_amount, received: received_amount, midRate });
+  }
+
+  const result = buildBenchmarkResult({
+    product: meta.id, country, currency: send_currency || null,
+    values: data.values, items: data.items,
+    yourRate: yourCostPct, amount, // amount = annual transfer volume
+    extra: { yourCostPct: yourCostPct ?? null, settlementHours: Number(time_taken_hours) || null },
+  });
+  if (result.error) return res.status(404).json({ error: result.error });
+  res.json(result);
 }
 
 export default createApp;

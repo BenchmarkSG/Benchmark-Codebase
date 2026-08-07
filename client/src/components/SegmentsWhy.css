@@ -8,7 +8,17 @@
   align-items: stretch;
 }
 .sw .segments__col { flex: 1; padding: 24px 26px; }
-.sw .segments__mid { margin: auto -14px; align-self: center; z-index: 2; }
+/* Stretch the centre column to the cards' height and let the circle fill it,
+   so the "Compare what matters" badge is as tall as the flanking cards. */
+.sw .segments__mid { margin: 0 -16px; align-self: stretch; z-index: 2; }
+.sw .segments__circle {
+  width: auto;
+  height: 100%;
+  aspect-ratio: 1 / 1;
+  max-width: 300px;
+  max-height: 300px;
+}
+.sw .segments__circle span { font-size: clamp(15px, 1.5vw, 20px); max-width: 62%; line-height: 1.3; }
 .sw .segments__arrows { transform: none; }
 
 /* Bottom — Why Choose, heading centered, reasons in a 4-across row */
@@ -50,10 +60,18 @@
 /* Responsive */
 @media (max-width: 860px) {
   .sw .why__list { grid-template-columns: 1fr 1fr; }
+  /* Cards get taller as they narrow — cap the circle so it can't squeeze them. */
+  .sw .segments__circle { max-width: 220px; max-height: 220px; }
 }
 @media (max-width: 620px) {
   .sw .segments__stack { flex-direction: column; }
-  .sw .segments__mid { margin: -14px auto; }
+  .sw .segments__mid { margin: -14px auto; align-self: center; }
+  /* Stacked vertically — revert to the compact fixed-size badge. */
+  .sw .segments__circle {
+    width: 132px; height: 132px; aspect-ratio: auto;
+    max-width: none; max-height: none;
+  }
+  .sw .segments__circle span { font-size: 14px; max-width: 96px; }
   .sw .segments__arrows { transform: rotate(90deg); }
   .sw .why__list { grid-template-columns: 1fr; }
 }

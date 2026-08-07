@@ -46,9 +46,13 @@ country, incl. Japanese / Indian / European banks for Q3).
 
 ## One-time setup
 
-1. **Create the tables** — Supabase → SQL Editor → run
-   [`supabase/rates_schema.sql`](supabase/rates_schema.sql). (RLS: public read,
-   service-role write.)
+1. **Create the tables** — Supabase → SQL Editor → run these in order:
+   [`rates_schema.sql`](supabase/rates_schema.sql) → [`admin.sql`](supabase/admin.sql)
+   → [`product_rates.sql`](supabase/product_rates.sql) →
+   [`user_profiles.sql`](supabase/user_profiles.sql) →
+   [`advisors.sql`](supabase/advisors.sql) →
+   [`product_model_v2.sql`](supabase/product_model_v2.sql). (RLS: public read,
+   service-role/admin write.) See [PRODUCT_MODEL.md](PRODUCT_MODEL.md) for the model.
 2. **Seed the data** — set env and run the generator:
    ```bash
    export SUPABASE_URL="https://<ref>.supabase.co"
@@ -56,7 +60,7 @@ country, incl. Japanese / Indian / European banks for Q3).
    npm run seed:rates
    ```
    Preview without a DB first with `npm run seed:rates:dry` (prints row counts +
-   samples). A full run writes ~705 rows (5 countries × 15 banks × products).
+   samples). A full run writes ~1,350 `product_rates` rows + 150 remittance rows.
 3. **Point the API at Supabase** — set the server env (see `server/.env.example`):
    ```
    SUPABASE_URL=https://<ref>.supabase.co

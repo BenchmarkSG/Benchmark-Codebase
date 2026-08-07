@@ -2,7 +2,7 @@ import './WorksProducts.css';
 import HowItWorks from './HowItWorks.jsx';
 import { Products } from './Sections.jsx';
 
-export default function WorksProducts({ onGetStarted }) {
+export default function WorksProducts({ onGetStarted, onCompare }) {
   return (
     <section className="section section--soft wp" id="how">
       <div className="container wp__grid">
@@ -10,7 +10,7 @@ export default function WorksProducts({ onGetStarted }) {
           <HowItWorks onGetStarted={onGetStarted} />
         </div>
         <div className="wp__col wp__col--products">
-          <Products />
+          <Products onCompare={onCompare} />
         </div>
       </div>
     </section>

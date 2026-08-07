@@ -1,25 +1,23 @@
 /* -----------------------------------------------------------------------------
- * BankBenchmark.sg — rate data generator + seeder
+ * BankBenchmark.sg — rate data generator + seeder (product model v2)
  *
- * Generates INDICATIVE / SYNTHETIC benchmark data for the five product areas in
- * the product brief and writes it to Supabase:
- *   Q1 overdraft rates (local ccy + USD)          -> overdraft_rates
- *   Q2 cross-border remittance charges (out/in)   -> remittance_charges
- *   Q3 short-term loans (local + USD), import LC,
- *      export LC discounting                       -> loan_products
- *   Q4 negotiation thresholds (save 25k/yr/product)-> negotiation_thresholds
- *   Q5 the same, for SG / IN / MY / ID / TH        -> all tables, per country
+ * Generates INDICATIVE / SYNTHETIC benchmark data and writes it to Supabase:
+ *   • product_rates — the unified rate pool for every rate product, split by
+ *     currency + variant (housing/personal/vehicle loan, fixed deposit, current
+ *     account, overdraft, short-term finance [funded], unfunded facility).
+ *   • remittance_charges — cross-border cost + settlement time (out/in).
+ *   • negotiation_thresholds — admin reference data.
  *
  * All figures are deterministic and clearly flagged is_indicative = true.
  * Replace with sourced/licensed data before treating as real published rates.
  *
  * Usage:
- *   1. Run supabase/rates_schema.sql AND supabase/product_rates.sql in your
- *      Supabase SQL editor first (this seeder writes to both).
+ *   1. Run these SQL files first (Supabase → SQL editor), in order:
+ *        rates_schema.sql · admin.sql · product_rates.sql · product_model_v2.sql
  *   2. Set env vars (Supabase → Settings → API):
  *        export SUPABASE_URL="https://<ref>.supabase.co"
  *        export SUPABASE_SERVICE_ROLE_KEY="<service_role secret>"
- *   3. node scripts/seed-rates.mjs
+ *   3. node scripts/seed-rates.mjs        (add --dry to preview only)
  * --------------------------------------------------------------------------- */
 import { createClient } from '@supabase/supabase-js';
 import 'dotenv/config';
@@ -52,7 +50,7 @@ const COUNTRIES = [
   { code: 'TH', name: 'Thailand', currency: 'THB', currency_symbol: '฿', display_order: 5 },
 ];
 
-// --- reference: top-15 banks per country (mix satisfies Q3's JP/IN/EU banks) --
+// --- reference: top-15 banks per country -------------------------------------
 const BANKS = {
   SG: [['DBS','local'],['POSB','local'],['OCBC','local'],['UOB','local'],['Standard Chartered','european'],['Citibank','foreign'],['HSBC','european'],['Maybank','foreign'],['Bank of China','foreign'],['CIMB','foreign'],['RHB','foreign'],['MUFG Bank','japanese'],['Mizuho','japanese'],['State Bank of India','indian'],['BNP Paribas','european']],
   IN: [['State Bank of India','local'],['HDFC Bank','local'],['ICICI Bank','local'],['Axis Bank','local'],['Kotak Mahindra Bank','local'],['Punjab National Bank','local'],['Bank of Baroda','local'],['Yes Bank','local'],['Standard Chartered','european'],['HSBC','european'],['Citibank','foreign'],['DBS Bank India','foreign'],['MUFG Bank','japanese'],['Deutsche Bank','european'],['BNP Paribas','european']],
@@ -64,88 +62,84 @@ const BANKS = {
 // Category pricing tilt: how a bank tends to price vs the country base (± p.a.).
 const CAT_ADJ = { local: 0.35, foreign: -0.15, european: -0.25, japanese: -0.35, indian: 0.15, digital: -0.6 };
 
-// Country base rates (% p.a.) for local-currency products.
-const BASE = {
-  SG: { od: 6.6, stl: 5.0 }, IN: { od: 9.6, stl: 8.2 }, MY: { od: 6.9, stl: 5.4 },
-  ID: { od: 9.9, stl: 8.6 }, TH: { od: 7.1, stl: 5.6 },
-};
-const USD = { od: 7.9, stl: 6.6, exportDiscount: 7.2 };
+const FUNDED = ['import_finance', 'export_finance', 'supplier_finance', 'bill_discounting'];
+const UNFUNDED = ['lc', 'bg', 'sblc'];
 
-// Improvement a benchmarked SME can realistically negotiate, per product (Q4).
+// Unified rate pool config. base = local-currency % per country; usd = USD %.
+// rateType 'apr' (lower better) | 'yield' (higher better). variants split a
+// product into sub-pools (funded / unfunded facility types).
+const RATE_PRODUCTS = [
+  { product: 'housing_loan',       rateType: 'apr',   ccy: ['local'],        base: { SG: 3.5, IN: 8.8, MY: 4.2, ID: 9.0, TH: 6.0 } },
+  { product: 'personal_loan',      rateType: 'apr',   ccy: ['local'],        base: { SG: 8.5, IN: 12.5, MY: 7.5, ID: 12.0, TH: 9.0 } },
+  { product: 'vehicle_loan',       rateType: 'apr',   ccy: ['local'],        base: { SG: 3.2, IN: 9.5, MY: 3.8, ID: 8.5, TH: 5.0 } },
+  { product: 'fixed_deposit',      rateType: 'yield', ccy: ['local'],        base: { SG: 3.0, IN: 6.8, MY: 3.2, ID: 5.5, TH: 1.8 } },
+  { product: 'current_account',    rateType: 'yield', ccy: ['local'],        base: { SG: 0.8, IN: 3.0, MY: 1.5, ID: 2.5, TH: 0.5 } },
+  { product: 'overdraft',          rateType: 'apr',   ccy: ['local', 'USD'], base: { SG: 6.6, IN: 9.6, MY: 6.9, ID: 9.9, TH: 7.1 }, usd: 7.9 },
+  { product: 'short_term_finance', rateType: 'apr',   ccy: ['local', 'USD'], base: { SG: 5.0, IN: 8.2, MY: 5.4, ID: 8.6, TH: 5.6 }, usd: 6.6,
+    variants: FUNDED, variantAdj: { import_finance: 0, export_finance: -0.1, supplier_finance: 0.15, bill_discounting: -0.2 } },
+  { product: 'unfunded_facility',  rateType: 'apr',   ccy: ['USD'],          usd: 1.0,
+    variants: UNFUNDED, variantAdj: { lc: -0.2, bg: 0, sblc: 0.2 } },
+];
+
+// Negotiation-threshold products (admin data) → achievable improvement per annum.
 const IMPROVEMENT = {
-  overdraft: 0.015, remittance: 0.007, short_term_local: 0.012,
-  short_term_usd: 0.010, import_lc: 0.006, export_lc_discount: 0.011,
-};
-
-// Individual products (product_rates table). rateType 'apr' = lower better,
-// 'yield' = higher better. Base rate per country (% p.a.).
-const IND_PRODUCTS = {
-  mortgage:      { rateType: 'apr',   base: { SG: 3.5, IN: 8.8, MY: 4.2, ID: 9.0, TH: 6.0 } },
-  personal_loan: { rateType: 'apr',   base: { SG: 8.5, IN: 12.5, MY: 7.5, ID: 12.0, TH: 9.0 } },
-  savings:       { rateType: 'yield', base: { SG: 1.8, IN: 3.2, MY: 2.5, ID: 3.5, TH: 1.5 } },
-  fixed_deposit: { rateType: 'yield', base: { SG: 3.0, IN: 6.8, MY: 3.2, ID: 5.5, TH: 1.8 } },
+  overdraft: 0.015, short_term_finance: 0.012, unfunded_facility: 0.006,
+  cross_border: 0.007, housing_loan: 0.004, personal_loan: 0.010,
 };
 
 function build() {
-  const countries = COUNTRIES;
-  const banks = [], overdraft = [], remittance = [], loans = [], thresholds = [], productRates = [];
+  const banks = [], remittance = [], thresholds = [], productRates = [];
 
   for (const c of COUNTRIES) {
-    const ccy = c.currency;
+    const ccyLocal = c.currency;
     (BANKS[c.code] || []).forEach(([name, category], i) => {
       const id = `${c.code.toLowerCase()}-${slug(name)}`;
       banks.push({ id, country_code: c.code, name, category, display_order: i + 1 });
-      const adj = CAT_ADJ[category] ?? 0;
-      const v = (s) => (unit(id + s) - 0.5) * 1.4; // ±0.7 spread
+      const catAdj = CAT_ADJ[category] ?? 0;
 
-      // Q1 — overdraft (local + USD)
-      const odMin = round(BASE[c.code].od + adj + v('od'), 2);
-      overdraft.push({ bank_id: id, currency: ccy, rate_min: odMin, rate_max: round(odMin + 0.8 + unit(id + 'ods') * 1.2, 2) });
-      const odUsdMin = round(USD.od + adj + v('odu'), 2);
-      overdraft.push({ bank_id: id, currency: 'USD', rate_min: odUsdMin, rate_max: round(odUsdMin + 0.7 + unit(id + 'odus') * 1.1, 2) });
-
-      // Q3 — short-term loans + trade finance
-      loans.push({ bank_id: id, product_type: 'short_term_local', currency: ccy, interest_rate: round(BASE[c.code].stl + adj + v('stl'), 2), tenor_months: 3, arrangement_fee: round(0.25 + unit(id + 'stlf') * 0.4, 2), other_fees: round(unit(id + 'stlo') * 0.15, 2), notes: 'Working-capital limit against current assets' });
-      loans.push({ bank_id: id, product_type: 'short_term_usd', currency: 'USD', interest_rate: round(USD.stl + adj + v('stu'), 2), tenor_months: 3, arrangement_fee: round(0.25 + unit(id + 'stuf') * 0.4, 2), other_fees: round(unit(id + 'stuo') * 0.15, 2), notes: 'USD working-capital, SOFR-linked' });
-      loans.push({ bank_id: id, product_type: 'import_lc', currency: 'USD', interest_rate: null, tenor_months: 3, arrangement_fee: round(0.125 + unit(id + 'ilc') * 0.25, 3), other_fees: round(0.05 + unit(id + 'ilco') * 0.1, 3), notes: 'Issuance commission per quarter + handling' });
-      loans.push({ bank_id: id, product_type: 'export_lc_discount', currency: 'USD', interest_rate: round(USD.exportDiscount + adj + v('elc'), 2), tenor_months: 3, arrangement_fee: round(0.1 + unit(id + 'elcf') * 0.2, 3), other_fees: round(0.05 + unit(id + 'elco') * 0.1, 3), notes: 'Discounting of USD export L/C (e.g. issued by Citi US)' });
-
-      // Q2 — remittance (outward to US, inward from UK), notional 1,000,000 local
-      remittance.push({ bank_id: id, direction: 'outward', counterparty: 'US', amount: 1000000, amount_currency: ccy, upfront_fee: round(25 + unit(id + 'rou') * 35), intermediary_fee: round(18 + unit(id + 'roi') * 22), lifting_fee: round(10 + unit(id + 'rol') * 15), fee_currency: 'USD', fx_spread_pct: round(0.35 + unit(id + 'rox') * 0.95, 2) });
-      remittance.push({ bank_id: id, direction: 'inward', counterparty: 'UK', amount: 1000000, amount_currency: ccy, upfront_fee: round(10 + unit(id + 'riu') * 20), intermediary_fee: round(15 + unit(id + 'rii') * 20), lifting_fee: round(8 + unit(id + 'ril') * 12), fee_currency: 'USD', fx_spread_pct: round(0.3 + unit(id + 'rix') * 0.85, 2) });
-
-      // Individual products (mortgage, personal loan, savings, FD)
-      for (const [product, def] of Object.entries(IND_PRODUCTS)) {
-        const isYield = def.rateType === 'yield';
-        // For a return, keener banks (foreign/digital) pay MORE; for a cost, they charge less.
-        const catAdj = (CAT_ADJ[category] ?? 0) * (isYield ? -1 : 1);
-        const jitter = (unit(id + product) - 0.5) * 1.2;
-        productRates.push({
-          country_code: c.code, product, bank: name, currency: ccy,
-          rate: round(def.base[c.code] + catAdj + jitter, 2), rate_type: def.rateType,
-        });
+      // Unified rate pool
+      for (const p of RATE_PRODUCTS) {
+        const isYield = p.rateType === 'yield';
+        const catTilt = catAdj * (isYield ? -1 : 1); // keener banks pay more / charge less
+        for (const mode of p.ccy) {
+          const currency = mode === 'USD' ? 'USD' : ccyLocal;
+          const baseRate = mode === 'USD' ? p.usd : p.base[c.code];
+          if (baseRate == null) continue;
+          for (const v of p.variants || [null]) {
+            const vAdj = v && p.variantAdj ? (p.variantAdj[v] || 0) : 0;
+            const jitter = (unit(id + p.product + currency + (v || '')) - 0.5) * 1.2;
+            productRates.push({
+              country_code: c.code, product: p.product, bank: name, currency,
+              rate: round(baseRate + catTilt + vAdj + jitter, 3), rate_type: p.rateType, variant: v,
+            });
+          }
+        }
       }
+
+      // Cross-border remittance (outgoing to US, incoming from UK), notional 1,000,000 local
+      remittance.push({ bank_id: id, direction: 'outgoing', counterparty: 'US', amount: 1000000, amount_currency: ccyLocal, upfront_fee: round(25 + unit(id + 'rou') * 35), intermediary_fee: round(18 + unit(id + 'roi') * 22), lifting_fee: round(10 + unit(id + 'rol') * 15), fee_currency: 'USD', fx_spread_pct: round(0.35 + unit(id + 'rox') * 0.95, 2), settlement_time_hours: round(6 + unit(id + 'rot') * 66) });
+      remittance.push({ bank_id: id, direction: 'incoming', counterparty: 'UK', amount: 1000000, amount_currency: ccyLocal, upfront_fee: round(10 + unit(id + 'riu') * 20), intermediary_fee: round(15 + unit(id + 'rii') * 20), lifting_fee: round(8 + unit(id + 'ril') * 12), fee_currency: 'USD', fx_spread_pct: round(0.3 + unit(id + 'rix') * 0.85, 2), settlement_time_hours: round(2 + unit(id + 'rit') * 46) });
     });
 
-    // Q4 — negotiation thresholds (target: save 25,000 local per annum per product)
+    // Negotiation thresholds (target: save 25,000 local per annum per product)
     const target = 25000;
     for (const [product, impr] of Object.entries(IMPROVEMENT)) {
       const switching_cost = round(3000 + unit(c.code + product) * 5000);
       const switching_weeks = 4 + Math.floor(unit(c.code + product + 'w') * 6);
-      const worthwhile = target * 2 > switching_cost; // <2yr payback
       thresholds.push({
-        country_code: c.code, product, target_saving: target, saving_currency: ccy,
+        country_code: c.code, product, target_saving: target, saving_currency: ccyLocal,
         threshold_amount: Math.round(target / impr),
-        switching_cost, switching_weeks, worthwhile,
-        notes: `Negotiating clears ${target} ${ccy}/yr once facility/volume exceeds threshold (assumes ~${(impr * 100).toFixed(2)}% achievable improvement).`,
+        switching_cost, switching_weeks,
+        worthwhile: switching_cost < target, // one-off cost recouped within a year
+        notes: `Negotiating clears ${target} ${ccyLocal}/yr once volume exceeds the threshold (~${(impr * 100).toFixed(2)}% achievable).`,
       });
     }
   }
-  return { countries, banks, overdraft, remittance, loans, thresholds, productRates };
+  return { countries: COUNTRIES, banks, remittance, thresholds, productRates };
 }
 
 async function wipe() {
-  // Delete children before parents (FKs). Rate tables have updated_at.
+  // Delete children before parents (FKs).
   for (const t of ['negotiation_thresholds', 'overdraft_rates', 'remittance_charges', 'loan_products', 'product_rates']) {
     const { error } = await db.from(t).delete().gte('updated_at', '1970-01-01');
     if (error) throw new Error(`wipe ${t}: ${error.message}`);
@@ -159,7 +153,7 @@ async function insertAll(rows, table, chunk = 500) {
     const { error } = await db.from(table).insert(rows.slice(i, i + chunk));
     if (error) throw new Error(`insert ${table}: ${error.message}`);
   }
-  console.log(`  ✓ ${table.padEnd(24)} ${rows.length} rows`);
+  console.log(`  ✓ ${table.padEnd(22)} ${rows.length} rows`);
 }
 
 async function main() {
@@ -168,11 +162,11 @@ async function main() {
 
   if (DRY) {
     console.log('  (dry run — nothing written)\n');
-    for (const [k, v] of Object.entries(data)) console.log(`  ${k.padEnd(12)} ${v.length} rows`);
-    console.log('\n  Sample overdraft:', JSON.stringify(data.overdraft[0]));
-    console.log('  Sample loan:     ', JSON.stringify(data.loans.find((l) => l.product_type === 'import_lc')));
-    console.log('  Sample threshold:', JSON.stringify(data.thresholds[0]));
-    console.log('  Sample savings:  ', JSON.stringify(data.productRates.find((p) => p.product === 'savings')));
+    for (const [k, v] of Object.entries(data)) console.log(`  ${k.padEnd(14)} ${v.length} rows`);
+    console.log('\n  Sample unfunded: ', JSON.stringify(data.productRates.find((p) => p.product === 'unfunded_facility')));
+    console.log('  Sample FD:       ', JSON.stringify(data.productRates.find((p) => p.product === 'fixed_deposit')));
+    console.log('  Sample funded:   ', JSON.stringify(data.productRates.find((p) => p.product === 'short_term_finance')));
+    console.log('  Sample remittance:', JSON.stringify(data.remittance[0]));
     return;
   }
 
@@ -181,9 +175,7 @@ async function main() {
   console.log('→ Inserting…');
   await insertAll(data.countries, 'countries');
   await insertAll(data.banks, 'banks');
-  await insertAll(data.overdraft, 'overdraft_rates');
   await insertAll(data.remittance, 'remittance_charges');
-  await insertAll(data.loans, 'loan_products');
   await insertAll(data.thresholds, 'negotiation_thresholds');
   await insertAll(data.productRates, 'product_rates');
   console.log('✓ Done. All figures are indicative — replace with sourced data for production.');

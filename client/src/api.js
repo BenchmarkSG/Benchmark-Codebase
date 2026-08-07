@@ -14,13 +14,26 @@ async function post(path, body) {
   return r.json();
 }
 
-export async function getReference() {
-  const r = await fetch(`${BASE}/reference`);
-  if (!r.ok) throw new Error('Failed to load reference data');
-  return r.json();
+// Reference data (countries + product schemas + questionnaires) is static per
+// session and used by several components, so fetch it once and share the promise.
+let referencePromise = null;
+export function getReference() {
+  if (!referencePromise) {
+    referencePromise = fetch(`${BASE}/reference`)
+      .then((r) => {
+        if (!r.ok) throw new Error('Failed to load reference data');
+        return r.json();
+      })
+      .catch((err) => {
+        referencePromise = null; // allow a retry on failure
+        throw err;
+      });
+  }
+  return referencePromise;
 }
 
 export const calcBenchmark = (payload) => post('/benchmark', payload);
+export const scoreQuestionnaire = (id, answers) => post('/questionnaire/score', { id, answers });
 
 const CCY_LOCALE = { SGD: 'en-SG', USD: 'en-US', INR: 'en-IN', MYR: 'ms-MY', IDR: 'id-ID', THB: 'th-TH' };
 
