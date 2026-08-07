@@ -115,7 +115,34 @@
   background: #fdeaea; border: 1px solid #f6c9cc; color: var(--red); font-size: 12.5px;
 }
 
-@media (max-width: 640px) {
+/* ---- Responsive / mobile ---- */
+@media (max-width: 720px) {
+  /* Header: allow the actions to wrap under the brand instead of overflowing. */
+  .adm-header { padding: 12px 16px; flex-wrap: wrap; row-gap: 8px; }
+  .adm-header__brand { font-size: 15px; }
+  .adm-header__right { gap: 10px; margin-left: auto; }
+  .adm-header__user { display: none; } /* email hidden on small screens to save room */
+  .adm-btn { padding: 8px 12px; }
+
+  /* Tabs: one swipeable row instead of wrapping into many. */
+  .adm-tabs {
+    padding: 8px 12px 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .adm-tabs::-webkit-scrollbar { display: none; }
+  .adm-tab { flex: 0 0 auto; white-space: nowrap; padding: 10px 12px; }
+
+  .adm-body { padding: 16px 12px 48px; }
+  .adm-toolbar { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .adm-toolbar h2 { font-size: 18px; }
+  .adm-country { width: 100%; justify-content: space-between; }
+  .adm-country select { flex: 1; max-width: 240px; }
+
+  /* Wide tables stay usable by scrolling horizontally inside their card. */
+  .adm-table th, .adm-table td { padding: 9px 10px; }
   .adm-input { width: 80px; }
-  .adm-toolbar { flex-direction: column; align-items: flex-start; }
+  .adm-input[type="text"] { width: 120px; }
 }
