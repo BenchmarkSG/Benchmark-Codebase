@@ -35,6 +35,12 @@ export function getReference() {
 export const calcBenchmark = (payload) => post('/benchmark', payload);
 export const scoreQuestionnaire = (id, answers) => post('/questionnaire/score', { id, answers });
 
+// Bank directory for a country (id, name, category) — powers the provider picker.
+export const getBanks = (country) =>
+  fetch(`${BASE}/banks?country=${encodeURIComponent(country || '')}`)
+    .then((r) => (r.ok ? r.json() : []))
+    .catch(() => []);
+
 const CCY_LOCALE = { SGD: 'en-SG', USD: 'en-US', INR: 'en-IN', MYR: 'ms-MY', IDR: 'id-ID', THB: 'th-TH' };
 
 export function formatMoney(n, currency = 'SGD') {

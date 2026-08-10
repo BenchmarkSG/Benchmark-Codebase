@@ -1,0 +1,15 @@
+country,product,bank,rate
+IN,housing_loan,State Bank of India,8.5
+IN,housing_loan,HDFC Bank,8.7
+IN,housing_loan,ICICI Bank,8.75
+IN,housing_loan,Axis Bank,8.75
+IN,housing_loan,Kotak Mahindra Bank,8.7
+IN,personal_loan,State Bank of India,11.15
+IN,personal_loan,HDFC Bank,10.75
+IN,fixed_deposit,State Bank of India,6.8
+IN,fixed_deposit,HDFC Bank,7.0
+ID,housing_loan,Bank Central Asia,7.2
+ID,housing_loan,Bank Mandiri,7.5
+ID,housing_loan,Bank Rakyat Indonesia,7.8
+ID,housing_loan,Bank Negara Indonesia,7.75
+ID,housing_loan,Bank Tabungan Negara,8.05

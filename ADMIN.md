@@ -37,6 +37,9 @@ The password is **not** in the code. Instead:
    `saved_benchmarks` and `leads` tables, advisor self-service policies and the
    `advisor_directory` view that power the user & advisor dashboards
    (see [DASHBOARDS.md](DASHBOARDS.md)).
+   Then run [`supabase/market_rates.sql`](supabase/market_rates.sql) — it adds the
+   `market_rates` table for automated aggregate benchmarks
+   (see [MARKET_DATA.md](MARKET_DATA.md); populate with `npm run market:fetch`).
 3. Create the admin account (uses the service-role key):
    ```bash
    export SUPABASE_URL="https://<ref>.supabase.co"

@@ -15,13 +15,44 @@ const LEAD_STAGES = [
   { key: 'closed_lost', label: 'Lost' },
 ];
 const OPEN = ['new', 'contacted', 'negotiating'];
+const NEXT_ACTION = {
+  new: 'New case', contacted: 'Follow up', negotiating: 'In negotiation',
+  closed_won: 'Won', closed_lost: 'Lost',
+};
+
+// Advisor tiers by lifetime success fees earned.
+const TIERS = [
+  { key: 'Bronze', min: 0 }, { key: 'Silver', min: 5000 },
+  { key: 'Gold', min: 15000 }, { key: 'Platinum', min: 30000 },
+];
+function tierFor(earned) {
+  let cur = TIERS[0], next = null;
+  for (let i = 0; i < TIERS.length; i++) {
+    if (earned >= TIERS[i].min) { cur = TIERS[i]; next = TIERS[i + 1] || null; }
+  }
+  return { cur, next };
+}
+
+// Deterministic, rules-based opening suggestion (NOT a live bank conversation).
+function suggestionFor(lead) {
+  const opp = Number(lead.annual_saving) || 0;
+  const label = (lead.product_label || lead.product || 'this facility').toLowerCase();
+  const target = opp > 0 ? formatMoney(Math.round(opp), 'SGD') : 'the benchmarked gap';
+  if (/fx|cross|remit|transfer/.test(label))
+    return `Anchor on the mid-market rate: quantify the FX margin they’re paying and propose a flat per-transfer fee. Target ${target}/yr in savings.`;
+  if (/loan|mortgage|housing/.test(label))
+    return `Frame around retention — good borrowers reprice. Ask for a board-rate cut matching the market best; the client stands to save ${target}/yr.`;
+  if (/overdraft|current|deposit|fixed/.test(label))
+    return `Bundle the ask: better spread in exchange for consolidating balances. The opportunity here is ${target}/yr.`;
+  return `Open by anchoring to the best-in-market rate and frame the ask around retention. Opportunity: ${target}/yr.`;
+}
 
 export default function AdvisorDashboard() {
   const { user } = useAuth();
   const { advisor, loading, refresh } = useAdvisorRow();
 
   return (
-    <DashboardLayout eyebrow="Advisor workspace" title="Advisor dashboard">
+    <DashboardLayout eyebrow="Advisor workspace" title={`Welcome${advisor?.full_name ? `, ${advisor.full_name.split(' ')[0]}` : ''}!`}>
       {!user ? null : loading ? (
         <p className="dash__note">Loading…</p>
       ) : !advisor ? (
@@ -70,12 +101,23 @@ function AdvisorWorkspace({ advisor, onProfileSaved }) {
   };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [advisor.id]);
 
-  const open = useMemo(() => (leads || []).filter((l) => OPEN.includes(l.stage)), [leads]);
-  const won = useMemo(() => (leads || []).filter((l) => l.stage === 'closed_won'), [leads]);
-  const bookings = useMemo(() => (leads || []).filter((l) => l.booked && OPEN.includes(l.stage)), [leads]);
-  const delivered = won.reduce((s, l) => s + (Number(l.saved_amount) || 0), 0);
-  const fees = won.reduce((s, l) => s + (Number(l.fee_amount) || 0), 0);
-  const pipeline = open.reduce((s, l) => s + (Number(l.annual_saving) || 0), 0);
+  const m = useMemo(() => {
+    const list = leads || [];
+    const open = list.filter((l) => OPEN.includes(l.stage));
+    const won = list.filter((l) => l.stage === 'closed_won');
+    const lost = list.filter((l) => l.stage === 'closed_lost');
+    const bookings = list.filter((l) => l.booked && OPEN.includes(l.stage));
+    const delivered = won.reduce((s, l) => s + (Number(l.saved_amount) || 0), 0);
+    const fees = won.reduce((s, l) => s + (Number(l.fee_amount) || 0), 0);
+    const pipeline = open.reduce((s, l) => s + (Number(l.annual_saving) || 0), 0);
+    const closed = won.length + lost.length;
+    const successRate = closed ? Math.round((won.length / closed) * 100) : null;
+    const now = new Date();
+    const thisMonth = won
+      .filter((l) => { const d = new Date(l.updated_at || l.created_at); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); })
+      .reduce((s, l) => s + (Number(l.fee_amount) || 0), 0);
+    return { list, open, won, lost, bookings, delivered, fees, pipeline, successRate, thisMonth };
+  }, [leads]);
 
   const patchLead = async (lead, patch) => {
     setLeads((ls) => ls.map((l) => (l.id === lead.id ? { ...l, ...patch } : l)));
@@ -84,14 +126,17 @@ function AdvisorWorkspace({ advisor, onProfileSaved }) {
 
   const tabs = [
     { key: 'overview', label: 'Overview' },
-    { key: 'leads', label: 'Leads', count: open.length },
-    { key: 'bookings', label: 'Bookings', count: bookings.length },
+    { key: 'clients', label: 'Clients', count: m.open.length },
+    { key: 'bookings', label: 'Bookings', count: m.bookings.length },
+    { key: 'earnings', label: 'Earnings' },
+    { key: 'resources', label: 'Resources' },
     { key: 'profile', label: 'Profile' },
   ];
 
   return (
     <>
       <StatusBanner advisor={advisor} />
+      <p className="dash__subtitle">Negotiate better deals, earn more rewards.</p>
 
       <div className="dash__tabs">
         {tabs.map((t) => (
@@ -103,34 +148,223 @@ function AdvisorWorkspace({ advisor, onProfileSaved }) {
 
       {error && <p className="dash__err">{error}</p>}
 
-      {tab === 'overview' && (
-        <div className="dash__grid dash__cards-3">
-          <div className="dash-card"><div className="dash-card__label">Open pipeline / yr</div>
-            <div className="dash-card__big dash-card__big--accent">{formatMoney(Math.round(pipeline), 'SGD')}</div>
-            <div className="dash-card__sub">{open.length} active lead(s)</div></div>
-          <div className="dash-card"><div className="dash-card__label">Savings delivered</div>
-            <div className="dash-card__big">{formatMoney(Math.round(delivered), 'SGD')}</div>
-            <div className="dash-card__sub">{won.length} client(s) won</div></div>
-          <div className="dash-card"><div className="dash-card__label">Fees earned</div>
-            <div className="dash-card__big">{formatMoney(Math.round(fees), 'SGD')}</div>
-            <div className="dash-card__sub">Success-fee model</div></div>
-        </div>
+      {tab === 'overview' && <Overview advisor={advisor} leads={leads} m={m} onPatch={patchLead} onGoto={setTab} />}
+      {tab === 'clients' && (
+        <LeadList leads={leads} filter={(l) => l.stage !== 'closed_lost'} onPatch={patchLead}
+          emptyText="No client leads yet. Approved advisors appear in the expert picker; matched requests show up here." />
       )}
-
-      {tab === 'leads' && (
-        <LeadList leads={leads} filter={(l) => l.stage !== 'closed_lost'} onPatch={patchLead} emptyText="No client leads yet. Approved advisors appear in the expert picker; matched requests show up here." />
-      )}
-
       {tab === 'bookings' && (
         <LeadList leads={leads} filter={(l) => l.booked} onPatch={patchLead} showCalendly advisor={advisor}
           emptyText="No bookings yet. When a client books a call, it appears here." />
       )}
-
+      {tab === 'earnings' && <Earnings m={m} />}
+      {tab === 'resources' && <Resources />}
       {tab === 'profile' && <ProfileEditor advisor={advisor} onSaved={onProfileSaved} />}
     </>
   );
 }
 
+/* ---------------------------------------------------------------- Overview -- */
+function Overview({ advisor, leads, m, onPatch, onGoto }) {
+  const active = useMemo(() => {
+    const by = { negotiating: 0, contacted: 1, new: 2 };
+    return [...m.open].sort((a, b) => (by[a.stage] ?? 9) - (by[b.stage] ?? 9))[0] || null;
+  }, [m.open]);
+  const { cur, next } = tierFor(m.fees);
+  const progress = next ? Math.min(100, Math.round(((m.fees - cur.min) / (next.min - cur.min)) * 100)) : 100;
+
+  return (
+    <>
+      {/* KPI strip */}
+      <div className="adv-kpis">
+        <StatPill tone="blue"  label="Clients assigned" value={m.list.length} />
+        <StatPill tone="teal"  label="Open pipeline / yr" value={formatMoney(Math.round(m.pipeline), 'SGD')} />
+        <StatPill tone="green" label="Fees earned" value={formatMoney(Math.round(m.fees), 'SGD')} />
+        <StatPill tone="amber" label="Success rate" value={m.successRate == null ? '—' : `${m.successRate}%`} />
+        <StatPill tone="navy"  label="This month" value={formatMoney(Math.round(m.thisMonth), 'SGD')} />
+      </div>
+
+      <div className="adv-grid">
+        {/* Assigned clients preview */}
+        <section className="dash-card adv-panel">
+          <div className="adv-panel__head"><h2>Assigned clients</h2>
+            {m.list.length > 0 && <button className="adv-panel__link" onClick={() => onGoto('clients')}>View all →</button>}</div>
+          {leads == null ? <p className="dash__note">Loading…</p> : m.list.length === 0 ? (
+            <p className="dash__note">No clients assigned yet.</p>
+          ) : (
+            <ul className="adv-mini">
+              {m.list.slice(0, 6).map((l) => (
+                <li key={l.id}>
+                  <span className={`adv-mini__dot adv-mini__dot--${l.stage}`} aria-hidden="true" />
+                  <span className="adv-mini__name">{l.full_name || l.company || 'Client'}</span>
+                  <span className={`adv-mini__action adv-mini__action--${l.stage}`}>{NEXT_ACTION[l.stage] || l.stage}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {/* Active negotiation */}
+        <section className="dash-card adv-panel">
+          <div className="adv-panel__head"><h2>Active negotiation</h2></div>
+          {!active ? (
+            <p className="dash__note">No active negotiation. Move a client to “Negotiating” to focus it here.</p>
+          ) : (
+            <div className="adv-neg">
+              <div className="adv-neg__who">
+                <strong>{active.full_name || active.company || 'Client'}</strong>
+                <span>{active.product_label || active.product || 'Enquiry'}{active.annual_saving ? ` · ${formatMoney(Math.round(active.annual_saving), 'SGD')}/yr opportunity` : ''}</span>
+              </div>
+              <div className="adv-neg__tip"><span className="adv-neg__tip-label">💡 Suggested opening</span>{suggestionFor(active)}</div>
+              <div className="adv-neg__stages">
+                {LEAD_STAGES.map((s) => (
+                  <button key={s.key} className={`alead__stage ${active.stage === s.key ? 'is-current' : ''}`} onClick={() => onPatch(active, { stage: s.key })}>{s.label}</button>
+                ))}
+              </div>
+              <button className="adv-panel__link" onClick={() => onGoto('resources')}>Open negotiation scripts →</button>
+            </div>
+          )}
+        </section>
+
+        {/* Earnings + tier */}
+        <section className="dash-card adv-panel">
+          <div className="adv-panel__head"><h2>Earnings overview</h2></div>
+          <div className="adv-earn">
+            <div className="adv-earn__row"><span>This month</span><strong>{formatMoney(Math.round(m.thisMonth), 'SGD')}</strong></div>
+            <div className="adv-earn__row"><span>Total earnings</span><strong>{formatMoney(Math.round(m.fees), 'SGD')}</strong></div>
+            <div className="adv-tier">
+              <span className={`adv-tier__badge adv-tier__badge--${cur.key.toLowerCase()}`}>🏅 {cur.key} advisor</span>
+              {next && <span className="adv-tier__next">{formatMoney(Math.round(next.min - m.fees), 'SGD')} to {next.key}</span>}
+            </div>
+            <div className="adv-tier__track"><div className="adv-tier__fill" style={{ width: `${progress}%` }} /></div>
+          </div>
+        </section>
+
+        {/* Standing (honest, self-anchored — no fabricated peers) */}
+        <section className="dash-card adv-panel">
+          <div className="adv-panel__head"><h2>Your standing</h2></div>
+          <ul className="adv-stand">
+            <li><span>Clients won</span><strong>{m.won.length}</strong></li>
+            <li><span>Savings delivered</span><strong>{formatMoney(Math.round(m.delivered), 'SGD')}</strong></li>
+            <li><span>Success rate</span><strong>{m.successRate == null ? '—' : `${m.successRate}%`}</strong></li>
+          </ul>
+          <p className="adv-stand__note">Peer leaderboard unlocks as the advisor network grows.</p>
+        </section>
+      </div>
+    </>
+  );
+}
+
+function StatPill({ tone, label, value }) {
+  return (
+    <div className={`adv-kpi adv-kpi--${tone}`}>
+      <div className="adv-kpi__value">{value}</div>
+      <div className="adv-kpi__label">{label}</div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------- Earnings -- */
+function Earnings({ m }) {
+  const { cur, next } = tierFor(m.fees);
+  const progress = next ? Math.min(100, Math.round(((m.fees - cur.min) / (next.min - cur.min)) * 100)) : 100;
+  return (
+    <>
+      <div className="dash__grid dash__cards-3">
+        <div className="dash-card"><div className="dash-card__label">This month</div>
+          <div className="dash-card__big dash-card__big--accent">{formatMoney(Math.round(m.thisMonth), 'SGD')}</div>
+          <div className="dash-card__sub">Success fees closed this month</div></div>
+        <div className="dash-card"><div className="dash-card__label">Total earnings</div>
+          <div className="dash-card__big">{formatMoney(Math.round(m.fees), 'SGD')}</div>
+          <div className="dash-card__sub">{m.won.length} client(s) won</div></div>
+        <div className="dash-card"><div className="dash-card__label">Savings delivered</div>
+          <div className="dash-card__big">{formatMoney(Math.round(m.delivered), 'SGD')}</div>
+          <div className="dash-card__sub">Value created for clients</div></div>
+      </div>
+
+      <div className="dash-card adv-panel" style={{ marginTop: 16 }}>
+        <div className="adv-panel__head"><h2>Tier progress</h2>
+          <span className={`adv-tier__badge adv-tier__badge--${cur.key.toLowerCase()}`}>🏅 {cur.key}</span></div>
+        <div className="adv-tier__track"><div className="adv-tier__fill" style={{ width: `${progress}%` }} /></div>
+        <p className="dash-card__sub" style={{ marginTop: 8 }}>
+          {next ? `${formatMoney(Math.round(next.min - m.fees), 'SGD')} in fees to reach ${next.key}.` : 'Top tier reached — Platinum advisor. 🎉'}
+        </p>
+      </div>
+
+      <h2 className="dash__section-title">Closed deals</h2>
+      {m.won.length === 0 ? (
+        <div className="dash__empty"><div className="dash__empty-icon">💰</div><h3>No closed deals yet</h3><p>Won leads with a recorded success fee appear here.</p></div>
+      ) : (
+        <div className="adv-deals">
+          {m.won.map((l) => (
+            <div className="adv-deals__row" key={l.id}>
+              <span className="adv-deals__name">{l.full_name || l.company || 'Client'}</span>
+              <span className="adv-deals__prod">{l.product_label || l.product || '—'}</span>
+              <span className="adv-deals__save">{formatMoney(Math.round(Number(l.saved_amount) || 0), 'SGD')} saved</span>
+              <span className="adv-deals__fee">{formatMoney(Math.round(Number(l.fee_amount) || 0), 'SGD')} fee</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+/* --------------------------------------------------------------- Resources -- */
+const SCRIPTS = [
+  { key: 'fx', title: 'Cross-border & FX fees', points: [
+    'Separate the visible fee from the hidden FX margin — quantify both against the mid-market rate.',
+    'Ask for a flat per-transfer fee tied to annual volume rather than a percentage.',
+    'Use a competitor’s live quote (Wise, another bank) as the anchor for the counter-offer.',
+  ] },
+  { key: 'loan', title: 'Loan rate discounts', points: [
+    'Frame around retention: good borrowers reprice — cite the current market-best board rate.',
+    'Bundle the ask (salary crediting, insurance) in exchange for a spread cut.',
+    'Get the revised rate in writing with the reset/lock-in terms spelled out.',
+  ] },
+  { key: 'deposit', title: 'Deposits & overdraft', points: [
+    'Trade balance consolidation for a better FD promo or overdraft spread.',
+    'For SMEs, tie the overdraft rate to steady turnover — most never ask.',
+    'Benchmark the minimum charge, not just the headline rate.',
+  ] },
+];
+const TIPS = [
+  { title: 'Lead with the number', text: 'Open every negotiation with the quantified annual saving — it reframes the conversation around the client’s money, not the bank’s policy.' },
+  { title: 'Anchor high, concede slowly', text: 'Ask for the market-best rate first. Banks expect to counter; leave room to land where the client still wins.' },
+  { title: 'Always get it in writing', text: 'A verbal “we’ll see what we can do” isn’t a win. Confirm the revised rate, fee and effective date before closing the lead.' },
+];
+function Resources() {
+  const [open, setOpen] = useState('fx');
+  return (
+    <div className="adv-grid adv-grid--2">
+      <section className="dash-card adv-panel">
+        <div className="adv-panel__head"><h2>Negotiation scripts</h2></div>
+        <div className="adv-scripts">
+          {SCRIPTS.map((s) => (
+            <div className={`adv-script ${open === s.key ? 'is-open' : ''}`} key={s.key}>
+              <button className="adv-script__head" onClick={() => setOpen(open === s.key ? '' : s.key)}>
+                {s.title}<span aria-hidden="true">{open === s.key ? '−' : '+'}</span>
+              </button>
+              {open === s.key && (
+                <ul className="adv-script__body">{s.points.map((p, i) => <li key={i}>{p}</li>)}</ul>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+      <section className="dash-card adv-panel">
+        <div className="adv-panel__head"><h2>Advisor tips &amp; updates</h2></div>
+        <ul className="adv-tips">
+          {TIPS.map((t, i) => (
+            <li key={i}><strong>{t.title}</strong><span>{t.text}</span></li>
+          ))}
+        </ul>
+      </section>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ Leads --- */
 function LeadList({ leads, filter, onPatch, emptyText, showCalendly, advisor }) {
   if (leads == null) return <p className="dash__note">Loading…</p>;
   const rows = leads.filter(filter);
@@ -181,6 +415,7 @@ function LeadList({ leads, filter, onPatch, emptyText, showCalendly, advisor }) 
   );
 }
 
+/* -------------------------------------------------------------- Profile ---- */
 function ProfileEditor({ advisor, onSaved }) {
   const [form, setForm] = useState({
     company: advisor.company || '',

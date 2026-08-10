@@ -1,0 +1,57 @@
+name: Refresh market rates
+
+# Pulls aggregate market-reference rates from MAS into public.market_rates.
+# MAS updates these series monthly, so a daily run is ample; on MAS maintenance
+# days the script no-ops cleanly (exit 0) and the run still passes.
+
+on:
+  schedule:
+    - cron: '0 2 * * *' # 02:00 UTC daily (~10:00 SGT)
+  workflow_dispatch: {}  # allow manual runs from the Actions tab
+
+# Never let two refreshes overlap.
+concurrency:
+  group: market-rates
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Fetch market rates
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # Thailand (BOT) — set this secret to enable; unset skips TH cleanly.
+          BOT_API_KEY: ${{ secrets.BOT_API_KEY }}
+          # Optional MAS overrides (only set if the dataset id/columns change):
+          MAS_DIR_RESOURCE: ${{ vars.MAS_DIR_RESOURCE }}
+          MAS_DATE_FIELD: ${{ vars.MAS_DATE_FIELD }}
+        run: npm run market:fetch
+
+      # Thailand per-bank POOL (real BOT data → product_rates). No-ops without a
+      # BOT_API_KEY, and never empties the pool if BOT returns nothing.
+      - name: Refresh Thailand per-bank pool
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BOT_API_KEY: ${{ secrets.BOT_API_KEY }}
+        run: npm run pool:th
+
+      # Malaysia per-bank POOL (real BNM housing-loan data → product_rates).
+      # Keyless; never empties the pool if BNM returns nothing.
+      - name: Refresh Malaysia per-bank pool
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run pool:my

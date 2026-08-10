@@ -46,6 +46,7 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
     if (!data) return res.status(503).json({ error: 'Rate database not configured. See PRODUCT_DATA.md.' });
     const result = buildBenchmarkResult({ product, country, currency, values: data.values, items: data.items, yourRate, amount });
     if (result.error) return res.status(404).json({ error: result.error });
+    await attachMarketReference(repo, result, country, product);
     res.json(result);
   }));
 
@@ -108,7 +109,18 @@ async function handleCrossBorder(req, res, { repo, fx }, meta, country) {
     extra: { yourCostPct: yourCostPct ?? null, settlementHours: Number(time_taken_hours) || null },
   });
   if (result.error) return res.status(404).json({ error: result.error });
+  await attachMarketReference(repo, result, country, meta.id);
   res.json(result);
+}
+
+/* Attach an aggregate market-reference figure (e.g. from MAS) when one exists for
+   this product. Optional + guarded so injected test repos need not implement it. */
+async function attachMarketReference(repo, result, country, product) {
+  if (typeof repo.getMarketReference !== 'function') return;
+  try {
+    const refs = await repo.getMarketReference(country);
+    if (refs && refs[product]) result.marketReference = refs[product];
+  } catch { /* reference is best-effort */ }
 }
 
 export default createApp;

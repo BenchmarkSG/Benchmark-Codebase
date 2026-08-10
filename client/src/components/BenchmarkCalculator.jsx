@@ -1,11 +1,24 @@
 import { useEffect, useMemo, useState } from 'react';
 import './BenchmarkCalculator.css';
-import { getReference, calcBenchmark, formatMoney } from '../api.js';
+import { getReference, calcBenchmark, formatMoney, getBanks } from '../api.js';
 import { BANK_LOGOS } from './BankLogos.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { saveBenchmark } from '../lib/dashboardApi.js';
 
 const BANK_NAMES = BANK_LOGOS.map((b) => b.name);
+
+// Group the provider directory by category for the <optgroup> picker.
+const BANK_CAT_LABELS = {
+  public: 'Public sector banks', private: 'Private banks', local: 'Local banks',
+  digital: 'Digital / neobanks', fintech: 'Fintechs', foreign: 'Foreign banks',
+  european: 'International banks', japanese: 'International banks', indian: 'Indian banks',
+};
+const BANK_CAT_ORDER = ['public', 'private', 'local', 'digital', 'fintech', 'foreign', 'european', 'japanese', 'indian'];
+function groupBanks(list) {
+  const map = new Map();
+  for (const b of list || []) { const k = b.category || 'other'; if (!map.has(k)) map.set(k, []); map.get(k).push(b); }
+  return [...map.entries()].sort((a, b) => BANK_CAT_ORDER.indexOf(a[0]) - BANK_CAT_ORDER.indexOf(b[0]));
+}
 
 // SMEs and Corporates share the same product set, so they're one tab.
 const SEGMENT_TABS = [
@@ -39,16 +52,23 @@ function buildDefaults(product, ccyOptions) {
   return v;
 }
 
-function Field({ field, value, onChange, ccyOptions }) {
+function Field({ field, value, onChange, ccyOptions, bankOptions }) {
   const set = (e) => onChange(field.key, e.target.value);
 
   if (field.type === 'bank') {
+    const groups = groupBanks(bankOptions);
     return (
       <label className="calcbox__field">
         <span>{field.label}</span>
         <select value={value} onChange={set}>
           <option value="">Select your bank…</option>
-          {BANK_NAMES.map((n) => <option key={n} value={n}>{n}</option>)}
+          {groups.length
+            ? groups.map(([cat, list]) => (
+                <optgroup key={cat} label={BANK_CAT_LABELS[cat] || cat}>
+                  {list.map((b) => <option key={b.id || b.name} value={b.name}>{b.name}</option>)}
+                </optgroup>
+              ))
+            : BANK_NAMES.map((n) => <option key={n} value={n}>{n}</option>)}
           <option value="Other">Other / not listed</option>
         </select>
       </label>
@@ -100,10 +120,17 @@ export default function BenchmarkCalculator({ onDetailedFeedback, compact = fals
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saveState, setSaveState] = useState('idle'); // idle | saving | saved | error
+  const [banks, setBanks] = useState([]); // provider directory for the chosen country
 
   useEffect(() => {
     getReference().then(setRef).catch(() => setError('Could not load reference data.'));
   }, []);
+
+  // Load the provider directory for the selected market (falls back to the SG
+  // logo list if the banks table isn't seeded).
+  useEffect(() => {
+    getBanks(country).then((list) => setBanks(Array.isArray(list) ? list : [])).catch(() => setBanks([]));
+  }, [country]);
 
   const countries = ref?.countries ?? [];
   const products = ref?.products ?? [];
@@ -265,7 +292,7 @@ export default function BenchmarkCalculator({ onDetailedFeedback, compact = fals
               </div>
 
               {product?.inputs.map((f) => (
-                <Field key={f.key} field={f} value={values[f.key] ?? ''} onChange={setValue} ccyOptions={ccyOptions} />
+                <Field key={f.key} field={f} value={values[f.key] ?? ''} onChange={setValue} ccyOptions={ccyOptions} bankOptions={banks} />
               ))}
 
               <button className="btn btn--red btn--block" type="submit" disabled={loading || !product}>
@@ -385,6 +412,12 @@ function Result({ result, product, compact, onDetailedFeedback, onBack, isAuthed
         <div className="res__locked">🔒 {result.benchmarkLabel}. Market-typical is {result.marketTypical} {result.unit}.</div>
       )}
       {!compact && result.tip && <p className="res__tip">💡 {result.tip}</p>}
+      {result.marketReference && (
+        <div className="res__marketref">
+          📊 {result.marketReference.source} market reference: <strong>{result.marketReference.value}{result.marketReference.unit || ''}</strong>
+          {result.marketReference.asOf ? ` · as of ${result.marketReference.asOf}` : ''}
+        </div>
+      )}
 
       <button className="btn btn--primary btn--block res__detail" onClick={onDetailedFeedback}>
         {ahead ? 'Get a Free Expert Review →' : 'Reveal the Bank & Get Detailed Feedback →'}

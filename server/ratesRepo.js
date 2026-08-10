@@ -30,6 +30,29 @@ export async function getCountries() {
   });
 }
 
+/* Aggregate market-reference rates (from public.market_rates, populated by
+   `npm run market:fetch`). Returns { product -> { value, unit, source, as_of } }
+   for the 'market_typical' metric. Never throws — an empty/missing table just
+   means no reference is shown. */
+export async function getMarketReference(country = 'SG') {
+  if (!isSupabaseConfigured) return {};
+  return cached(`market:${country}`, async () => {
+    try {
+      const { data, error } = await supabase
+        .from('market_rates')
+        .select('product, value, unit, source, as_of')
+        .eq('country_code', country)
+        .eq('metric', 'market_typical');
+      if (error) return {};
+      const map = {};
+      for (const r of data || []) map[r.product] = { value: Number(r.value), unit: r.unit, source: r.source, asOf: r.as_of };
+      return map;
+    } catch {
+      return {};
+    }
+  });
+}
+
 export async function getBanks(country) {
   if (!isSupabaseConfigured) return null;
   return cached(`banks:${country}`, async () => {

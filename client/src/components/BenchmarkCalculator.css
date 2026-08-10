@@ -266,6 +266,17 @@
 }
 .res__standing--muted { color: var(--muted); background: var(--blue-50); border-color: #d5e2f5; }
 
+.res__marketref {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--navy-700);
+  background: #f2f6fc;
+  border: 1px solid #dbe6f6;
+  border-radius: 10px;
+  padding: 9px 11px;
+}
+.res__marketref strong { color: var(--navy-900); }
+
 .res__repay { margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .res__repay > div { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 11px; }
 .res__repay span { display: block; font-size: 11px; color: var(--muted); font-weight: 700; }

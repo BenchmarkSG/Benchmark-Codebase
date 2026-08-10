@@ -11,6 +11,14 @@
     "dev:client": "npm run dev --prefix client",
     "seed:rates": "node scripts/seed-rates.mjs",
     "seed:rates:dry": "node scripts/seed-rates.mjs --dry",
+    "market:verify": "node scripts/market-rates.mjs verify",
+    "market:fetch": "node scripts/market-rates.mjs fetch",
+    "pool:th": "node scripts/bot-pool.mjs",
+    "pool:th:dry": "node scripts/bot-pool.mjs --dry",
+    "pool:my": "node scripts/bnm-pool.mjs",
+    "pool:my:dry": "node scripts/bnm-pool.mjs --dry",
+    "import:pool": "node scripts/import-pool.mjs",
+    "import:pool:dry": "node scripts/import-pool.mjs --dry",
     "create:admin": "node scripts/create-admin.mjs"
   },
   "dependencies": {
