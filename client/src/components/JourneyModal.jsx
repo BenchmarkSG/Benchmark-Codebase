@@ -44,17 +44,19 @@ const SAMPLE_EXPERTS = [
 ];
 
 // Calendly inline embed (official widget) + a callback when a time is booked.
-function CalendlyEmbed({ url, onScheduled }) {
+function CalendlyEmbed({ url, prefill, onScheduled }) {
   const ref = useRef(null);
   const cb = useRef(onScheduled);
   cb.current = onScheduled;
+  const pf = useRef(prefill);
+  pf.current = prefill;
   useEffect(() => {
     if (!url || !ref.current) return undefined;
     let done = false;
     const init = () => {
       if (done || !ref.current || !window.Calendly) return;
       ref.current.innerHTML = '';
-      window.Calendly.initInlineWidget({ url, parentElement: ref.current });
+      window.Calendly.initInlineWidget({ url, parentElement: ref.current, prefill: pf.current || undefined });
     };
     if (window.Calendly) init();
     else {
@@ -77,17 +79,29 @@ function CalendlyEmbed({ url, onScheduled }) {
   return <div className="jny-sched__frame" ref={ref} />;
 }
 
+// Add Calendly prefill (name/email) query params to a scheduler link.
+function appendPrefill(url, prefill) {
+  if (!prefill) return url;
+  try {
+    const u = new URL(url);
+    if (prefill.name) u.searchParams.set('name', prefill.name);
+    if (prefill.email) u.searchParams.set('email', prefill.email);
+    return u.toString();
+  } catch { return url; }
+}
+
 // Booking panel: the Calendly embed if a URL is available, else a clear placeholder.
-function Scheduler({ url, note }) {
+function Scheduler({ url, prefill, note }) {
   const [scheduled, setScheduled] = useState(false);
   const safeUrl = safeHttpUrl(url); // block javascript:/data: from advisor-controlled links
+  const linkUrl = safeUrl ? appendPrefill(safeUrl, prefill) : safeUrl;
   return (
     <div className="jny-sched">
       {safeUrl ? (
         <>
           {scheduled && <div className="jny-note jny-note--ok">✓ Time booked — the calendar invite is on its way to your inbox.</div>}
-          <CalendlyEmbed url={safeUrl} onScheduled={() => setScheduled(true)} />
-          <a className="jny-sched__link" href={safeUrl} target="_blank" rel="noopener noreferrer">Open the scheduler in a new tab ↗</a>
+          <CalendlyEmbed url={safeUrl} prefill={prefill} onScheduled={() => setScheduled(true)} />
+          <a className="jny-sched__link" href={linkUrl} target="_blank" rel="noopener noreferrer">Open the scheduler in a new tab ↗</a>
         </>
       ) : (
         <div className="jny-sched__ph">
@@ -116,6 +130,7 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
   const [paidTier, setPaidTier] = useState(null); // 'call' | 'expert' once paid (or demo)
   const [busy, setBusy] = useState(false);
   const [payError, setPayError] = useState('');
+  const bookedRef = useRef(null); // Stripe session already logged to the dashboard
 
   const segment = context?.segment && SEG_LABEL[context.segment] ? context.segment : 'individual';
   const savings = context?.annualSaving ?? null;
@@ -128,6 +143,27 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
     : `${context?.percentileBeaten}% of the providers we benchmark`;
   const bank = context?.bestBank || null;
   const productLabel = context?.product || 'banking product';
+
+  // Identity used to prefill Calendly + attribute the booking (set once signed in).
+  const bookingPrefill = user ? { name: user.user_metadata?.full_name || '', email: user.email || '' } : undefined;
+
+  // Persist a confirmed paid call to the user's dashboard. Idempotent per Stripe
+  // session so re-renders don't double-insert. advisor_id stays null — a coaching
+  // call isn't tied to a specific advisor.
+  const recordCallBooking = (sessionId, session) => {
+    if (!user || bookedRef.current === sessionId) return;
+    bookedRef.current = sessionId;
+    createLead({
+      source: 'call',
+      segment: context?.segment || 'individual',
+      product_label: context?.product || null,
+      annual_saving: context?.annualSaving ?? null,
+      full_name: user.user_metadata?.full_name || null,
+      email: user.email || session?.email || null,
+      phone: user.user_metadata?.phone || null,
+      booked: true,
+    }).catch(() => { bookedRef.current = null; }); // allow a retry if the insert failed
+  };
 
   // Build the negotiation email from the benchmark context.
   const emailSubject = `Request to review my ${productLabel} pricing`;
@@ -203,7 +239,13 @@ Kind regards,
       setPayError(''); setPaidTier(resume.tier); // optimistic; verify below
       if (resume.sessionId) {
         getCheckoutSession(resume.sessionId).then((s) => {
-          if (!s?.paid) { setPaidTier(null); setPayError('We couldn’t confirm your payment. Please try again.'); }
+          if (!s?.paid) {
+            setPaidTier(null);
+            setPayError('We couldn’t confirm your payment. Please try again.');
+            return;
+          }
+          // Payment confirmed — log the paid call to the user's dashboard.
+          if (resume.tier === 'call') recordCallBooking(resume.sessionId, s);
         });
       }
     } else {
@@ -252,6 +294,10 @@ Kind regards,
 
   // Redirect to Stripe Checkout for a paid tier; stash context to resume on return.
   const pay = async (tier, adv) => {
+    // Require sign-in before any payment/booking, so the appointment is tied to a
+    // known account (and Calendly is prefilled with their name + email). After
+    // auth the resume flow returns them to this exact tier to complete payment.
+    if (!user) { onRequireAuth?.({ kind: 'journey', context, view, expert: adv || expert }); return; }
     setBusy(true); setPayError('');
     const snap = adv ? {
       id: adv.id, real: !!adv.real, name: adv.name, role: adv.role, company: adv.company,
@@ -383,8 +429,13 @@ Kind regards,
                 <p className="jny-sub__sub">
                   <span className="jny-pill">$99</span> A BankBenchmark specialist reviews your numbers and coaches you through the negotiation.
                 </p>
+                {!user && (
+                  <div className="jny-note jny-note--warn">
+                    Sign in first so your booking is linked to your account — then pay and pick a time.
+                  </div>
+                )}
                 <button className="btn btn--primary jny-pay" disabled={busy} onClick={() => pay('call')}>
-                  {busy ? 'Redirecting to secure checkout…' : 'Pay $99 & pick a time →'}
+                  {!user ? 'Sign in to book your call →' : busy ? 'Redirecting to secure checkout…' : 'Pay $99 & pick a time →'}
                 </button>
                 <p className="jny-note">🔒 Secure payment via Stripe. You'll choose your slot right after.</p>
               </>
@@ -392,7 +443,7 @@ Kind regards,
               <>
                 {paidTier === 'call' && <div className="jny-note jny-note--ok">✓ Payment received — pick a time below.</div>}
                 <p className="jny-sub__sub"><span className="jny-pill">$99</span> A BankBenchmark specialist coaches you through the negotiation.</p>
-                <Scheduler url={CALENDLY_URL} note="You and the specialist both receive the calendar invite from Calendly." />
+                <Scheduler url={CALENDLY_URL} prefill={bookingPrefill} note="You and the specialist both receive the calendar invite from Calendly." />
               </>
             )}
           </div>
@@ -453,15 +504,15 @@ Kind regards,
                 {paymentsEnabled && paidTier !== 'expert' ? (
                   <>
                     <p className="jny-sub__sub"><span className="jny-pill">$199</span> {expert.name.split(' ')[0]} prepares and leads the negotiation. Pay to confirm and schedule.</p>
-                    <button className="btn btn--primary jny-pay" disabled={busy || (expert.real && !user)} onClick={() => pay('expert', expert)}>
-                      {busy ? 'Redirecting to secure checkout…' : `Pay $199 & book ${expert.name.split(' ')[0]} →`}
+                    <button className="btn btn--primary jny-pay" disabled={busy} onClick={() => pay('expert', expert)}>
+                      {!user ? 'Sign in to book →' : busy ? 'Redirecting to secure checkout…' : `Pay $199 & book ${expert.name.split(' ')[0]} →`}
                     </button>
                     <p className="jny-note">🔒 Secure payment via Stripe. You'll choose your slot right after.</p>
                   </>
                 ) : (
                   <>
                     {paidTier === 'expert' && <div className="jny-note jny-note--ok">✓ Payment received — pick a time below.</div>}
-                    <Scheduler url={expert.calendly_url || CALENDLY_URL} note={`${expert.name} and you both receive the calendar invite from Calendly.`} />
+                    <Scheduler url={expert.calendly_url || CALENDLY_URL} prefill={bookingPrefill} note={`${expert.name} and you both receive the calendar invite from Calendly.`} />
                   </>
                 )}
               </>

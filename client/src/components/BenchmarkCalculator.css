@@ -1,30 +1,82 @@
 .calc-sec { background: var(--bg-soft); }
 .calc-sec__eyebrow { display: block; text-align: center; margin-bottom: 8px; }
 
-/* ---- Compact "card" mode (used inside the hero right column) ---- */
+/* ---- Compact mode — styled as a mobile-phone mockup (hero right column) ---- */
 .calc-sec--compact { padding: 0; background: transparent; }
+
+/* Phone body / bezel */
 .calc-card {
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  box-shadow: var(--shadow-lg);
-  padding: 20px 22px;
+  position: relative;
+  width: 100%;
+  max-width: 430px;
+  margin: 0 auto;
+  background: linear-gradient(165deg, #223050 0%, #0c1424 60%, #0a111f 100%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 44px;
+  box-shadow:
+    0 26px 60px -22px rgba(9, 15, 28, 0.6),
+    0 6px 16px rgba(9, 15, 28, 0.25),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.05);
+  padding: 11px;
 }
-.calc-card__head { margin-bottom: 2px; }
-.calc-card__title { font-size: 20px; font-weight: 800; color: var(--navy-900); }
-.calc-card__sub { font-size: 12px; color: var(--muted); margin-top: 3px; font-weight: 600; }
+
+/* The "screen": blue heading band + white body, clipped to rounded corners */
+.calc-card .calc-screen {
+  position: relative;
+  background: #fff;
+  border-radius: 34px;
+  overflow: hidden;
+  isolation: isolate;
+}
+/* Dynamic-island pill (top) + home-indicator bar (bottom) */
+.calc-card .calc-screen::before {
+  content: '';
+  position: absolute;
+  top: 11px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 84px;
+  height: 24px;
+  background: #05070d;
+  border-radius: 999px;
+  z-index: 4;
+}
+.calc-card .calc-screen::after {
+  content: '';
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 116px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(12, 20, 36, 0.22);
+  z-index: 4;
+}
+/* Non-compact page: the wrapper must not affect layout at all */
+.calc-screen--plain { display: contents; }
+
+/* Blue heading band, white text (extra top room for the island) */
+.calc-card .calc-card__head {
+  margin: 0;
+  padding: 44px 22px 20px;
+  background: linear-gradient(150deg, var(--blue-600) 0%, var(--navy-800) 100%);
+  color: #fff;
+}
+.calc-card .calc-card__title { font-size: 20px; font-weight: 800; color: #fff; }
+.calc-card .calc-card__sub { font-size: 12px; margin-top: 3px; font-weight: 600; color: rgba(255, 255, 255, 0.82); }
 .calc-card .calc-modes { margin-top: 14px; width: 100%; }
 .calc-card .calc-modes button { flex: 1; padding: 9px 8px; font-size: 12.5px; }
 
-/* Force single column + strip the inner card chrome (higher specificity so it
-   wins over the base .calcbox two-column grid regardless of source order). */
+/* White body (form / result). Bottom padding clears the home indicator. */
 .calc-card .calcbox {
   grid-template-columns: 1fr;
   border: none;
   box-shadow: none;
   border-radius: 0;
-  background: transparent;
-  margin-top: 14px;
+  background: #fff;
+  margin-top: 0;
+  padding: 20px 20px 34px;
   overflow: visible;
 }
 .calc-card .calcbox__form {
@@ -303,7 +355,10 @@
 
 /* Phone: keep everything inside the card width */
 @media (max-width: 560px) {
-  .calc-card { padding: 18px 16px; }
+  .calc-card { padding: 9px; border-radius: 40px; }
+  .calc-card .calc-screen { border-radius: 32px; }
+  .calc-card .calc-card__head { padding: 40px 18px 18px; }
+  .calc-card .calcbox { padding: 18px 16px 32px; }
   .calc-card .calc-modes { width: 100%; }
   .calc-card .calc-modes button { min-width: 0; flex: 1; font-size: 12px; padding: 9px 6px; }
   .calcbox__row { grid-template-columns: 1fr; }

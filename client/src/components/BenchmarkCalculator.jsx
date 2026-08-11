@@ -238,6 +238,7 @@ export default function BenchmarkCalculator({ onDetailedFeedback, compact = fals
   return (
     <section className={compact ? 'calc-sec calc-sec--compact' : 'section calc-sec'} id="calculator">
       <div className={compact ? 'calc-card' : 'container'}>
+        <div className={compact ? 'calc-screen' : 'calc-screen--plain'}>
         {compact ? (
           <div className="calc-card__head">
             <h3 className="calc-card__title">Calculate Your Free Benchmark</h3>
@@ -311,6 +312,7 @@ export default function BenchmarkCalculator({ onDetailedFeedback, compact = fals
               )}
             </div>
           )}
+        </div>
         </div>
       </div>
     </section>

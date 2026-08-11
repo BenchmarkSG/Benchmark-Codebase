@@ -3,7 +3,7 @@ import './userDashboard.css';
 import DashboardLayout from './DashboardLayout.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { formatMoney, getReference } from '../api.js';
-import { listBenchmarks, updateBenchmark, deleteBenchmark } from '../lib/dashboardApi.js';
+import { listBenchmarks, updateBenchmark, deleteBenchmark, listMyLeads } from '../lib/dashboardApi.js';
 
 // Action pipeline the user moves each benchmark through.
 const STAGES = [
@@ -24,9 +24,11 @@ export default function UserDashboard() {
   const [rows, setRows] = useState(null); // null = loading
   const [error, setError] = useState('');
   const [products, setProducts] = useState([]);
+  const [myLeads, setMyLeads] = useState([]); // paid calls + expert requests
 
   const load = () => {
     listBenchmarks().then(setRows).catch((e) => { setError(e.message || 'Could not load your benchmarks.'); setRows([]); });
+    listMyLeads().then(setMyLeads).catch(() => setMyLeads([]));
   };
   useEffect(() => { if (user) load(); /* eslint-disable-next-line */ }, [user]);
   useEffect(() => { getReference().then((r) => setProducts(r.products || [])).catch(() => {}); }, []);
@@ -250,6 +252,37 @@ export default function UserDashboard() {
 
       {realised > 0 && (
         <p className="udash__realised-note">💚 You’ve realised {formatMoney(Math.round(realised), 'SGD')} in savings so far.</p>
+      )}
+
+      {/* ---- Consultations & bookings (paid calls + expert requests) ---- */}
+      {myLeads.length > 0 && (
+        <>
+          <h2 className="dash__section-title" id="my-consultations">My consultations &amp; bookings</h2>
+          <div className="ubk__list">
+            {myLeads.map((l) => (
+              <article className="ubk" key={l.id}>
+                <span className="ubk__icon" aria-hidden="true">{l.source === 'expert' ? '🧑‍💼' : '📞'}</span>
+                <div className="ubk__body">
+                  <div className="ubk__title">
+                    {l.source === 'expert' ? 'Expert-led negotiation' : 'Negotiation coaching call'}
+                    {l.booked && <span className="ubk__badge">Booked</span>}
+                  </div>
+                  <div className="ubk__meta">
+                    {l.product_label || 'Banking'}
+                    {l.segment ? ` · ${l.segment === 'sme' ? 'SME / Corporate' : 'Individual'}` : ''}
+                    {' · '}{new Date(l.created_at).toLocaleDateString()}
+                  </div>
+                </div>
+                {num(l.annual_saving) > 0 && (
+                  <div className="ubk__save">
+                    <span>Opportunity</span>
+                    <strong>{formatMoney(Math.round(num(l.annual_saving)), 'SGD')}/yr</strong>
+                  </div>
+                )}
+              </article>
+            ))}
+          </div>
+        </>
       )}
 
       {recommendations.length > 0 && !hasData && (
