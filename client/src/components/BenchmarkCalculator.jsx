@@ -196,7 +196,7 @@ export default function BenchmarkCalculator({ onDetailedFeedback, compact = fals
         country_code: country,
         product: product.id,
         product_label: result.product,
-        currency: result.currency,
+        currency: result.currency || localCcy,
         unit: result.unit,
         direction: result.direction,
         result_status: result.status,
@@ -304,8 +304,8 @@ export default function BenchmarkCalculator({ onDetailedFeedback, compact = fals
           {(!compact || result) && (
             <div className="calcbox__result">
               {!result ? <Placeholder /> : (
-                <Result result={result} product={product} compact={compact}
-                  onDetailedFeedback={() => onDetailedFeedback({ ...result, segment })}
+                <Result result={result} product={product} compact={compact} localCcy={localCcy}
+                  onDetailedFeedback={() => onDetailedFeedback({ ...result, currency: result.currency || localCcy, segment })}
                   onBack={() => setResult(null)}
                   isAuthed={!!user} saveState={saveState} onSave={saveCurrent} />
               )}
@@ -323,7 +323,8 @@ function standingText(result) {
   return `better than ${result.percentileBeaten}% of the ${result.poolSize} providers we benchmark`;
 }
 
-function Result({ result, product, compact, onDetailedFeedback, onBack, isAuthed, saveState, onSave }) {
+function Result({ result, product, compact, localCcy, onDetailedFeedback, onBack, isAuthed, saveState, onSave }) {
+  const ccy = result.currency || localCcy || 'SGD'; // rate products (e.g. housing loan) carry no currency
   const higher = result.direction === 'higher';
   const crossBorder = product?.family === 'crossborder';
   const ahead = result.status === 'ahead';
@@ -381,8 +382,8 @@ function Result({ result, product, compact, onDetailedFeedback, onBack, isAuthed
 
           <div className="res__saving">
             <span>{higher ? 'You could earn extra' : 'You could save'}</span>
-            <strong>{formatMoney(result.annualSaving, result.currency)} / year</strong>
-            <small>≈ {formatMoney(result.monthlySaving, result.currency)} per month</small>
+            <strong>{formatMoney(result.annualSaving, ccy)} / year</strong>
+            <small>≈ {formatMoney(result.monthlySaving, ccy)} per month</small>
           </div>
 
           {result.status === 'saving' && result.percentileBeaten > 0 && (

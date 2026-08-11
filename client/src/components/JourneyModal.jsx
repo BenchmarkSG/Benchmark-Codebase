@@ -188,6 +188,13 @@ Kind regards,
   useEffect(() => {
     if (!open) return;
     setEmailTo(''); setEmailBody(defaultBody); setCopied(false); setShared(false);
+    if (resume?.afterAuth) {
+      // Returned from signing in/up — restore the exact screen they were on.
+      setView(resume.view || 'options');
+      setExpert(resume.expert || null);
+      setSentTo(null); setPaidTier(null); setPayError('');
+      return;
+    }
     if (resume) {
       setView(resume.tier || 'options');
       setExpert(resume.expert || null);
@@ -434,7 +441,7 @@ Kind regards,
                 {expert.real && !user && (
                   <div className="jny-note jny-note--warn">
                     Sign in to connect with {expert.name} and track this in your dashboard.
-                    <button className="jny-linkbtn" onClick={() => onRequireAuth?.()}>Sign in</button>
+                    <button className="jny-linkbtn" onClick={() => onRequireAuth?.({ kind: 'journey', context, view, expert })}>Sign in</button>
                   </div>
                 )}
                 {expert.real && user && sentTo === expert.id && (

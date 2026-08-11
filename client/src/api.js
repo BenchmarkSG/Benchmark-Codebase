@@ -53,11 +53,12 @@ const CCY_LOCALE = { SGD: 'en-SG', USD: 'en-US', INR: 'en-IN', MYR: 'ms-MY', IDR
 
 export function formatMoney(n, currency = 'SGD') {
   if (n == null || Number.isNaN(n)) return '—';
+  const cur = (typeof currency === 'string' && currency.trim()) ? currency.trim().toUpperCase() : 'SGD';
   try {
-    return new Intl.NumberFormat(CCY_LOCALE[currency] || 'en-US', {
-      style: 'currency', currency, maximumFractionDigits: 0,
+    return new Intl.NumberFormat(CCY_LOCALE[cur] || 'en-US', {
+      style: 'currency', currency: cur, maximumFractionDigits: 0,
     }).format(n);
   } catch {
-    return `${currency} ${Math.round(n).toLocaleString()}`;
+    return `${cur} ${Math.round(n).toLocaleString()}`;
   }
 }
