@@ -117,29 +117,20 @@ img { max-width: 100%; display: block; }
   transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s ease;
 }
 .btn:active { transform: translateY(1px); }
-.btn--primary {
-  background: var(--blue-600);
-  color: #fff;
-  box-shadow: 0 8px 20px rgba(29, 99, 196, 0.28);
-}
-.btn--primary:hover { background: var(--blue-700); }
+/* Every filled call-to-action uses ONE brand red for consistency. The legacy
+   primary / blue / navy variants alias to the same red so all CTAs match. */
+.btn--primary,
+.btn--blue,
+.btn--navy,
 .btn--red {
   background: var(--red-600);
   color: #fff;
   box-shadow: 0 8px 20px rgba(216, 30, 41, 0.26);
 }
+.btn--primary:hover,
+.btn--blue:hover,
+.btn--navy:hover,
 .btn--red:hover { background: #b91820; }
-.btn--navy {
-  background: var(--navy-800);
-  color: #fff;
-}
-.btn--navy:hover { background: var(--navy-700); }
-.btn--blue {
-  background: var(--blue-600);
-  color: #fff;
-  box-shadow: 0 8px 20px rgba(29, 99, 196, 0.25);
-}
-.btn--blue:hover { background: var(--blue-700); }
 .btn--ghost {
   background: #fff;
   color: var(--navy-800);

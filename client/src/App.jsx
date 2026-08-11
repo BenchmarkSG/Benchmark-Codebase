@@ -10,6 +10,7 @@ import AuthModal from './components/AuthModal.jsx';
 import CompleteProfileModal from './components/CompleteProfileModal.jsx';
 import ResetPasswordModal from './components/ResetPasswordModal.jsx';
 import AdvisorModal from './components/AdvisorModal.jsx';
+import NeedHelp from './components/NeedHelp.jsx';
 import {
   RealSavings,
   FAQ,
@@ -87,6 +88,7 @@ export default function App() {
       <CompleteProfileModal />
       <ResetPasswordModal />
       <AdvisorModal open={advisorOpen} onClose={closeAdvisor} />
+      <NeedHelp />
     </>
   );
 }

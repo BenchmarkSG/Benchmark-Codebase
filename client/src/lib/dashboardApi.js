@@ -2,10 +2,24 @@
 // through RLS (see supabase/dashboards.sql), so each call only ever touches rows
 // the signed-in user is allowed to see.
 import { supabase, isSupabaseConfigured } from './supabase.js';
+import { safeHttpUrl } from './safeUrl.js';
 
 const ensure = () => {
   if (!isSupabaseConfigured) throw new Error('Supabase isn’t configured yet.');
 };
+
+// Reject javascript:/data: etc. in URL columns before they are stored (they'd be
+// rendered into href/src and would XSS whoever views the advisor directory).
+function sanitizeUrlFields(patch) {
+  const out = { ...patch };
+  for (const key of ['calendly_url', 'photo_url']) {
+    if (out[key] == null || out[key] === '') continue;
+    const safe = safeHttpUrl(out[key]);
+    if (!safe) throw new Error(`Please enter a valid https link for ${key.replace('_url', '')}.`);
+    out[key] = safe;
+  }
+  return out;
+}
 
 async function currentUser() {
   const { data } = await supabase.auth.getUser();
@@ -105,7 +119,7 @@ export async function getMyAdvisor(email) {
 export async function updateMyAdvisor(id, patch) {
   ensure();
   const { data, error } = await supabase
-    .from('advisors').update(patch).eq('id', id).select().single();
+    .from('advisors').update(sanitizeUrlFields(patch)).eq('id', id).select().single();
   if (error) throw error;
   return data;
 }

@@ -6,6 +6,7 @@ import { useAdvisorRow } from '../hooks/useAdvisorRow.js';
 import { formatMoney } from '../api.js';
 import { ADVISOR_SEGMENTS, ADVISOR_PRODUCTS, ADVISOR_SPECIALIZATIONS } from '../lib/advisorFields.js';
 import { listAssignedLeads, updateLead, updateMyAdvisor } from '../lib/dashboardApi.js';
+import { safeHttpUrl } from '../lib/safeUrl.js';
 
 const LEAD_STAGES = [
   { key: 'new', label: 'New' },
@@ -392,8 +393,8 @@ function LeadList({ leads, filter, onPatch, emptyText, showCalendly, advisor }) 
           </div>
           {l.message && <p className="alead__msg">“{l.message}”</p>}
 
-          {showCalendly && advisor?.calendly_url && (
-            <a className="alead__cal" href={advisor.calendly_url} target="_blank" rel="noreferrer">Open scheduling link ↗</a>
+          {showCalendly && safeHttpUrl(advisor?.calendly_url) && (
+            <a className="alead__cal" href={safeHttpUrl(advisor.calendly_url)} target="_blank" rel="noopener noreferrer">Open scheduling link ↗</a>
           )}
 
           <div className="alead__stages">

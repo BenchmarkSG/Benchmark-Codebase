@@ -159,6 +159,7 @@
   color: var(--navy-900);
   background: #fff;
 }
+.calcbox__field input::placeholder { color: #9aa7bd; font-weight: 500; }
 .calcbox__field select:focus,
 .calcbox__field input:focus { outline: none; border-color: var(--blue-500); }
 .calcbox__field input[type='range'] { accent-color: var(--blue-600); }

@@ -61,10 +61,10 @@
 }
 .tf .partners__label {
   text-align: center;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: normal;
+  text-transform: none;
   color: var(--muted);
   margin-bottom: 18px;
 }

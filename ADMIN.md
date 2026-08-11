@@ -40,14 +40,16 @@ The password is **not** in the code. Instead:
    Then run [`supabase/market_rates.sql`](supabase/market_rates.sql) — it adds the
    `market_rates` table for automated aggregate benchmarks
    (see [MARKET_DATA.md](MARKET_DATA.md); populate with `npm run market:fetch`).
-3. Create the admin account (uses the service-role key):
+3. Create the admin account (uses the service-role key). You MUST supply a strong
+   `ADMIN_PASSWORD` — there is no default; the script refuses to run without one:
    ```bash
    export SUPABASE_URL="https://<ref>.supabase.co"
    export SUPABASE_SERVICE_ROLE_KEY="<service_role secret>"
-   npm run create:admin        # admin@benchmark.com / rohitjamwal
+   export ADMIN_PASSWORD="$(openssl rand -base64 18)"   # or your own strong secret
+   npm run create:admin        # defaults email to admin@benchmark.com
    ```
-   Override with `ADMIN_EMAIL` / `ADMIN_PASSWORD` env vars if you like. Re-running
-   just resets the password.
+   Override the email with `ADMIN_EMAIL` if you like. Re-running just resets the
+   password. **Store the password in your secrets manager, never in the repo.**
 4. Make sure the client has Supabase keys (`client/.env.local`, see AUTH_SETUP.md)
    and restart the dev server.
 

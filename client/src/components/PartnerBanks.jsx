@@ -24,7 +24,7 @@ export default function PartnerBanks() {
 
   return (
     <div className="partners" id="partners">
-      <p className="partners__label">Banks &amp; Fintech we benchmark</p>
+      <p className="partners__label">Banks &amp; Companies We Track</p>
 
       <div className="marquee" aria-label="Partner banks carousel">
         <div className="marquee__track">

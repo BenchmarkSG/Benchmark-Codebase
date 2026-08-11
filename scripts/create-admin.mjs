@@ -11,7 +11,9 @@
  *      export SUPABASE_SERVICE_ROLE_KEY="<service_role secret>"
  *   3. node scripts/create-admin.mjs
  *
- * Optional overrides: ADMIN_EMAIL, ADMIN_PASSWORD env vars.
+ * Required env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ADMIN_PASSWORD.
+ * Optional: ADMIN_EMAIL (defaults to admin@benchmark.com).
+ * The password is NEVER hardcoded — you must supply a strong one at run time.
  * --------------------------------------------------------------------------- */
 import { createClient } from '@supabase/supabase-js';
 import 'dotenv/config';
@@ -19,10 +21,16 @@ import 'dotenv/config';
 const url = process.env.SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const email = process.env.ADMIN_EMAIL || 'admin@benchmark.com';
-const password = process.env.ADMIN_PASSWORD || 'rohitjamwal';
+const password = process.env.ADMIN_PASSWORD;
 
 if (!url || !key) {
   console.error('✗ Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (service_role, not anon).');
+  process.exit(1);
+}
+// Never provision the single privileged account with a default/known password.
+if (!password || password.length < 12) {
+  console.error('✗ Set ADMIN_PASSWORD to a strong secret (min 12 chars). Example:');
+  console.error('    ADMIN_PASSWORD="$(openssl rand -base64 18)" node scripts/create-admin.mjs');
   process.exit(1);
 }
 const db = createClient(url, key, { auth: { persistSession: false } });

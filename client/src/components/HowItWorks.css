@@ -2,25 +2,24 @@
 .hiw__title { text-align: left; font-size: clamp(24px, 2.6vw, 30px); }
 .hiw__sub { color: var(--muted); margin-top: 8px; font-size: 15px; }
 
-.hiw__steps { margin-top: 26px; display: flex; flex-direction: column; gap: 6px; }
+.hiw__steps { margin-top: 26px; display: flex; flex-direction: column; gap: 14px; }
 
+/* Each step is its own white card, matching the product cards on the right
+   and the "Ready to save?" box below. */
 .hiw-step {
   position: relative;
   display: grid;
   grid-template-columns: 60px 1fr;
   gap: 16px;
-  padding-bottom: 22px;
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
-/* Connecting vertical line between markers */
-.hiw-step:not(:last-child)::before {
-  content: '';
-  position: absolute;
-  left: 29px;
-  top: 60px;
-  bottom: 0;
-  width: 2px;
-  background: repeating-linear-gradient(180deg, var(--line) 0 6px, transparent 6px 12px);
-}
+.hiw-step:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: #cdd8ec; }
 
 .hiw-step__marker { position: relative; width: 60px; }
 .hiw-step__icon {
@@ -44,7 +43,7 @@
   border: 2px solid #fff;
 }
 
-.hiw-step__body { padding-top: 4px; }
+.hiw-step__body { padding-top: 0; }
 .hiw-step__title { font-size: 17px; font-weight: 800; color: var(--navy-900); }
 .hiw-step__text { margin-top: 6px; color: var(--muted); font-size: 14px; }
 

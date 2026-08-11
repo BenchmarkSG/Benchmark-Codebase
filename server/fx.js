@@ -9,11 +9,15 @@ const cache = new Map(); // 'FROM:TO' -> { at, rate }
 
 export const fxConfigured = true; // no key required
 
+// Only real ISO-4217 currency codes may be interpolated into the outbound FX
+// URL — blocks query/parameter injection from client-supplied currency fields.
+const isCurrencyCode = (c) => /^[A-Z]{3}$/.test(c);
+
 /** Mid-market rate = units of `to` per 1 unit of `from` (null if unavailable). */
 export async function getMidRate(from, to) {
   const a = String(from || '').toUpperCase();
   const b = String(to || '').toUpperCase();
-  if (!a || !b) return null;
+  if (!isCurrencyCode(a) || !isCurrencyCode(b)) return null;
   if (a === b) return 1;
 
   const key = `${a}:${b}`;
@@ -21,7 +25,7 @@ export async function getMidRate(from, to) {
   if (hit && Date.now() - hit.at < TTL_MS) return hit.rate;
 
   try {
-    const res = await fetch(`${FX_BASE_URL}/latest?base=${a}&symbols=${b}`);
+    const res = await fetch(`${FX_BASE_URL}/latest?base=${encodeURIComponent(a)}&symbols=${encodeURIComponent(b)}`);
     if (!res.ok) throw new Error(`FX ${res.status}`);
     const data = await res.json();
     const rate = Number(data?.rates?.[b]);

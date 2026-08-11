@@ -3,10 +3,14 @@ dist
 dev-dist
 .DS_Store
 *.log
+# Ignore ALL env files (incl. .env.production / .env.development which hold real
+# secrets) but keep the committed *.env.example templates.
 .env
-.env.local
-.env.*.local
-**/.env.local
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
 
 # SQL schema/setup files (kept out of version control per request)
 *.sql

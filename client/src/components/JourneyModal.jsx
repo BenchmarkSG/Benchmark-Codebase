@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './JourneyModal.css';
 import { formatMoney, getReference, createCheckout, getCheckoutSession } from '../api.js';
+import { safeHttpUrl, isStripeCheckoutUrl } from '../lib/safeUrl.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { listAdvisorDirectory, createLead } from '../lib/dashboardApi.js';
 
@@ -67,7 +68,8 @@ function CalendlyEmbed({ url, onScheduled }) {
       s.addEventListener('load', init);
     }
     const onMsg = (e) => {
-      if (typeof e.origin === 'string' && e.origin.indexOf('calendly.com') !== -1 && e.data?.event === 'calendly.event_scheduled') cb.current?.();
+      // Exact origin (indexOf('calendly.com') would match https://calendly.com.evil.com).
+      if (e.origin === 'https://calendly.com' && e.data?.event === 'calendly.event_scheduled') cb.current?.();
     };
     window.addEventListener('message', onMsg);
     return () => { done = true; window.removeEventListener('message', onMsg); };
@@ -78,13 +80,14 @@ function CalendlyEmbed({ url, onScheduled }) {
 // Booking panel: the Calendly embed if a URL is available, else a clear placeholder.
 function Scheduler({ url, note }) {
   const [scheduled, setScheduled] = useState(false);
+  const safeUrl = safeHttpUrl(url); // block javascript:/data: from advisor-controlled links
   return (
     <div className="jny-sched">
-      {url ? (
+      {safeUrl ? (
         <>
           {scheduled && <div className="jny-note jny-note--ok">✓ Time booked — the calendar invite is on its way to your inbox.</div>}
-          <CalendlyEmbed url={url} onScheduled={() => setScheduled(true)} />
-          <a className="jny-sched__link" href={url} target="_blank" rel="noreferrer">Open the scheduler in a new tab ↗</a>
+          <CalendlyEmbed url={safeUrl} onScheduled={() => setScheduled(true)} />
+          <a className="jny-sched__link" href={safeUrl} target="_blank" rel="noopener noreferrer">Open the scheduler in a new tab ↗</a>
         </>
       ) : (
         <div className="jny-sched__ph">
@@ -256,6 +259,9 @@ Kind regards,
         segment: context?.segment || 'individual',
         email: user?.email || undefined,
       });
+      // Only ever navigate to a genuine Stripe Checkout URL (defends against a
+      // compromised/misconfigured API returning an open-redirect target).
+      if (!isStripeCheckoutUrl(url)) throw new Error('Unexpected checkout URL');
       window.location.assign(url);
     } catch {
       // Stripe not configured / failed → fall back to demo scheduling.

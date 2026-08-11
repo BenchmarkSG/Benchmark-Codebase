@@ -7,12 +7,7 @@ import { saveBenchmark } from '../lib/dashboardApi.js';
 
 const BANK_NAMES = BANK_LOGOS.map((b) => b.name);
 
-// Group the provider directory by category for the <optgroup> picker.
-const BANK_CAT_LABELS = {
-  public: 'Public sector banks', private: 'Private banks', local: 'Local banks',
-  digital: 'Digital / neobanks', fintech: 'Fintechs', foreign: 'Foreign banks',
-  european: 'International banks', japanese: 'International banks', indian: 'Indian banks',
-};
+// Order the provider directory by category for the picker (headers omitted).
 const BANK_CAT_ORDER = ['public', 'private', 'local', 'digital', 'fintech', 'foreign', 'european', 'japanese', 'indian'];
 function groupBanks(list) {
   const map = new Map();
@@ -56,18 +51,15 @@ function Field({ field, value, onChange, ccyOptions, bankOptions }) {
   const set = (e) => onChange(field.key, e.target.value);
 
   if (field.type === 'bank') {
-    const groups = groupBanks(bankOptions);
+    // Keep the category ordering, but render a flat list (no group headers).
+    const ordered = groupBanks(bankOptions).flatMap(([, list]) => list);
     return (
       <label className="calcbox__field">
         <span>{field.label}</span>
         <select value={value} onChange={set}>
           <option value="">Select your bank…</option>
-          {groups.length
-            ? groups.map(([cat, list]) => (
-                <optgroup key={cat} label={BANK_CAT_LABELS[cat] || cat}>
-                  {list.map((b) => <option key={b.id || b.name} value={b.name}>{b.name}</option>)}
-                </optgroup>
-              ))
+          {ordered.length
+            ? ordered.map((b) => <option key={b.id || b.name} value={b.name}>{b.name}</option>)
             : BANK_NAMES.map((n) => <option key={n} value={n}>{n}</option>)}
           <option value="Other">Other / not listed</option>
         </select>
@@ -102,6 +94,7 @@ function Field({ field, value, onChange, ccyOptions, bankOptions }) {
       <input
         type={numeric ? 'number' : 'text'}
         {...(numeric ? { min: '0', step } : {})}
+        placeholder={field.placeholder || ''}
         value={value}
         onChange={set}
       />

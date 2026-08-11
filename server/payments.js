@@ -28,7 +28,17 @@ async function stripe() {
   return _stripe;
 }
 
-const cleanBase = (origin) => (process.env.PUBLIC_BASE_URL || origin || '').replace(/\/$/, '');
+// Prefer the server-configured PUBLIC_BASE_URL; only fall back to a (route-
+// validated, allow-listed) request origin. Must resolve to an absolute http(s)
+// URL — otherwise we fail closed rather than emit an attacker-controllable
+// redirect target for Stripe's success/cancel pages.
+const cleanBase = (origin) => {
+  const base = (process.env.PUBLIC_BASE_URL || origin || '').trim().replace(/\/$/, '');
+  if (!/^https?:\/\//i.test(base)) {
+    throw new Error('Checkout base URL not configured. Set PUBLIC_BASE_URL.');
+  }
+  return base;
+};
 
 // Create a hosted Checkout Session for a tier; returns { url, id }.
 export async function createCheckout({ tier, origin, email, advisorId, product, segment }) {

@@ -11,9 +11,9 @@ const SLIDES = [
   },
   {
     title: (
-      <>Real Benchmarks.<br /><span className="hero__title-accent">Actionable</span> Savings.</>
+      <>Your Bank is Quietly<br /><span className="hero__title-accent">Overcharging You.</span></>
     ),
-    lead: 'See exactly where you stand versus the most competitive rates in Singapore & SEA — then act with confidence in a few taps.',
+    lead: 'Find out how much you are overpaying by comparing against what others are paying — instantly in 30 secs. No login required.',
   },
 ];
 

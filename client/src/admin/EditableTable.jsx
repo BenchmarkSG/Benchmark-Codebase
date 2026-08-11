@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { safeHttpUrl } from '../lib/safeUrl.js';
 
 function PencilIcon() {
   return (
@@ -93,8 +94,8 @@ export default function EditableTable({ columns, rows, rowKey, onSave }) {
                         />
                       )
                     ) : c.type === 'link' ? (
-                      rawValue(c, row)
-                        ? <a className="adm-val" href={rawValue(c, row)} target="_blank" rel="noreferrer">View</a>
+                      safeHttpUrl(rawValue(c, row))
+                        ? <a className="adm-val" href={safeHttpUrl(rawValue(c, row))} target="_blank" rel="noopener noreferrer">View</a>
                         : <span className="adm-val">—</span>
                     ) : (
                       <span className={c.editable ? 'adm-val adm-val--editable' : 'adm-val'}>

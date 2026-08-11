@@ -342,6 +342,31 @@ export function FinalCTA({ onGetStarted, onConnect }) {
 }
 
 /* -------- Footer -------- */
+// Social profiles. Swap the `href` values for our real profile URLs when ready
+// (they currently point at each platform's homepage).
+const SOCIALS = [
+  {
+    label: 'Facebook', href: 'https://www.facebook.com',
+    icon: <path d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0 0 22 12Z" />,
+  },
+  {
+    label: 'Instagram', href: 'https://www.instagram.com',
+    icon: <><rect x="2.5" y="2.5" width="19" height="19" rx="5.5" fill="none" stroke="currentColor" strokeWidth="1.8" /><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" strokeWidth="1.8" /><circle cx="17.4" cy="6.6" r="1.3" /></>,
+  },
+  {
+    label: 'Twitter', href: 'https://twitter.com',
+    icon: <path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.22-6.82-5.96 6.82H1.66l7.73-8.84L1.24 2.25H8.07l4.71 6.23 5.46-6.23Zm-1.16 17.52h1.83L7.01 4.13H5.05l12.03 15.64Z" />,
+  },
+  {
+    label: 'LinkedIn', href: 'https://www.linkedin.com',
+    icon: <path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28ZM5.34 7.43a2.07 2.07 0 1 1 0-4.14 2.07 2.07 0 0 1 0 4.14ZM7.12 20.45H3.55V9h3.57v11.45ZM22.22 0H1.77C.79 0 0 .77 0 1.72v20.55C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.72C24 .77 23.2 0 22.22 0Z" />,
+  },
+  {
+    label: 'TikTok', href: 'https://www.tiktok.com',
+    icon: <path d="M16.6 5.82a4.28 4.28 0 0 1-1.06-2.82h-3.3v13.05a2.59 2.59 0 0 1-2.59 2.5 2.59 2.59 0 1 1 .77-5.06V9.9a5.9 5.9 0 1 0 5.11 5.84V9.01a7.55 7.55 0 0 0 4.41 1.41V7.13a4.28 4.28 0 0 1-3.34-1.31Z" />,
+  },
+];
+
 export function Footer() {
   return (
     <footer className="footer">
@@ -349,6 +374,14 @@ export function Footer() {
         <div>
           <div className="footer__brand">Bank<span>Benchmark</span>.sg</div>
           <p>Independent bank benchmarking for individuals, SMEs and corporates across Singapore & SEA.</p>
+          <div className="footer__social" aria-label="Follow us">
+            {SOCIALS.map((s) => (
+              <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer"
+                 aria-label={s.label} title={s.label}>
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">{s.icon}</svg>
+              </a>
+            ))}
+          </div>
         </div>
         <div>
           <h4>Product</h4>
@@ -365,20 +398,25 @@ export function Footer() {
       </div>
 
       <p className="container footer__legal">
-        BankBenchmark.sg is an independent rate- and fee-benchmarking service, currently operated
-        as a prototype. It is not a bank, a financial adviser, or a Capital Markets Services licence
+        BankBenchmark.sg is an independent rate and fee benchmarking service. We are an
+        ACRA-registered Singapore enterprise (UEN: [XXXXXX]), thus we are legally accountable,
+        traceable, and subject to Singapore's rigorous corporate governance standards. Our
+        registration is your assurance of legitimacy, transparency, and long-term commitment.
+        It is not a bank, a financial adviser, or a Capital Markets Services licence
         holder, and is not licensed or regulated by the Monetary Authority of Singapore (MAS).
         Nothing on this site constitutes financial, legal, or tax advice, or an offer to buy or sell
         any product. Benchmarks are indicative and based on curated market data together with
         anonymised, crowdsourced figures; your actual rates depend on your own circumstances. Bank
         names and logos are shown for identification only — we are not affiliated with, or endorsed
-        by, any bank. Figures are illustrative. For regulated financial advice, please consult a
-        MAS-licensed institution.
+        by, any bank. Figures are illustrative. For regulated financial advice, please consult our
+        MAS-licensed advisors. We aspire to be leading voice of the individuals and SMEs in Banking.
+        Every customer, irrespective of its size, deserves equitable pricing and a Bank that values
+        their business.
       </p>
 
       <div className="container footer__bottom">
         <span>© {new Date().getFullYear()} BankBenchmark.sg — Prototype. Figures are illustrative.</span>
-        <span>Don't let your bank keep the difference.</span>
+        <span className="footer__tagline">Don't let your bank keep the difference.</span>
       </div>
     </footer>
   );

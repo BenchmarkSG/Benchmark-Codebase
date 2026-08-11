@@ -27,9 +27,9 @@ const REMIT_DIRECTION = [
 /* ---- Field builders (role: metric = benchmarked · context = drives maths ·
         meta = descriptive) ------------------------------------------------- */
 const bank = (label = 'Your current provider') => ({ key: 'bank', label, type: 'bank', role: 'meta', required: false });
-const amount = (label) => ({ key: 'amount', label, type: 'amount', role: 'context', required: true });
-const rate = (label, unit = '% p.a.') => ({ key: 'rate', label, type: 'rate', role: 'metric', required: false, unit });
-const tenor = () => ({ key: 'tenor', label: 'Tenor (months)', type: 'tenor', role: 'context', required: false });
+const amount = (label, placeholder = 'e.g. 500000') => ({ key: 'amount', label, type: 'amount', role: 'context', required: true, placeholder });
+const rate = (label, unit = '% p.a.', placeholder = 'e.g. 3.50') => ({ key: 'rate', label, type: 'rate', role: 'metric', required: false, unit, placeholder });
+const tenor = () => ({ key: 'tenor', label: 'Tenor (months)', type: 'tenor', role: 'context', required: false, placeholder: 'e.g. 240' });
 const currency = (required = true) => ({ key: 'currency', label: 'Currency', type: 'currency', role: 'context', required });
 const rateBasis = () => ({ key: 'rate_basis', label: 'Rate type', type: 'enum', role: 'context', required: false, options: RATE_BASIS });
 const variant = (label, options) => ({ key: 'variant', label, type: 'enum', role: 'context', required: true, options });
@@ -39,10 +39,10 @@ const crossBorderInputs = () => [
   { key: 'direction', label: 'Direction', type: 'enum', role: 'context', required: true, options: REMIT_DIRECTION },
   bank('Remitting / receiving bank'),
   { key: 'send_currency', label: 'Sent currency', type: 'currency', role: 'context', required: true },
-  { key: 'sent_amount', label: 'Amount sent / debited (Dr)', type: 'amount', role: 'context', required: true },
+  { key: 'sent_amount', label: 'Amount sent / debited (Dr)', type: 'amount', role: 'context', required: true, placeholder: 'e.g. 5000' },
   { key: 'receive_currency', label: 'Received currency', type: 'currency', role: 'context', required: true },
-  { key: 'received_amount', label: 'Amount received / credited (Cr)', type: 'amount', role: 'context', required: true },
-  { key: 'time_taken_hours', label: 'Time taken (hours)', type: 'duration', role: 'context', required: false },
+  { key: 'received_amount', label: 'Amount received / credited (Cr)', type: 'amount', role: 'context', required: true, placeholder: 'e.g. 305000' },
+  { key: 'time_taken_hours', label: 'Time taken (hours)', type: 'duration', role: 'context', required: false, placeholder: 'e.g. 24' },
   amount('Annual transfer volume'), // savings basis (in send currency)
 ];
 
@@ -134,12 +134,12 @@ export const QUESTIONNAIRES = [
     id: 'treasury_efficiency', label: 'Treasury efficiency', segment: 'sme',
     intro: 'A quick structural review of how your group treasury is set up.',
     inputs: [
-      { key: 'entities', label: 'Number of entities', type: 'count', role: 'context', required: true },
-      { key: 'accounts_per_entity', label: 'Accounts per entity', type: 'count', role: 'context', required: false },
-      { key: 'shareholding_pct', label: 'Shareholding %', type: 'percent', role: 'context', required: false },
-      { key: 'account_locations', label: 'Location of accounts', type: 'text', role: 'context', required: false },
-      { key: 'bank_names', label: 'Banks used (Dr / Cr)', type: 'text', role: 'context', required: false },
-      { key: 'daily_avg_balance', label: 'Daily average balance (Dr / Cr)', type: 'amount', role: 'context', required: false },
+      { key: 'entities', label: 'Number of entities', type: 'count', role: 'context', required: true, placeholder: 'e.g. 3' },
+      { key: 'accounts_per_entity', label: 'Accounts per entity', type: 'count', role: 'context', required: false, placeholder: 'e.g. 2' },
+      { key: 'shareholding_pct', label: 'Shareholding %', type: 'percent', role: 'context', required: false, placeholder: 'e.g. 100' },
+      { key: 'account_locations', label: 'Location of accounts', type: 'text', role: 'context', required: false, placeholder: 'e.g. Singapore, Hong Kong' },
+      { key: 'bank_names', label: 'Banks used (Dr / Cr)', type: 'text', role: 'context', required: false, placeholder: 'e.g. DBS, HSBC' },
+      { key: 'daily_avg_balance', label: 'Daily average balance (Dr / Cr)', type: 'amount', role: 'context', required: false, placeholder: 'e.g. 250000' },
       scale('liquidity_structure', 'Currency / liquidity structure maturity'),
     ],
     scoreKeys: ['liquidity_structure'],
@@ -148,8 +148,8 @@ export const QUESTIONNAIRES = [
     id: 'operational_efficiency', label: 'Operational efficiency', segment: 'sme',
     intro: 'How automated and centralised are your banking operations?',
     inputs: [
-      { key: 'entities', label: 'Number of entities', type: 'count', role: 'context', required: true },
-      { key: 'bank_accounts', label: 'Number of bank accounts', type: 'count', role: 'context', required: false },
+      { key: 'entities', label: 'Number of entities', type: 'count', role: 'context', required: true, placeholder: 'e.g. 3' },
+      { key: 'bank_accounts', label: 'Number of bank accounts', type: 'count', role: 'context', required: false, placeholder: 'e.g. 6' },
       scale('data_channel', 'Bank-data channel (statements → host-to-host)'),
       scale('reconciliation', 'Reconciliation method (manual → automated)'),
       scale('connectivity', 'Bank connectivity (portals → API/SWIFT)'),
