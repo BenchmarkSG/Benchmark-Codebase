@@ -35,6 +35,14 @@ export function getReference() {
 export const calcBenchmark = (payload) => post('/benchmark', payload);
 export const scoreQuestionnaire = (id, answers) => post('/questionnaire/score', { id, answers });
 
+// Stripe Checkout: create a session (server redirects to the hosted page) and
+// verify it on return. `createCheckout` throws if payments aren't configured.
+export const createCheckout = (payload) => post('/checkout', payload);
+export const getCheckoutSession = (id) =>
+  fetch(`${BASE}/checkout/session?id=${encodeURIComponent(id)}`)
+    .then((r) => (r.ok ? r.json() : null))
+    .catch(() => null);
+
 // Bank directory for a country (id, name, category) — powers the provider picker.
 export const getBanks = (country) =>
   fetch(`${BASE}/banks?country=${encodeURIComponent(country || '')}`)

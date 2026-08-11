@@ -1,13 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import './JourneyModal.css';
-import { formatMoney } from '../api.js';
+import { formatMoney, getReference, createCheckout, getCheckoutSession } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { listAdvisorDirectory, createLead } from '../lib/dashboardApi.js';
 
-/* Screen 3 — the "reveal + act on it" screen. Same layout for both segments.
-   Three vertical tiers: negotiate yourself (free), get help (call), or hire an
-   expert. Payment is intentionally NOT wired yet (demo first); bookings hand off
-   to Calendly, which emails the invite to both the user and the advisor. */
+/* Screen 3 — the "reveal + act on it" screen. Three vertical tiers: negotiate
+   yourself (free), get a coaching call ($99), or hire an expert ($199). The paid
+   tiers charge via Stripe Checkout (server /api/checkout); on return the modal
+   resumes to the Calendly scheduler. If Stripe isn't configured, the paid tiers
+   fall back to demo scheduling so the flow still works. */
 
 const CALENDLY_URL = import.meta.env.VITE_CALENDLY_URL || '';
 const SEG_LABEL = { individual: 'Individual', sme: 'SME / Corporate' };
@@ -34,30 +35,63 @@ const TIERS = [
 ];
 
 // Demo advisor directory for "Find an expert". Real signed-up advisors get wired
-// in later via a PII-safe public view.
+// in via the PII-safe public view (advisor_directory).
 const SAMPLE_EXPERTS = [
   { id: 'e1', name: 'Priya Menon', role: 'Trade Finance Specialist', company: 'ex-Standard Chartered', years: 14, blurb: 'LC structuring & working-capital pricing for SMEs across SEA.', accent: '#2f7bd8' },
   { id: 'e2', name: 'Daniel Lim', role: 'SME Lending Advisor', company: 'ex-DBS', years: 11, blurb: 'Overdraft and term-loan repricing; former relationship manager.', accent: '#e0574b' },
   { id: 'e3', name: 'Aisha Rahman', role: 'FX & Treasury Expert', company: 'ex-HSBC', years: 9, blurb: 'Cross-border payments and FX spread reduction for corporates.', accent: '#1a9d6a' },
 ];
 
-// A Calendly booking panel (embed if configured, else a clear placeholder).
-function Scheduler({ note }) {
+// Calendly inline embed (official widget) + a callback when a time is booked.
+function CalendlyEmbed({ url, onScheduled }) {
+  const ref = useRef(null);
+  const cb = useRef(onScheduled);
+  cb.current = onScheduled;
+  useEffect(() => {
+    if (!url || !ref.current) return undefined;
+    let done = false;
+    const init = () => {
+      if (done || !ref.current || !window.Calendly) return;
+      ref.current.innerHTML = '';
+      window.Calendly.initInlineWidget({ url, parentElement: ref.current });
+    };
+    if (window.Calendly) init();
+    else {
+      let s = document.querySelector('script[data-calendly]');
+      if (!s) {
+        s = document.createElement('script');
+        s.src = 'https://assets.calendly.com/assets/external/widget.js';
+        s.async = true; s.dataset.calendly = '1';
+        document.body.appendChild(s);
+      }
+      s.addEventListener('load', init);
+    }
+    const onMsg = (e) => {
+      if (typeof e.origin === 'string' && e.origin.indexOf('calendly.com') !== -1 && e.data?.event === 'calendly.event_scheduled') cb.current?.();
+    };
+    window.addEventListener('message', onMsg);
+    return () => { done = true; window.removeEventListener('message', onMsg); };
+  }, [url]);
+  return <div className="jny-sched__frame" ref={ref} />;
+}
+
+// Booking panel: the Calendly embed if a URL is available, else a clear placeholder.
+function Scheduler({ url, note }) {
+  const [scheduled, setScheduled] = useState(false);
   return (
     <div className="jny-sched">
-      {CALENDLY_URL ? (
+      {url ? (
         <>
-          <iframe className="jny-sched__frame" src={CALENDLY_URL} title="Pick a time" />
-          <a className="jny-sched__link" href={CALENDLY_URL} target="_blank" rel="noreferrer">
-            Open the scheduler in a new tab ↗
-          </a>
+          {scheduled && <div className="jny-note jny-note--ok">✓ Time booked — the calendar invite is on its way to your inbox.</div>}
+          <CalendlyEmbed url={url} onScheduled={() => setScheduled(true)} />
+          <a className="jny-sched__link" href={url} target="_blank" rel="noreferrer">Open the scheduler in a new tab ↗</a>
         </>
       ) : (
         <div className="jny-sched__ph">
           <span className="jny-sched__ph-icon">📅</span>
           <strong>Calendly scheduler appears here</strong>
           <p>Pick a slot and both you and your advisor get a calendar invite automatically.</p>
-          <small>Set <code>VITE_CALENDLY_URL</code> to go live.</small>
+          <small>Set <code>VITE_CALENDLY_URL</code> (or the advisor's link) to go live.</small>
         </div>
       )}
       {note && <p className="jny-note">{note}</p>}
@@ -65,7 +99,7 @@ function Scheduler({ note }) {
   );
 }
 
-export default function JourneyModal({ open, onClose, context, onRequireAuth }) {
+export default function JourneyModal({ open, onClose, context, onRequireAuth, resume }) {
   const { user } = useAuth();
   const [view, setView] = useState('options'); // 'options' | 'email' | 'call' | 'expert'
   const [expert, setExpert] = useState(null);
@@ -75,6 +109,10 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth }) 
   const [shared, setShared] = useState(false);
   const [advisors, setAdvisors] = useState([]);
   const [sentTo, setSentTo] = useState(null); // advisor id once a lead is created
+  const [paymentsEnabled, setPaymentsEnabled] = useState(false);
+  const [paidTier, setPaidTier] = useState(null); // 'call' | 'expert' once paid (or demo)
+  const [busy, setBusy] = useState(false);
+  const [payError, setPayError] = useState('');
 
   const segment = context?.segment && SEG_LABEL[context.segment] ? context.segment : 'individual';
   const savings = context?.annualSaving ?? null;
@@ -127,7 +165,7 @@ Kind regards,
   }, [context]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) return undefined;
     const onKey = (e) => e.key === 'Escape' && onClose();
     document.addEventListener('keydown', onKey);
     document.body.style.overflow = 'hidden';
@@ -137,11 +175,32 @@ Kind regards,
     };
   }, [open, onClose]);
 
-  // Reset whenever the modal reopens.
+  // Is Stripe configured on the server? (Controls whether paid tiers charge.)
   useEffect(() => {
-    if (open) { setView('options'); setExpert(null); setEmailTo(''); setEmailBody(defaultBody); setCopied(false); setShared(false); setSentTo(null); }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (open) getReference().then((r) => setPaymentsEnabled(!!r.paymentsEnabled)).catch(() => {});
   }, [open]);
+
+  // Reset on open — or, if returning from Stripe Checkout, resume to the tier +
+  // verify the payment before showing the scheduler.
+  useEffect(() => {
+    if (!open) return;
+    setEmailTo(''); setEmailBody(defaultBody); setCopied(false); setShared(false);
+    if (resume) {
+      setView(resume.tier || 'options');
+      setExpert(resume.expert || null);
+      setSentTo(resume.expert?.id || null);
+      if (resume.canceled) { setPaidTier(null); setPayError('Payment canceled — you can try again below.'); return; }
+      setPayError(''); setPaidTier(resume.tier); // optimistic; verify below
+      if (resume.sessionId) {
+        getCheckoutSession(resume.sessionId).then((s) => {
+          if (!s?.paid) { setPaidTier(null); setPayError('We couldn’t confirm your payment. Please try again.'); }
+        });
+      }
+    } else {
+      setView('options'); setExpert(null); setSentTo(null); setPaidTier(null); setPayError('');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, resume]);
 
   // Load the real approved-advisor directory for the expert picker.
   useEffect(() => {
@@ -155,7 +214,8 @@ Kind regards,
         id: a.id, real: true, name: a.full_name,
         role: a.specialization || 'Banking specialist',
         company: a.company || '', years: a.years_experience || null,
-        blurb: a.description || '', photo: a.photo_url || null, accent: '#2f7bd8',
+        blurb: a.description || '', photo: a.photo_url || null,
+        calendly_url: a.calendly_url || '', accent: '#2f7bd8',
       }))
     : SAMPLE_EXPERTS;
 
@@ -177,7 +237,31 @@ Kind regards,
         booked: true,
       });
       setSentTo(adv.id);
-    } catch { /* non-blocking in the demo */ }
+    } catch { /* non-blocking */ }
+  };
+
+  // Redirect to Stripe Checkout for a paid tier; stash context to resume on return.
+  const pay = async (tier, adv) => {
+    setBusy(true); setPayError('');
+    const snap = adv ? {
+      id: adv.id, real: !!adv.real, name: adv.name, role: adv.role, company: adv.company,
+      years: adv.years, blurb: adv.blurb, photo: adv.photo, accent: adv.accent, calendly_url: adv.calendly_url,
+    } : null;
+    try {
+      sessionStorage.setItem('bb_journey', JSON.stringify({ tier, expert: snap, context }));
+      const { url } = await createCheckout({
+        tier,
+        advisorId: adv?.real ? adv.id : undefined,
+        product: context?.product || null,
+        segment: context?.segment || 'individual',
+        email: user?.email || undefined,
+      });
+      window.location.assign(url);
+    } catch {
+      // Stripe not configured / failed → fall back to demo scheduling.
+      sessionStorage.removeItem('bb_journey');
+      setPaidTier(tier); setBusy(false);
+    }
   };
 
   if (!open) return null;
@@ -208,7 +292,7 @@ Kind regards,
   };
   const mailtoHref = `mailto:${encodeURIComponent(emailTo)}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
 
-  const back = () => { setView('options'); setExpert(null); };
+  const back = () => { setView('options'); setExpert(null); setPayError(''); };
 
   return (
     <div className="jny" role="dialog" aria-modal="true" aria-label="Your next steps">
@@ -275,23 +359,36 @@ Kind regards,
           </div>
         )}
 
-        {/* BOOK A CALL */}
+        {/* BOOK A CALL ($99) */}
         {view === 'call' && (
           <div className="jny-sub">
             <button className="jny__back" onClick={back}>← Back to options</button>
             <h4 className="jny-sub__title">Book your specialist call</h4>
-            <p className="jny-sub__sub">
-              <span className="jny-pill">$99</span> A BankBenchmark specialist coaches you through the negotiation.
-              Payment is added later — for now, just pick a time.
-            </p>
-            <Scheduler note="You and the specialist both receive the calendar invite from Calendly." />
+            {payError && <div className="jny-note jny-note--warn">{payError}</div>}
+            {paymentsEnabled && paidTier !== 'call' ? (
+              <>
+                <p className="jny-sub__sub">
+                  <span className="jny-pill">$99</span> A BankBenchmark specialist reviews your numbers and coaches you through the negotiation.
+                </p>
+                <button className="btn btn--primary jny-pay" disabled={busy} onClick={() => pay('call')}>
+                  {busy ? 'Redirecting to secure checkout…' : 'Pay $99 & pick a time →'}
+                </button>
+                <p className="jny-note">🔒 Secure payment via Stripe. You'll choose your slot right after.</p>
+              </>
+            ) : (
+              <>
+                {paidTier === 'call' && <div className="jny-note jny-note--ok">✓ Payment received — pick a time below.</div>}
+                <p className="jny-sub__sub"><span className="jny-pill">$99</span> A BankBenchmark specialist coaches you through the negotiation.</p>
+                <Scheduler url={CALENDLY_URL} note="You and the specialist both receive the calendar invite from Calendly." />
+              </>
+            )}
           </div>
         )}
 
-        {/* GET ME AN EXPERT */}
+        {/* GET ME AN EXPERT ($199) */}
         {view === 'expert' && (
           <div className="jny-sub">
-            <button className="jny__back" onClick={expert ? () => setExpert(null) : back}>
+            <button className="jny__back" onClick={expert ? () => { setExpert(null); setPayError(''); } : back}>
               ← {expert ? 'Back to experts' : 'Back to options'}
             </button>
 
@@ -326,6 +423,7 @@ Kind regards,
               <>
                 <h4 className="jny-sub__title">Book with {expert.name}</h4>
                 <p className="jny-sub__sub">{expert.role}{expert.company ? ` · ${expert.company}` : ''}{expert.years ? ` · ${expert.years} yrs experience` : ''}</p>
+                {payError && <div className="jny-note jny-note--warn">{payError}</div>}
 
                 {expert.real && !user && (
                   <div className="jny-note jny-note--warn">
@@ -339,7 +437,20 @@ Kind regards,
                   </div>
                 )}
 
-                <Scheduler note={`${expert.name} and you both receive the calendar invite from Calendly.`} />
+                {paymentsEnabled && paidTier !== 'expert' ? (
+                  <>
+                    <p className="jny-sub__sub"><span className="jny-pill">$199</span> {expert.name.split(' ')[0]} prepares and leads the negotiation. Pay to confirm and schedule.</p>
+                    <button className="btn btn--primary jny-pay" disabled={busy || (expert.real && !user)} onClick={() => pay('expert', expert)}>
+                      {busy ? 'Redirecting to secure checkout…' : `Pay $199 & book ${expert.name.split(' ')[0]} →`}
+                    </button>
+                    <p className="jny-note">🔒 Secure payment via Stripe. You'll choose your slot right after.</p>
+                  </>
+                ) : (
+                  <>
+                    {paidTier === 'expert' && <div className="jny-note jny-note--ok">✓ Payment received — pick a time below.</div>}
+                    <Scheduler url={expert.calendly_url || CALENDLY_URL} note={`${expert.name} and you both receive the calendar invite from Calendly.`} />
+                  </>
+                )}
               </>
             )}
           </div>

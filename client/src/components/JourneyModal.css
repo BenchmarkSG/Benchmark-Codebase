@@ -149,7 +149,12 @@
 
 /* Calendly scheduler */
 .jny-sched { margin-top: 16px; }
-.jny-sched__frame { width: 100%; height: 560px; border: 1px solid var(--line); border-radius: 12px; }
+.jny-sched__frame { width: 100%; min-height: 630px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.jny-sched__frame iframe { width: 100%; min-height: 630px; border: 0; display: block; }
+
+/* Stripe pay button (paid tiers) */
+.jny-pay { width: 100%; margin-top: 14px; font-size: 15px; }
+.jny-pay:disabled { opacity: 0.6; cursor: not-allowed; }
 .jny-sched__link { display: inline-block; margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--blue-600); }
 .jny-sched__ph {
   text-align: center;

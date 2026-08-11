@@ -6,6 +6,7 @@ import {
 } from './benchmark.js';
 import * as ratesRepo from './ratesRepo.js';
 import * as fxModule from './fx.js';
+import * as payments from './payments.js';
 
 // Wrap an async handler so rejected promises become clean 5xx responses.
 const asyncRoute = (fn) => (req, res) => fn(req, res).catch((err) => {
@@ -30,7 +31,22 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
   // Reference data for the calculator: countries + product schemas + questionnaires.
   app.get('/api/reference', asyncRoute(async (_req, res) => {
     const countries = (await repo.getCountries()) ?? [SG_FALLBACK];
-    res.json({ countries, products: PRODUCTS, questionnaires: QUESTIONNAIRES });
+    res.json({ countries, products: PRODUCTS, questionnaires: QUESTIONNAIRES, paymentsEnabled: payments.isPaymentsConfigured });
+  }));
+
+  // ---- Stripe payments (JourneyModal tiers). No-ops without STRIPE_SECRET_KEY. --
+  app.post('/api/checkout', asyncRoute(async (req, res) => {
+    if (!payments.isPaymentsConfigured) return res.status(503).json({ error: 'Payments not configured' });
+    const { tier, advisorId, product, segment, email } = req.body || {};
+    if (!payments.getTier(tier)) return res.status(400).json({ error: 'Unknown tier' });
+    const origin = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+    res.json(await payments.createCheckout({ tier, origin, email, advisorId, product, segment }));
+  }));
+
+  app.get('/api/checkout/session', asyncRoute(async (req, res) => {
+    if (!payments.isPaymentsConfigured) return res.status(503).json({ error: 'Payments not configured' });
+    if (!req.query.id) return res.status(400).json({ error: 'Missing session id' });
+    res.json(await payments.retrieveCheckout(String(req.query.id)));
   }));
 
   // Instant benchmark. Rate products compare a single rate; cross-border derives

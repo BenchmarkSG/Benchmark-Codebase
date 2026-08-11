@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Navbar from './components/Navbar.jsx';
 import Hero from './components/Hero.jsx';
 import WorksProducts from './components/WorksProducts.jsx';
@@ -20,9 +20,30 @@ import {
 export default function App() {
   const [tiersOpen, setTiersOpen] = useState(false);
   const [context, setContext] = useState(null);
+  const [resume, setResume] = useState(null); // set when returning from Stripe Checkout
   const [authOpen, setAuthOpen] = useState(false);
   const [advisorOpen, setAdvisorOpen] = useState(false);
   const [calcSelection, setCalcSelection] = useState(null);
+
+  // Returning from Stripe Checkout (?checkout=success|cancel): restore the stashed
+  // journey context and reopen the modal to the scheduler.
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const checkout = p.get('checkout');
+    if (!checkout) return;
+    let stash = null;
+    try { stash = JSON.parse(sessionStorage.getItem('bb_journey') || 'null'); } catch { /* ignore */ }
+    sessionStorage.removeItem('bb_journey');
+    window.history.replaceState({}, '', window.location.pathname + window.location.hash);
+    setContext(stash?.context || null);
+    setResume({
+      tier: p.get('tier') || stash?.tier || 'call',
+      sessionId: p.get('session_id') || null,
+      expert: stash?.expert || null,
+      canceled: checkout === 'cancel',
+    });
+    setTiersOpen(true);
+  }, []);
 
   const scrollToCalc = useCallback(() => {
     document.getElementById('calculator')?.scrollIntoView({ behavior: 'smooth' });
@@ -39,7 +60,7 @@ export default function App() {
     setContext(ctx || null);
     setTiersOpen(true);
   }, []);
-  const closeTiers = useCallback(() => setTiersOpen(false), []);
+  const closeTiers = useCallback(() => { setTiersOpen(false); setResume(null); }, []);
 
   const openAuth = useCallback(() => setAuthOpen(true), []);
   const closeAuth = useCallback(() => setAuthOpen(false), []);
@@ -61,7 +82,7 @@ export default function App() {
         <FAQ />
       </main>
       <Footer />
-      <JourneyModal open={tiersOpen} onClose={closeTiers} context={context} onRequireAuth={openAuth} />
+      <JourneyModal open={tiersOpen} onClose={closeTiers} context={context} onRequireAuth={openAuth} resume={resume} />
       <AuthModal open={authOpen} onClose={closeAuth} />
       <CompleteProfileModal />
       <ResetPasswordModal />
