@@ -39,6 +39,9 @@ const SG_FALLBACK = { code: 'SG', name: 'Singapore', currency: 'SGD', currency_s
  */
 export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
   const app = express();
+  // Behind Vercel's (single-hop) proxy: derive req.ip from X-Forwarded-For so
+  // rate limiting keys off the real client and HTTPS is detected correctly.
+  app.set('trust proxy', 1);
   app.disable('x-powered-by');
   app.use(helmet());
   app.use(cors({
@@ -52,6 +55,10 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
   const rl = (limit) => rateLimit({
     windowMs: 60_000, limit,
     standardHeaders: true, legacyHeaders: false,
+    // Disable the dev-time proxy sanity checks: they THROW on a fresh serverless
+    // instance (X-Forwarded-For present), which 500'd rate-limited routes on
+    // Vercel cold starts. `trust proxy` above already gives us the correct IP.
+    validate: false,
     skip: () => process.env.NODE_ENV === 'test',
     message: { error: 'Too many requests. Please slow down and try again.' },
   });
