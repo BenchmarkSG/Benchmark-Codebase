@@ -67,7 +67,7 @@ export default function HowItWorks({ onGetStarted }) {
           <strong>Ready to save?</strong>
           <span>Your free benchmark computes instantly — no sign-up.</span>
         </div>
-        <button className="btn btn--primary" onClick={onGetStarted}>Start Free Comparison</button>
+        <button className="btn btn--primary" onClick={onGetStarted}>Calculate My Savings</button>
       </div>
     </div>
   );

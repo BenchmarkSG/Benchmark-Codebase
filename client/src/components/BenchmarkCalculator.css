@@ -76,7 +76,8 @@
   border-radius: 0;
   background: #fff;
   margin-top: 0;
-  padding: 20px 20px 34px;
+  /* No header now — top padding is the "status bar" that clears the island. */
+  padding: 42px 20px 34px;
   overflow: visible;
 }
 .calc-card .calcbox__form {
@@ -86,8 +87,25 @@
   border-bottom: none;
 }
 .calc-card .calcbox__result {
-  padding: 14px 0 0;
+  padding: 0;
   background: transparent;
+}
+
+/* Native-feel "push" when a result computes (pure CSS; honours reduced-motion). */
+@keyframes calc-push-in {
+  from { opacity: 0; transform: translateX(26px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.calc-card .res { animation: calc-push-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) both; }
+/* "Back" (Recalculate) slides the form in from the opposite side. */
+@keyframes calc-push-back {
+  from { opacity: 0; transform: translateX(-26px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.calc-card .calcbox__form.is-back { animation: calc-push-back 0.34s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .calc-card .res,
+  .calc-card .calcbox__form.is-back { animation: none; }
 }
 .res__back {
   border: none;
@@ -234,6 +252,34 @@
 
 .res__head { display: flex; justify-content: space-between; align-items: baseline; font-weight: 800; color: var(--navy-900); font-size: 15px; }
 .res__unit { font-size: 12px; color: var(--muted); font-weight: 700; }
+
+/* --- Redesigned result: red rules, "overpaying" headline, rate rows, tagline --- */
+.res__top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.res__product { font-weight: 800; color: var(--navy-900); font-size: 15px; }
+.res__rule { border-radius: 999px; background: var(--red-600); }
+.res__rule--thick { height: 4px; margin: 10px 0 16px; }
+.res__rule--thin { height: 2px; margin: 14px 0; opacity: 0.85; }
+
+.res__overpay { text-align: center; }
+.res__overpay-lead { display: block; font-size: 15px; font-weight: 700; color: var(--navy-700); }
+.res__overpay-lead strong { color: var(--red-600); font-weight: 800; }
+.res__overpay-amt { display: block; margin-top: 6px; font-size: 30px; font-weight: 800; color: var(--navy-900); letter-spacing: -0.02em; }
+
+.res__rows { display: flex; flex-direction: column; gap: 10px; }
+.res__row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.res__row-label { font-size: 14px; font-weight: 700; color: var(--navy-800); }
+.res__row-val {
+  min-width: 68px; text-align: center;
+  border: 1px solid var(--line); border-radius: 9px; padding: 7px 12px;
+  background: #fff; font-size: 16px; font-weight: 800; color: var(--navy-900);
+}
+.res__row-val--best { color: var(--blue-600); border-color: #c3d8f5; background: var(--blue-50); }
+
+.res__tagline { margin-top: 14px; text-align: center; font-size: 13.5px; font-weight: 700; color: var(--navy-700); }
+
+/* Primary result CTA — blue (overrides the global red .btn* unification) */
+.res .res__detail { background: var(--blue-600); color: #fff; box-shadow: 0 8px 20px rgba(29, 99, 196, 0.26); }
+.res .res__detail:hover { background: var(--blue-700); }
 .res__rates { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; margin-top: 14px; }
 .res__rate { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 14px; text-align: center; }
 .res__rate--best { border-color: #c3d8f5; background: var(--blue-50); }
@@ -357,8 +403,7 @@
 @media (max-width: 560px) {
   .calc-card { padding: 9px; border-radius: 40px; }
   .calc-card .calc-screen { border-radius: 32px; }
-  .calc-card .calc-card__head { padding: 40px 18px 18px; }
-  .calc-card .calcbox { padding: 18px 16px 32px; }
+  .calc-card .calcbox { padding: 42px 16px 32px; }
   .calc-card .calc-modes { width: 100%; }
   .calc-card .calc-modes button { min-width: 0; flex: 1; font-size: 12px; padding: 9px 6px; }
   .calcbox__row { grid-template-columns: 1fr; }

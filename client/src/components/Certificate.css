@@ -1,0 +1,43 @@
+.cert {
+  position: relative;
+  border: 2px solid var(--blue-600);
+  border-radius: 16px;
+  background: linear-gradient(160deg, #f5f9ff 0%, #ffffff 60%);
+  padding: 22px 20px 18px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.cert::before {
+  content: '';
+  position: absolute; inset: 5px;
+  border: 1px solid #cfe0f7;
+  border-radius: 11px;
+  pointer-events: none;
+}
+.cert__ribbon {
+  display: inline-block;
+  font-size: 12.5px; font-weight: 800; letter-spacing: 0.02em;
+  color: #fff; background: var(--blue-600);
+  padding: 5px 14px; border-radius: 999px;
+}
+.cert__head {
+  margin-top: 12px;
+  font-size: 18px; font-weight: 800; line-height: 1.25;
+  color: var(--navy-900);
+}
+.cert__body { margin-top: 8px; font-size: 13.5px; line-height: 1.5; color: var(--navy-700); }
+.cert__body strong { color: var(--navy-900); }
+.cert__q { margin-top: 10px; font-size: 13.5px; font-weight: 800; color: var(--red-600); }
+
+.cert__foot {
+  margin-top: 16px; padding-top: 14px; border-top: 1px dashed #c3d2ea;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.cert__brand { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.cert__logo { font-size: 16px; font-weight: 800; color: var(--navy-900); }
+.cert__logo span { color: var(--blue-600); }
+.cert__handle { font-size: 11.5px; font-weight: 600; color: var(--muted); }
+.cert__qr {
+  flex: none; width: 62px; height: 62px; border-radius: 8px;
+  background: #fff; border: 1px solid var(--line); padding: 3px;
+}

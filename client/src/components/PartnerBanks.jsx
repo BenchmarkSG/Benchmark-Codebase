@@ -23,7 +23,7 @@ export default function PartnerBanks() {
   const loop = [...BANK_LOGOS, ...BANK_LOGOS];
 
   return (
-    <div className="partners" id="partners">
+    <section className="partners" id="partners">
       <p className="partners__label">Banks &amp; Companies We Track</p>
 
       <div className="marquee" aria-label="Partner banks carousel">
@@ -35,6 +35,6 @@ export default function PartnerBanks() {
           ))}
         </div>
       </div>
-    </div>
+    </section>
   );
 }

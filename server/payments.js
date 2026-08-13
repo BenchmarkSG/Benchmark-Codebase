@@ -7,8 +7,10 @@
 // Config (env):
 //   STRIPE_SECRET_KEY          enables payments (sk_test_… / sk_live_…)
 //   STRIPE_CURRENCY            default 'sgd'
-//   STRIPE_PRICE_CALL_CENTS    default 9900   ($99 coaching call)
-//   STRIPE_PRICE_EXPERT_CENTS  default 19900  ($199 expert-led negotiation)
+//   STRIPE_PRICE_REVEAL_CENTS        default 900   ($9 reveal best bank & price)
+//   STRIPE_PRICE_REVEAL_PROMO_CENTS  default 100   ($1 reveal — social-share promo)
+//   STRIPE_PRICE_CALL_CENTS          default 9900  ($99 coaching call)
+//   STRIPE_PRICE_EXPERT_CENTS        default 19900 ($199 expert-led negotiation)
 //   PUBLIC_BASE_URL            success/cancel origin (falls back to request origin)
 
 const KEY = process.env.STRIPE_SECRET_KEY || '';
@@ -16,8 +18,10 @@ export const isPaymentsConfigured = !!KEY;
 
 const CURRENCY = (process.env.STRIPE_CURRENCY || 'sgd').toLowerCase();
 const TIERS = {
-  call:   { amount: Number(process.env.STRIPE_PRICE_CALL_CENTS   || 9900),  name: 'Negotiation coaching call' },
-  expert: { amount: Number(process.env.STRIPE_PRICE_EXPERT_CENTS || 19900), name: 'Expert-led negotiation' },
+  reveal_std:   { amount: Number(process.env.STRIPE_PRICE_REVEAL_CENTS       || 900), name: 'Reveal best bank & price' },
+  reveal_promo: { amount: Number(process.env.STRIPE_PRICE_REVEAL_PROMO_CENTS || 100), name: 'Reveal best bank & price (share promo)' },
+  call:         { amount: Number(process.env.STRIPE_PRICE_CALL_CENTS         || 9900),  name: 'Negotiation coaching call' },
+  expert:       { amount: Number(process.env.STRIPE_PRICE_EXPERT_CENTS       || 19900), name: 'Expert-led negotiation' },
 };
 export const getTier = (t) => TIERS[t] || null;
 

@@ -32,38 +32,46 @@
   position: absolute;
   top: 16px; right: 18px;
   border: none;
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--blue-50);
   width: 34px; height: 34px;
   border-radius: 50%;
   font-size: 22px; line-height: 1;
-  color: #fff; cursor: pointer;
+  color: var(--navy-800); cursor: pointer;
   z-index: 2;
 }
-.jny__close:hover { background: rgba(255, 255, 255, 0.4); }
+.jny__close:hover { background: #e2ebf7; }
+
+/* Hide the floating WhatsApp "Need Help?" widget while the journey modal is open. */
+body.jny-open .needhelp { display: none; }
 
 /* Reveal panel */
 .jny-reveal {
-  background: linear-gradient(120deg, var(--blue-700) 0%, var(--blue-600) 100%);
-  color: #fff;
-  border-radius: 16px;
-  padding: 20px 22px;
-  margin-bottom: 20px;
+  background: transparent;
+  color: var(--navy-900);
+  padding: 0;
+  margin-bottom: 18px;
 }
 .jny-reveal__top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.jny-reveal__eyebrow { font-size: 11.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #cfe0f7; }
+.jny-reveal__eyebrow { font-size: 11.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 .jny-reveal__share {
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff; font-weight: 700; font-size: 12.5px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--navy-800); font-weight: 700; font-size: 12.5px;
   padding: 6px 12px; border-radius: 999px; cursor: pointer;
   margin-right: 34px; /* clear the close button */
 }
-.jny-reveal__share:hover { background: rgba(255, 255, 255, 0.22); }
-.jny-reveal__bankline { margin-top: 12px; display: flex; flex-direction: column; gap: 2px; }
-.jny-reveal__label { font-size: 12.5px; color: #cfe0f7; }
-.jny-reveal__bank { font-size: 28px; font-weight: 800; line-height: 1.1; }
-.jny-reveal__save { margin-top: 10px; font-size: 14px; color: #eaf1fc; }
-.jny-reveal__save strong { color: #fff; }
+.jny-reveal__share:hover { background: var(--blue-50); }
+
+/* Sketch layout: headline → thick red rule → amount → thin red rule (bank name is
+   now gated behind the options below, so it's no longer shown here). */
+.jny-reveal__headline { margin-top: 14px; font-size: 18px; font-weight: 800; color: var(--navy-900); line-height: 1.3; }
+.jny-reveal__headline strong { color: var(--blue-600); }
+.jny-reveal__rule { border-radius: 999px; background: var(--red-600); }
+.jny-reveal__rule--thick { height: 4px; margin: 14px 0; }
+.jny-reveal__rule--thin { height: 2px; margin: 14px 0; opacity: 0.85; }
+.jny-reveal__amt { font-size: 30px; font-weight: 800; color: var(--navy-900); letter-spacing: -0.02em; }
+.jny-reveal__amt span { font-size: 16px; font-weight: 700; color: var(--navy-700); letter-spacing: 0; }
+.jny-reveal__amt--sm { font-size: 16px; font-weight: 700; color: var(--navy-700); }
 
 .jny-sectlabel { font-size: 14px; font-weight: 800; color: var(--navy-900); margin-bottom: 12px; }
 
@@ -154,6 +162,32 @@
 
 /* Stripe pay button (paid tiers) */
 .jny-pay { width: 100%; margin-top: 14px; font-size: 15px; }
+
+/* Option 1 card promo subtext (Standard $9 · $1 when you share) */
+.jny-tier__promo { margin-top: 8px; font-size: 12px; font-weight: 700; color: var(--navy-700); }
+.jny-tier__promo s { color: var(--muted); font-weight: 600; }
+
+/* Reveal view — unlocked bank + two pricing paths */
+.jny-unlock {
+  display: flex; flex-direction: column; gap: 2px;
+  background: var(--blue-50); border: 1px solid #c3d8f5; border-radius: 12px;
+  padding: 14px 16px; margin: 4px 0 12px;
+}
+.jny-unlock__name { font-size: 24px; font-weight: 800; color: var(--navy-900); line-height: 1.1; }
+.jny-unlock__rate { font-size: 13px; font-weight: 700; color: var(--blue-600); }
+
+.jny-paths { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+.jny-path { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.jny-path--promo { border-color: #b6e6ca; background: #f2fbf6; }
+.jny-path__head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.jny-path__label { font-size: 14px; font-weight: 800; color: var(--navy-900); }
+.jny-path__price { font-size: 18px; font-weight: 800; color: var(--navy-900); }
+.jny-path__price s { color: var(--muted); font-weight: 600; font-size: 14px; margin-right: 5px; }
+.jny-paths__or { position: relative; text-align: center; }
+.jny-paths__or::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: var(--line); }
+.jny-paths__or span { position: relative; background: #fff; padding: 0 12px; font-size: 12px; font-weight: 800; color: var(--muted); }
+/* Path CTAs sit right under the head — trim the shared .jny-pay top gap a touch. */
+.jny-path .jny-pay { margin-top: 12px; }
 .jny-pay:disabled { opacity: 0.6; cursor: not-allowed; }
 .jny-sched__link { display: inline-block; margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--blue-600); }
 .jny-sched__ph {

@@ -1,5 +1,21 @@
 .partners__eyebrow { display: block; text-align: center; margin-bottom: 8px; }
 
+/* Standalone white logo band (sits between "Why Choose" and the health check). */
+.partners {
+  padding: 34px 24px 36px;
+  background: #fff;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.partners__label {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--muted);
+  margin-bottom: 18px;
+}
+.partners .marquee { margin-top: 0; }
+
 .marquee {
   margin-top: 30px;
   overflow: hidden;

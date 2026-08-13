@@ -20,12 +20,13 @@ export default function EfficiencyChecks() {
   return (
     <section className="section effc" id="health-check">
       <div className="container">
-        <span className="eyebrow effc__eyebrow">For SMEs &amp; Corporates</span>
         <h2 className="section-title">Free Treasury &amp; Operations Health Check</h2>
         <p className="section-sub">
           Two-minute assessments that score how efficient your banking setup is — and where an expert
           can unlock quick wins.
         </p>
+
+        <p className="effc__segment">For SMEs &amp; Corporates</p>
 
         <div className="effc__grid">
           {questionnaires.map((q) => (

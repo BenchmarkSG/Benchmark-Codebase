@@ -12,6 +12,7 @@ import CompleteProfileModal from './components/CompleteProfileModal.jsx';
 import ResetPasswordModal from './components/ResetPasswordModal.jsx';
 import AdvisorModal from './components/AdvisorModal.jsx';
 import NeedHelp from './components/NeedHelp.jsx';
+import PartnerBanks from './components/PartnerBanks.jsx';
 import {
   RealSavings,
   FAQ,
@@ -116,6 +117,7 @@ export default function App() {
         <WorksProducts onGetStarted={scrollToCalc} onCompare={handleCompare} />
         <RealSavings />
         <SegmentsWhy onGetStarted={scrollToCalc} onCompare={handleCompare} />
+        <PartnerBanks />
         <EfficiencyChecks />
         <TrustedFounding onBecomeMember={openAdvisor} />
         <FinalCTA onGetStarted={scrollToCalc} onConnect={() => openTiers()} />

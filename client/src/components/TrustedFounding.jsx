@@ -1,6 +1,5 @@
 import './TrustedFounding.css';
 import { Testimonials, Founding } from './Sections.jsx';
-import PartnerBanks from './PartnerBanks.jsx';
 
 export default function TrustedFounding({ onBecomeMember }) {
   return (
@@ -13,8 +12,6 @@ export default function TrustedFounding({ onBecomeMember }) {
           <Founding onBecomeMember={onBecomeMember} />
         </div>
       </div>
-
-      <PartnerBanks />
     </section>
   );
 }

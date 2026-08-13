@@ -1,5 +1,6 @@
 .effc { background: var(--bg-soft); }
 .effc__eyebrow { display: block; text-align: center; margin-bottom: 8px; }
+.effc__segment { text-align: center; font-weight: 800; color: var(--navy-900); font-size: 15px; margin: 20px 0 2px; }
 
 .effc__grid {
   margin-top: 34px;

@@ -106,11 +106,13 @@ export function Segments({ onGetStarted, onCompare }) {
       <div className="segments__stack">
         <article className="segments__col segments__col--ind">
           <div className="segments__head"><span className="segments__avatar">🧑</span><h3>For Individuals</h3></div>
-          <p>Mortgage &amp; personal loan rate comparisons, cross-border remittance fees and more.</p>
+          <p>Home, personal &amp; vehicle loan rates, fixed-deposit yields and cross-border transfer fees.</p>
           <ul>
-            <li>Home Loans</li><li>Remittance Fees</li>
-            <li>Personal Loans</li><li>Savings Accounts</li>
-            <li>Credit Cards</li><li>Insurance</li>
+            <li>Home Loans</li>
+            <li>Personal Loans</li>
+            <li>Vehicle Loans</li>
+            <li>Fixed Deposits</li>
+            <li>Cross-border Transfers</li>
           </ul>
           <button className="btn btn--navy btn--block" onClick={() => compare('individual')}>Compare Now</button>
         </article>
@@ -135,11 +137,14 @@ export function Segments({ onGetStarted, onCompare }) {
 
         <article className="segments__col segments__col--sme">
           <div className="segments__head"><span className="segments__avatar">🏢</span><h3>For SMEs</h3></div>
-          <p>Current account interest, business loans, trade finance, FX margins, bulk payments and more.</p>
+          <p>Current-account interest, overdraft &amp; trade-finance pricing, fixed-deposit yields and cross-border FX costs.</p>
           <ul>
-            <li>Current Accounts</li><li>FX Margins</li>
-            <li>Business Loans</li><li>Bulk Payments</li>
-            <li>Trade Finance</li><li>Cash Management</li>
+            <li>Current Accounts</li>
+            <li>Overdraft Facilities</li>
+            <li>Trade Finance</li>
+            <li>Guarantees &amp; L/Cs</li>
+            <li>Fixed Deposits</li>
+            <li>Cross-border Transfers</li>
           </ul>
           <button className="btn btn--primary btn--block" onClick={() => compare('sme')}>Compare Now</button>
         </article>

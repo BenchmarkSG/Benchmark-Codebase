@@ -114,6 +114,7 @@ export default function BenchmarkCalculator({ onDetailedFeedback, compact = fals
   const [loading, setLoading] = useState(false);
   const [saveState, setSaveState] = useState('idle'); // idle | saving | saved | error
   const [banks, setBanks] = useState([]); // provider directory for the chosen country
+  const [back, setBack] = useState(false); // true after "Recalculate" → animate the form back in
 
   useEffect(() => {
     getReference().then(setRef).catch(() => setError('Could not load reference data.'));
@@ -239,12 +240,7 @@ export default function BenchmarkCalculator({ onDetailedFeedback, compact = fals
     <section className={compact ? 'calc-sec calc-sec--compact' : 'section calc-sec'} id="calculator">
       <div className={compact ? 'calc-card' : 'container'}>
         <div className={compact ? 'calc-screen' : 'calc-screen--plain'}>
-        {compact ? (
-          <div className="calc-card__head">
-            <h3 className="calc-card__title">Calculate Your Free Benchmark</h3>
-            <p className="calc-card__sub">Live rates · no sign-up · no data stored</p>
-          </div>
-        ) : (
+        {compact ? null : (
           <>
             <span className="eyebrow calc-sec__eyebrow">Free Benchmark · No sign-up · No data stored</span>
             <h2 className="section-title">Start Your Free Comparison Now</h2>
@@ -257,7 +253,7 @@ export default function BenchmarkCalculator({ onDetailedFeedback, compact = fals
 
         <div className={`calcbox ${compact ? 'calcbox--compact' : ''}`}>
           {(!compact || !result) && (
-            <form className="calcbox__form" onSubmit={compute}>
+            <form className={`calcbox__form${back ? ' is-back' : ''}`} onSubmit={compute}>
               <div className="calcbox__seg">
                 {SEGMENT_TABS.map(({ key, label }) => (
                   <button
@@ -307,7 +303,7 @@ export default function BenchmarkCalculator({ onDetailedFeedback, compact = fals
               {!result ? <Placeholder /> : (
                 <Result result={result} product={product} compact={compact} localCcy={localCcy}
                   onDetailedFeedback={() => onDetailedFeedback({ ...result, currency: result.currency || localCcy, segment })}
-                  onBack={() => setResult(null)}
+                  onBack={() => { setResult(null); setBack(true); }}
                   isAuthed={!!user} saveState={saveState} onSave={saveCurrent} />
               )}
             </div>
@@ -337,11 +333,13 @@ function Result({ result, product, compact, localCcy, onDetailedFeedback, onBack
 
   return (
     <div className="res">
-      {compact && <button type="button" className="res__back" onClick={onBack}>← Recalculate</button>}
-      <div className="res__head">
-        <span>{result.product}{result.currency ? ` · ${result.currency}` : ''}</span>
+      <div className="res__top">
+        {compact
+          ? <button type="button" className="res__back" onClick={onBack}>← Recalculate</button>
+          : <span className="res__product">{result.product}{result.currency ? ` · ${result.currency}` : ''}</span>}
         <span className="res__unit">{result.unit}</span>
       </div>
+      <div className="res__rule res__rule--thick" />
 
       {ahead ? (
         <div className="res__ahead">
@@ -370,23 +368,27 @@ function Result({ result, product, compact, localCcy, onDetailedFeedback, onBack
         </div>
       ) : (
         <>
-          <div className="res__rates">
-            <div className="res__rate">
-              <div className="res__rate-label">{crossBorder ? 'Your cost' : 'You'}</div>
-              <div className="res__rate-val">{result.yourRate}</div>
+          <div className="res__overpay">
+            <span className="res__overpay-lead">
+              {higher ? <>You&apos;re <strong>missing out</strong> on</> : <>You&apos;re <strong>overpaying</strong> your bank by</>}
+            </span>
+            <strong className="res__overpay-amt">{formatMoney(result.annualSaving, ccy)} / year</strong>
+          </div>
+
+          <div className="res__rule res__rule--thin" />
+
+          <div className="res__rows">
+            <div className="res__row">
+              <span className="res__row-label">{crossBorder ? 'Your all-in cost' : 'Your bank’s rate'}</span>
+              <span className="res__row-val">{result.yourRate}%</span>
             </div>
-            <div className="res__arrow">→</div>
-            <div className="res__rate res__rate--best">
-              <div className="res__rate-label">🔒 Best benchmark</div>
-              <div className="res__rate-val">{result.benchmarkRate}</div>
+            <div className="res__row">
+              <span className="res__row-label">Best available</span>
+              <span className="res__row-val res__row-val--best">{result.benchmarkRate}%</span>
             </div>
           </div>
 
-          <div className="res__saving">
-            <span>{higher ? 'You could earn extra' : 'You could save'}</span>
-            <strong>{formatMoney(result.annualSaving, ccy)} / year</strong>
-            <small>≈ {formatMoney(result.monthlySaving, ccy)} per month</small>
-          </div>
+          <p className="res__tagline">Save the money your bank is making off you.</p>
 
           {result.status === 'saving' && result.percentileBeaten > 0 && (
             <p className="res__standing">
@@ -415,8 +417,8 @@ function Result({ result, product, compact, localCcy, onDetailedFeedback, onBack
         </div>
       )}
 
-      <button className="btn btn--primary btn--block res__detail" onClick={onDetailedFeedback}>
-        {ahead ? 'Get a Free Expert Review →' : 'Reveal the Bank & Get Detailed Feedback →'}
+      <button className="btn btn--block res__detail" onClick={onDetailedFeedback}>
+        {ahead ? 'Get a Free Expert Review →' : 'Show me options →'}
       </button>
 
       <button

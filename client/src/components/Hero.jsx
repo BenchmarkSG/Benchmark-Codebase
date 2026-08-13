@@ -7,13 +7,13 @@ const SLIDES = [
     title: (
       <>Stop Overpaying<br />Your Bank by<br /><span className="hero__title-accent">Thousands</span> Every Year</>
     ),
-    lead: 'Instantly compare your current bank (individuals or SMEs) against the best options in Singapore & SEA for mortgages, personal loans, cross-border payments, FX fees & current accounts.',
+    lead: 'Find out your number in 30 secs. Compare your bank against the best for mortgages, loans, remittances, trade finance, FX fees & current account credit interest. Your Bank is profitting from you, find out by how much?',
   },
   {
     title: (
       <>Your Bank is Quietly<br /><span className="hero__title-accent">Overcharging You.</span></>
     ),
-    lead: 'Find out how much you are overpaying by comparing against what others are paying — instantly in 30 secs. No login required.',
+    lead: 'We compare and uncover the hidden  FX markups, loan margins, interest rates on deposits that Banks never advertise. See exactly how much you overpay (underline in small red line from See to overpay) - in 30 secs. No login required',
   },
 ];
 
@@ -53,7 +53,7 @@ export default function Hero({ onDetailedFeedback, onStart, calcSelection, onReq
           </div>
 
           <button className="btn btn--red hero__cta" onClick={onStart}>
-            Calculate Your Free Benchmark →
+            Calculate My Overpayment →
           </button>
 
           <ul className="hero__trust">
