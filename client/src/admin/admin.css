@@ -106,6 +106,33 @@
 .adm-btn--save:disabled { opacity: 0.6; cursor: default; }
 .adm-btn--ghost { background: transparent; border: 1px solid var(--line); color: var(--navy); }
 .adm-btn--ghost:hover { background: #f4f8fd; }
+.adm-btn--verify { background: #eaf1fb; color: #1a56b0; border: 1px solid #cfe0f7; padding: 7px 10px; }
+.adm-btn--verify:hover:not(:disabled) { background: #dbeafc; border-color: #a9c9f2; }
+.adm-btn--verify:disabled { opacity: 0.6; cursor: default; }
+
+/* Rate freshness (manually-maintained rate tables) */
+.adm-fresh { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.adm-fresh--ok { background: #e6f6ec; color: #137a3e; }
+.adm-fresh--warn { background: #fdf1dc; color: #9a6a12; }
+.adm-fresh--stale { background: #fde4e4; color: #b3261e; }
+.adm-fresh--none { background: #eceff3; color: #6b7683; }
+
+.adm-freshbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex-wrap: wrap; margin: 2px 0 12px;
+  background: #f6f9fd; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px;
+}
+.adm-freshbar__count { font-size: 13px; font-weight: 800; color: #6b7683; }
+.adm-freshbar__count.is-due { color: #b3261e; }
+.adm-freshbar__toggle { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; color: var(--navy); cursor: pointer; }
+
+/* Pending updates (proposal diff) */
+.adm-prop__change { white-space: nowrap; }
+.adm-prop__cur { color: var(--muted); font-weight: 700; }
+.adm-prop__arrow { margin: 0 7px; color: var(--muted); }
+.adm-prop__new { font-weight: 800; color: var(--navy); }
+.adm-prop__new.is-changed { color: #137a3e; }
+.adm-prop__tag { margin-left: 8px; font-size: 11px; font-weight: 800; color: #1a56b0; background: #eaf1fb; border: 1px solid #cfe0f7; border-radius: 999px; padding: 1px 7px; }
 /* On the dark navy header the ghost button needs light text to be readable. */
 .adm-header .adm-btn--ghost { border-color: rgba(255, 255, 255, 0.35); color: #fff; }
 .adm-header .adm-btn--ghost:hover { background: rgba(255, 255, 255, 0.12); border-color: rgba(255, 255, 255, 0.6); }

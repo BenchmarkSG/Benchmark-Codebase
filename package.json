@@ -13,6 +13,8 @@
     "seed:rates:dry": "node scripts/seed-rates.mjs --dry",
     "market:verify": "node scripts/market-rates.mjs verify",
     "market:fetch": "node scripts/market-rates.mjs fetch",
+    "rates:stale": "node scripts/rates-stale.mjs",
+    "stage:rates": "node scripts/stage-rates.mjs",
     "pool:th": "node scripts/bot-pool.mjs",
     "pool:th:dry": "node scripts/bot-pool.mjs --dry",
     "pool:my": "node scripts/bnm-pool.mjs",

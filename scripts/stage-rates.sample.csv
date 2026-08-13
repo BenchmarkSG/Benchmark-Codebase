@@ -1,0 +1,7 @@
+# Sample rates to stage for review. currency is required for brand-new rows
+# (product_rates.currency is NOT NULL). rate_type: apr (lower is better) | yield.
+country_code,product,variant,bank,currency,rate,rate_type,as_of,note
+SG,mortgage,,DBS,SGD,3.75,apr,2026-08-01,Fixed 2yr board rate
+SG,mortgage,,OCBC,SGD,3.68,apr,2026-08-01,Fixed 2yr
+SG,personal_loan,,Standard Chartered,SGD,3.48,apr,2026-08-01,EIR flat 6.95%
+SG,fixed_deposit,,UOB,SGD,3.10,yield,2026-08-01,12-month promo

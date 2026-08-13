@@ -1,0 +1,73 @@
+name: Rates due for review
+
+# Daily nudge so the hand-maintained rates never silently go stale. Lists rows not
+# edited/verified in > STALE_DAYS and keeps a single GitHub issue in sync (opened
+# when there's a backlog, updated in place, auto-closed once everything's current).
+# GitHub emails the issue's assignees/watchers, so the reminder lands in your inbox.
+
+on:
+  schedule:
+    - cron: '30 1 * * *' # 01:30 UTC daily (~09:30 SGT)
+  workflow_dispatch: {}   # allow manual runs from the Actions tab
+
+concurrency:
+  group: rate-freshness
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22        # match market-rates.yml (@supabase/supabase-js needs 22+)
+          cache: npm
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Find stale rates
+        id: stale
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          STALE_DAYS: ${{ vars.RATES_STALE_DAYS }}   # optional override; defaults to 30
+        run: npm run rates:stale
+
+      - name: Open / update the review issue
+        if: steps.stale.outputs.due_count != '' && steps.stale.outputs.due_count != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- rates-stale-bot -->';
+            const title = '🗓️ Rates due for review';
+            const body = `${fs.readFileSync('rates-stale.md', 'utf8')}\n\n${marker}`;
+            const { owner, repo } = context.repo;
+            const open = await github.paginate(github.rest.issues.listForRepo, { owner, repo, state: 'open', per_page: 100 });
+            const found = open.find((i) => (i.body || '').includes(marker));
+            if (found) {
+              await github.rest.issues.update({ owner, repo, issue_number: found.number, title, body });
+            } else {
+              try { await github.rest.issues.createLabel({ owner, repo, name: 'rates-review', color: 'D93F0B' }); } catch (e) { /* exists */ }
+              await github.rest.issues.create({ owner, repo, title, body, labels: ['rates-review'] });
+            }
+
+      - name: Close the review issue when everything is current
+        if: steps.stale.outputs.due_count == '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- rates-stale-bot -->';
+            const { owner, repo } = context.repo;
+            const open = await github.paginate(github.rest.issues.listForRepo, { owner, repo, state: 'open', per_page: 100 });
+            for (const i of open.filter((x) => (x.body || '').includes(marker))) {
+              await github.rest.issues.createComment({ owner, repo, issue_number: i.number, body: '✅ All rates are current again — closing.' });
+              await github.rest.issues.update({ owner, repo, issue_number: i.number, state: 'closed' });
+            }

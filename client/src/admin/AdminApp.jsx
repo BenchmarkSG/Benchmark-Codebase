@@ -7,6 +7,15 @@ import { INCOME_LABELS } from '../lib/profileFields.js';
 import { SERVES_LABELS } from '../lib/advisorFields.js';
 import { ADMIN_EMAIL } from '../lib/roles.js';
 
+// A manually-maintained rate is "due for review" once it hasn't been edited or
+// verified in this many days — surfaced in the portal so daily upkeep has a worklist.
+const STALE_DAYS = 30;
+const isDue = (r) => {
+  if (!r.updated_at) return true;
+  return (Date.now() - new Date(r.updated_at).getTime()) / 86400000 > STALE_DAYS;
+};
+const FRESHNESS_COL = { key: 'updated_at', label: 'Last verified', type: 'freshness' };
+
 // Which tables the portal can edit, and how each row is shown/edited.
 // NOTE: overdraft and loan/trade-finance rates now live in the unified
 // `product_rates` table (the "Product rates" section). The old `overdraft_rates`
@@ -14,8 +23,8 @@ import { ADMIN_EMAIL } from '../lib/roles.js';
 // removed — the seeder no longer populates them.
 const SECTIONS = [
   {
-    key: 'remittance', title: 'Remittance charges', table: 'remittance_charges', pk: 'id',
-    select: 'id, direction, counterparty, upfront_fee, intermediary_fee, lifting_fee, fee_currency, fx_spread_pct, is_indicative, banks!inner(name, country_code)',
+    key: 'remittance', title: 'Remittance charges', table: 'remittance_charges', pk: 'id', verifiable: true,
+    select: 'id, direction, counterparty, upfront_fee, intermediary_fee, lifting_fee, fee_currency, fx_spread_pct, is_indicative, updated_at, banks!inner(name, country_code)',
     byCountry: 'banks.country_code',
     columns: [
       { key: 'bank', label: 'Bank', get: (r) => r.banks?.name },
@@ -26,11 +35,12 @@ const SECTIONS = [
       { key: 'lifting_fee', label: 'Lifting', type: 'number', step: 0.5, editable: true },
       { key: 'fx_spread_pct', label: 'FX %', type: 'number', step: 0.01, editable: true },
       { key: 'is_indicative', label: 'Indicative', type: 'boolean', editable: true },
+      FRESHNESS_COL,
     ],
   },
   {
-    key: 'thresholds', title: 'Negotiation thresholds', table: 'negotiation_thresholds', pk: 'id',
-    select: 'id, product, target_saving, saving_currency, threshold_amount, switching_cost, switching_weeks, worthwhile, is_indicative, country_code',
+    key: 'thresholds', title: 'Negotiation thresholds', table: 'negotiation_thresholds', pk: 'id', verifiable: true,
+    select: 'id, product, target_saving, saving_currency, threshold_amount, switching_cost, switching_weeks, worthwhile, is_indicative, updated_at, country_code',
     byCountry: 'country_code',
     columns: [
       { key: 'product', label: 'Product' },
@@ -40,11 +50,12 @@ const SECTIONS = [
       { key: 'switching_weeks', label: 'Weeks', type: 'number', step: 1, editable: true },
       { key: 'worthwhile', label: 'Worthwhile', type: 'boolean', editable: true },
       { key: 'is_indicative', label: 'Indicative', type: 'boolean', editable: true },
+      FRESHNESS_COL,
     ],
   },
   {
-    key: 'product_rates', title: 'Product rates', table: 'product_rates', pk: 'id',
-    select: 'id, product, variant, bank, currency, rate, rate_type, is_indicative, country_code',
+    key: 'product_rates', title: 'Product rates', table: 'product_rates', pk: 'id', verifiable: true,
+    select: 'id, product, variant, bank, currency, rate, rate_type, is_indicative, updated_at, country_code',
     byCountry: 'country_code', order: 'product',
     columns: [
       { key: 'product', label: 'Product' },
@@ -54,7 +65,12 @@ const SECTIONS = [
       { key: 'rate', label: 'Rate %', type: 'number', step: 0.01, editable: true },
       { key: 'rate_type', label: 'Type' },
       { key: 'is_indicative', label: 'Indicative', type: 'boolean', editable: true },
+      FRESHNESS_COL,
     ],
+  },
+  {
+    // Custom view (not a generic table) — staged rate updates awaiting approval.
+    key: 'proposals', title: 'Pending updates', custom: 'proposals', byCountry: 'country_code',
   },
   {
     key: 'treasury_profiles', title: 'Treasury health checks', table: 'treasury_profiles', pk: 'id',
@@ -161,6 +177,7 @@ function LoginGate() {
 function Section({ config, country }) {
   const [rows, setRows] = useState(null);
   const [error, setError] = useState('');
+  const [showDueOnly, setShowDueOnly] = useState(false);
 
   const load = useCallback(async () => {
     setRows(null); setError('');
@@ -174,27 +191,186 @@ function Section({ config, country }) {
 
   useEffect(() => { load(); }, [load]);
 
+  const rlsError = (error) => (/row-level security/i.test(error.message)
+    ? new Error('Write blocked by RLS — run supabase/admin.sql and sign in as the admin.')
+    : error);
+
   const onSave = async (row, patch) => {
     const { error } = await supabase.from(config.table).update(patch).eq(config.pk, row[config.pk]);
-    if (error) {
-      if (/row-level security/i.test(error.message)) {
-        throw new Error('Write blocked by RLS — run supabase/admin.sql and sign in as the admin.');
-      }
-      throw error;
-    }
-    setRows((rs) => rs.map((r) => (r[config.pk] === row[config.pk] ? { ...r, ...patch } : r)));
+    if (error) throw rlsError(error);
+    // The DB trigger bumps updated_at on any edit; mirror that locally for the chip.
+    const stamp = config.verifiable ? { updated_at: new Date().toISOString() } : {};
+    setRows((rs) => rs.map((r) => (r[config.pk] === row[config.pk] ? { ...r, ...patch, ...stamp } : r)));
+  };
+
+  // Verify = "I checked the source, this rate is still current." Writes a no-op
+  // the updated_at trigger turns into a fresh timestamp.
+  const onVerify = async (row) => {
+    const nowIso = new Date().toISOString();
+    const { error } = await supabase.from(config.table).update({ updated_at: nowIso }).eq(config.pk, row[config.pk]);
+    if (error) throw rlsError(error);
+    setRows((rs) => rs.map((r) => (r[config.pk] === row[config.pk] ? { ...r, updated_at: nowIso } : r)));
   };
 
   if (error) return <div className="adm-error">{error}</div>;
   if (!rows) return <div className="adm-loading">Loading…</div>;
   if (!rows.length) return <div className="adm-loading">{config.emptyText || 'No rows. Seed the data first (npm run seed:rates).'}</div>;
 
+  const dueCount = config.verifiable ? rows.filter(isDue).length : 0;
+  const visibleRows = showDueOnly ? rows.filter(isDue) : rows;
+
   return (
     <>
+      {config.verifiable && (
+        <div className="adm-freshbar">
+          <span className={`adm-freshbar__count ${dueCount ? 'is-due' : ''}`}>
+            {dueCount} of {rows.length} due for review (not verified in &gt;{STALE_DAYS} days)
+          </span>
+          <label className="adm-freshbar__toggle">
+            <input type="checkbox" checked={showDueOnly} onChange={(e) => setShowDueOnly(e.target.checked)} />
+            Show only due for review
+          </label>
+        </div>
+      )}
       <p className="adm-section__count">
-        {rows.length} rows{config.columns.some((c) => c.editable) ? ' · click the pencil to edit, then Save to write to Supabase.' : ' · read-only.'}
+        {visibleRows.length} rows{config.columns.some((c) => c.editable)
+          ? ' · click the pencil to edit a rate, or ✓ Verify to confirm it’s still current.'
+          : ' · read-only.'}
       </p>
-      <EditableTable columns={config.columns} rows={rows} rowKey={(r) => r[config.pk]} onSave={onSave} />
+      <EditableTable
+        columns={config.columns}
+        rows={visibleRows}
+        rowKey={(r) => r[config.pk]}
+        onSave={onSave}
+        onVerify={config.verifiable ? onVerify : undefined}
+      />
+    </>
+  );
+}
+
+// Staged rate updates awaiting approval. Shows current-vs-proposed and, on
+// Approve, writes into product_rates (which the updated_at trigger stamps fresh).
+function RateProposals({ country }) {
+  const { user } = useAuth();
+  const [proposals, setProposals] = useState(null);
+  const [current, setCurrent] = useState({}); // natural-key -> live product_rates row
+  const [error, setError] = useState('');
+  const [busyId, setBusyId] = useState(null);
+
+  const keyOf = (r) => [r.country_code, r.product, r.variant || '', r.bank, r.currency || ''].join('|');
+
+  const load = useCallback(async () => {
+    setProposals(null); setError('');
+    const { data, error } = await supabase
+      .from('rate_proposals').select('*').eq('status', 'pending').eq('country_code', country)
+      .order('created_at', { ascending: true });
+    if (error) { setError(error.message); return; }
+    setProposals(data);
+    const { data: rates } = await supabase
+      .from('product_rates').select('id, country_code, product, variant, bank, currency, rate, rate_type')
+      .eq('country_code', country);
+    const map = {};
+    for (const r of rates || []) map[keyOf(r)] = r;
+    setCurrent(map);
+  }, [country]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const rlsError = (e) => (/row-level security/i.test(e.message)
+    ? new Error('Write blocked by RLS — run supabase/admin.sql + rate_proposals.sql, and sign in as the admin.')
+    : e);
+
+  const approve = async (p) => {
+    setBusyId(p.id); setError('');
+    try {
+      const cur = current[keyOf(p)];
+      if (cur) {
+        const patch = { rate: p.proposed_rate, is_indicative: false, ...(p.rate_type ? { rate_type: p.rate_type } : {}) };
+        const { error } = await supabase.from('product_rates').update(patch).eq('id', cur.id);
+        if (error) throw rlsError(error);
+      } else {
+        if (!p.currency) throw new Error('New rate needs a currency (product_rates.currency is required). Add it to the proposal and re-stage.');
+        const { error } = await supabase.from('product_rates').insert({
+          country_code: p.country_code, product: p.product, variant: p.variant || null,
+          bank: p.bank, currency: p.currency, rate: p.proposed_rate,
+          rate_type: p.rate_type || 'apr', is_indicative: false,
+        });
+        if (error) throw rlsError(error);
+      }
+      const { error: e2 } = await supabase.from('rate_proposals')
+        .update({ status: 'approved', reviewed_at: new Date().toISOString(), reviewed_by: user?.id || null })
+        .eq('id', p.id);
+      if (e2) throw rlsError(e2);
+      setProposals((ps) => ps.filter((x) => x.id !== p.id));
+    } catch (e) {
+      setError(e.message || 'Approve failed');
+    } finally { setBusyId(null); }
+  };
+
+  const dismiss = async (p) => {
+    setBusyId(p.id); setError('');
+    try {
+      const { error } = await supabase.from('rate_proposals')
+        .update({ status: 'dismissed', reviewed_at: new Date().toISOString(), reviewed_by: user?.id || null })
+        .eq('id', p.id);
+      if (error) throw rlsError(error);
+      setProposals((ps) => ps.filter((x) => x.id !== p.id));
+    } catch (e) {
+      setError(e.message || 'Dismiss failed');
+    } finally { setBusyId(null); }
+  };
+
+  if (error && !proposals) return <div className="adm-error">{error}</div>;
+  if (!proposals) return <div className="adm-loading">Loading…</div>;
+  if (!proposals.length) return <div className="adm-loading">No pending updates. Staged proposals (npm run stage:rates) awaiting review appear here.</div>;
+
+  return (
+    <>
+      {error && <div className="adm-error">{error}</div>}
+      <p className="adm-section__count">
+        {proposals.length} proposed change{proposals.length === 1 ? '' : 's'} · Approve writes it into product rates (and marks it verified), or Dismiss.
+      </p>
+      <div className="adm-tablewrap">
+        <table className="adm-table">
+          <thead>
+            <tr>
+              <th>Source</th><th>Product</th><th>Bank</th><th>Ccy</th>
+              <th>Current → Proposed</th><th>As of</th><th className="adm-actions-col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {proposals.map((p) => {
+              const cur = current[keyOf(p)];
+              const curRate = cur?.rate;
+              const isNew = !cur;
+              const changed = isNew || Number(curRate) !== Number(p.proposed_rate);
+              return (
+                <tr key={p.id}>
+                  <td data-label="Source">{p.source}</td>
+                  <td data-label="Product">{p.product}{p.variant ? ` (${p.variant})` : ''}</td>
+                  <td data-label="Bank">{p.bank}</td>
+                  <td data-label="Ccy">{p.currency || '—'}</td>
+                  <td data-label="Change" className="adm-prop__change">
+                    <span className="adm-prop__cur">{curRate ?? '—'}</span>
+                    <span className="adm-prop__arrow">→</span>
+                    <span className={`adm-prop__new ${changed ? 'is-changed' : ''}`}>{p.proposed_rate}</span>
+                    {isNew && <span className="adm-prop__tag">new</span>}
+                  </td>
+                  <td data-label="As of">{p.as_of || '—'}</td>
+                  <td className="adm-actions-col" data-label="Actions">
+                    <div className="adm-rowactions">
+                      <button className="adm-btn adm-btn--save" disabled={busyId === p.id} onClick={() => approve(p)}>
+                        {busyId === p.id ? '…' : 'Approve'}
+                      </button>
+                      <button className="adm-btn adm-btn--ghost" disabled={busyId === p.id} onClick={() => dismiss(p)}>Dismiss</button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </>
   );
 }
@@ -242,7 +418,9 @@ function Editor({ onSignOut, email }) {
             </label>
           )}
         </div>
-        <Section key={`${sectionKey}:${country}`} config={active} country={country} />
+        {active.custom === 'proposals'
+          ? <RateProposals key={`proposals:${country}`} country={country} />
+          : <Section key={`${sectionKey}:${country}`} config={active} country={country} />}
       </div>
     </div>
   );

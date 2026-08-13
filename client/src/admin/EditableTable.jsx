@@ -18,16 +18,32 @@ const displayValue = (col, row) => {
   return v === null || v === undefined || v === '' ? '—' : String(v);
 };
 
+// "Last verified" freshness pill: green ≤7d, amber ≤30d, red older, grey if never.
+const DAY_MS = 86400000;
+function freshnessDays(ts) {
+  if (!ts) return null;
+  const d = (Date.now() - new Date(ts).getTime()) / DAY_MS;
+  return Number.isFinite(d) ? Math.floor(d) : null;
+}
+function FreshnessChip({ value }) {
+  const days = freshnessDays(value);
+  if (days == null) return <span className="adm-fresh adm-fresh--none">never</span>;
+  const tone = days <= 7 ? 'ok' : days <= 30 ? 'warn' : 'stale';
+  const label = days === 0 ? 'today' : days === 1 ? '1d ago' : `${days}d ago`;
+  return <span className={`adm-fresh adm-fresh--${tone}`} title={new Date(value).toLocaleString()}>{label}</span>;
+}
+
 /* Generic table with per-row inline editing.
    columns: [{ key, label, type?: 'number'|'boolean'|'text', editable?, step?, get? }]
    onSave(row, patch) must persist and resolve; throws to surface an error. */
-export default function EditableTable({ columns, rows, rowKey, onSave }) {
+export default function EditableTable({ columns, rows, rowKey, onSave, onVerify }) {
   const [editing, setEditing] = useState(null);
   const [draft, setDraft] = useState({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [savedKey, setSavedKey] = useState(null);
   const anyEditable = columns.some((c) => c.editable);
+  const showActions = anyEditable || !!onVerify;
 
   const startEdit = (row) => {
     setError('');
@@ -63,6 +79,21 @@ export default function EditableTable({ columns, rows, rowKey, onSave }) {
     }
   };
 
+  // "Verify" = confirm a rate is still current without changing it (bumps its
+  // last-verified date). Nothing to edit; just persist and flash the row.
+  const verify = async (row) => {
+    setBusy(true);
+    setError('');
+    try {
+      await onVerify(row);
+      setSavedKey(rowKey(row));
+    } catch (e) {
+      setError(e.message || 'Verify failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="adm-tablewrap">
       {error && <div className="adm-error">{error}</div>}
@@ -70,7 +101,7 @@ export default function EditableTable({ columns, rows, rowKey, onSave }) {
         <thead>
           <tr>
             {columns.map((c) => <th key={c.key}>{c.label}</th>)}
-            {anyEditable && <th className="adm-actions-col">Actions</th>}
+            {showActions && <th className="adm-actions-col">Actions</th>}
           </tr>
         </thead>
         <tbody>
@@ -93,6 +124,8 @@ export default function EditableTable({ columns, rows, rowKey, onSave }) {
                           onChange={(e) => setField(c, e.target.value)}
                         />
                       )
+                    ) : c.type === 'freshness' ? (
+                      <FreshnessChip value={rawValue(c, row)} />
                     ) : c.type === 'link' ? (
                       safeHttpUrl(rawValue(c, row))
                         ? <a className="adm-val" href={safeHttpUrl(rawValue(c, row))} target="_blank" rel="noopener noreferrer">View</a>
@@ -104,7 +137,7 @@ export default function EditableTable({ columns, rows, rowKey, onSave }) {
                     )}
                   </td>
                 ))}
-                {anyEditable && (
+                {showActions && (
                 <td className="adm-actions-col" data-label="Actions">
                   {isEditing ? (
                     <div className="adm-rowactions">
@@ -114,9 +147,18 @@ export default function EditableTable({ columns, rows, rowKey, onSave }) {
                       <button className="adm-btn adm-btn--ghost" disabled={busy} onClick={cancel}>Cancel</button>
                     </div>
                   ) : (
-                    <button className="adm-pencil" title="Edit" onClick={() => startEdit(row)}>
-                      <PencilIcon />
-                    </button>
+                    <div className="adm-rowactions">
+                      {onVerify && (
+                        <button className="adm-btn adm-btn--verify" disabled={busy} onClick={() => verify(row)} title="Confirm this rate is still current (updates its last-verified date)">
+                          ✓ Verify
+                        </button>
+                      )}
+                      {anyEditable && (
+                        <button className="adm-pencil" title="Edit" onClick={() => startEdit(row)}>
+                          <PencilIcon />
+                        </button>
+                      )}
+                    </div>
                   )}
                 </td>
                 )}
