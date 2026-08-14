@@ -54,6 +54,12 @@
   color: #d6e2f5;
   max-width: 520px;
 }
+/* Thin red underline under "See exactly how much you overpay" */
+.hero__underline {
+  color: #fff;
+  border-bottom: 2px solid var(--red-500);
+  padding-bottom: 1px;
+}
 .hero__trust {
   list-style: none;
   padding: 0;

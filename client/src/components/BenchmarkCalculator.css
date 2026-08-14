@@ -59,7 +59,7 @@
 /* Blue heading band, white text (extra top room for the island) */
 .calc-card .calc-card__head {
   margin: 0;
-  padding: 44px 22px 20px;
+  padding: 40px 22px 12px;
   background: linear-gradient(150deg, var(--blue-600) 0%, var(--navy-800) 100%);
   color: #fff;
 }
@@ -76,9 +76,13 @@
   border-radius: 0;
   background: #fff;
   margin-top: 0;
-  /* No header now — top padding is the "status bar" that clears the island. */
-  padding: 42px 20px 34px;
+  /* Header now clears the island, so the body uses normal top padding. */
+  padding: 14px 20px 34px;
   overflow: visible;
+}
+/* Result screen hides the header, so the body itself must clear the island. */
+.calc-card .calcbox--noheader {
+  padding-top: 42px;
 }
 .calc-card .calcbox__form {
   padding: 0;
@@ -233,6 +237,20 @@
 .calcbox__field select:focus,
 .calcbox__field input:focus { outline: none; border-color: var(--blue-500); }
 .calcbox__field input[type='range'] { accent-color: var(--blue-600); }
+
+/* Required-field asterisk */
+.calcbox__req { color: var(--red-600); font-weight: 800; font-style: normal; margin-left: 3px; }
+
+/* Blank required field on submit — red outline until the user fills it. */
+.calcbox__field.is-invalid > span { color: var(--red-600); }
+.calcbox__field.is-invalid select,
+.calcbox__field.is-invalid input:not([type='range']) {
+  border-color: var(--red-500);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+.calcbox__field.is-invalid select:focus,
+.calcbox__field.is-invalid input:focus { border-color: var(--red-600); }
+
 .calcbox__error { color: var(--red-600); font-size: 13px; font-weight: 600; }
 
 /* Result side */
@@ -403,7 +421,8 @@
 @media (max-width: 560px) {
   .calc-card { padding: 9px; border-radius: 40px; }
   .calc-card .calc-screen { border-radius: 32px; }
-  .calc-card .calcbox { padding: 42px 16px 32px; }
+  .calc-card .calcbox { padding: 14px 16px 32px; }
+  .calc-card .calcbox--noheader { padding-top: 42px; }
   .calc-card .calc-modes { width: 100%; }
   .calc-card .calc-modes button { min-width: 0; flex: 1; font-size: 12px; padding: 9px 6px; }
   .calcbox__row { grid-template-columns: 1fr; }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import './BenchmarkCalculator.css';
 import { getReference, calcBenchmark, formatMoney, getBanks } from '../api.js';
 import { BANK_LOGOS } from './BankLogos.jsx';
@@ -22,6 +22,12 @@ const SEGMENT_TABS = [
 ];
 const MAJORS = ['USD', 'EUR', 'GBP'];
 const dedupe = (arr) => [...new Set(arr.filter(Boolean))];
+
+// Fields the user must fill before we can compute (they start blank; currency/
+// enum fields always carry a default, so they're never required).
+const REQUIRED_TYPES = new Set(['bank', 'amount', 'rate', 'tenor', 'duration', 'count', 'percent']);
+const isRequiredField = (f) => REQUIRED_TYPES.has(f.type);
+const isBlank = (v) => v === '' || v == null;
 
 // Currency choices for a product, given the country's local currency + the full
 // market currency set (used for the broad cross-border pickers).
@@ -47,50 +53,38 @@ function buildDefaults(product, ccyOptions) {
   return v;
 }
 
-function Field({ field, value, onChange, ccyOptions, bankOptions }) {
+function Field({ field, value, onChange, ccyOptions, bankOptions, required, invalid }) {
   const set = (e) => onChange(field.key, e.target.value);
 
+  let control;
   if (field.type === 'bank') {
     // Keep the category ordering, but render a flat list (no group headers).
     const ordered = groupBanks(bankOptions).flatMap(([, list]) => list);
-    return (
-      <label className="calcbox__field">
-        <span>{field.label}</span>
-        <select value={value} onChange={set}>
-          <option value="">Select your bank…</option>
-          {ordered.length
-            ? ordered.map((b) => <option key={b.id || b.name} value={b.name}>{b.name}</option>)
-            : BANK_NAMES.map((n) => <option key={n} value={n}>{n}</option>)}
-          <option value="Other">Other / not listed</option>
-        </select>
-      </label>
+    control = (
+      <select value={value} onChange={set}>
+        <option value="">Select your bank…</option>
+        {ordered.length
+          ? ordered.map((b) => <option key={b.id || b.name} value={b.name}>{b.name}</option>)
+          : BANK_NAMES.map((n) => <option key={n} value={n}>{n}</option>)}
+        <option value="Other">Other / not listed</option>
+      </select>
     );
-  }
-  if (field.type === 'currency') {
-    return (
-      <label className="calcbox__field">
-        <span>{field.label}</span>
-        <select value={value} onChange={set}>
-          {ccyOptions.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
-      </label>
+  } else if (field.type === 'currency') {
+    control = (
+      <select value={value} onChange={set}>
+        {ccyOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+      </select>
     );
-  }
-  if (field.type === 'enum') {
-    return (
-      <label className="calcbox__field">
-        <span>{field.label}</span>
-        <select value={value} onChange={set}>
-          {field.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-      </label>
+  } else if (field.type === 'enum') {
+    control = (
+      <select value={value} onChange={set}>
+        {field.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
     );
-  }
-  const numeric = ['amount', 'rate', 'tenor', 'duration', 'count', 'percent'].includes(field.type);
-  const step = field.type === 'rate' || field.type === 'percent' ? '0.01' : field.type === 'amount' ? '1000' : '1';
-  return (
-    <label className="calcbox__field">
-      <span>{field.label}{field.unit && field.type === 'rate' ? '' : ''}</span>
+  } else {
+    const numeric = ['amount', 'rate', 'tenor', 'duration', 'count', 'percent'].includes(field.type);
+    const step = field.type === 'rate' || field.type === 'percent' ? '0.01' : field.type === 'amount' ? '1000' : '1';
+    control = (
       <input
         type={numeric ? 'number' : 'text'}
         {...(numeric ? { min: '0', step } : {})}
@@ -98,6 +92,16 @@ function Field({ field, value, onChange, ccyOptions, bankOptions }) {
         value={value}
         onChange={set}
       />
+    );
+  }
+
+  return (
+    <label className={`calcbox__field${invalid ? ' is-invalid' : ''}`} data-field={field.key}>
+      <span>
+        {field.label}
+        {required && <em className="calcbox__req" aria-hidden="true">*</em>}
+      </span>
+      {control}
     </label>
   );
 }
@@ -115,6 +119,8 @@ export default function BenchmarkCalculator({ onDetailedFeedback, compact = fals
   const [saveState, setSaveState] = useState('idle'); // idle | saving | saved | error
   const [banks, setBanks] = useState([]); // provider directory for the chosen country
   const [back, setBack] = useState(false); // true after "Recalculate" → animate the form back in
+  const [invalid, setInvalid] = useState({}); // { fieldKey: true } for blank required fields
+  const formRef = useRef(null);
 
   useEffect(() => {
     getReference().then(setRef).catch(() => setError('Could not load reference data.'));
@@ -185,7 +191,11 @@ export default function BenchmarkCalculator({ onDetailedFeedback, compact = fals
     });
   }
 
-  const setValue = (key, val) => setValues((v) => ({ ...v, [key]: val }));
+  const setValue = (key, val) => {
+    setValues((v) => ({ ...v, [key]: val }));
+    // Clear a field's red highlight as soon as the user starts filling it.
+    setInvalid((iv) => (iv[key] ? { ...iv, [key]: false } : iv));
+  };
 
   async function saveCurrent() {
     if (!result || !product) return;
@@ -217,6 +227,23 @@ export default function BenchmarkCalculator({ onDetailedFeedback, compact = fals
 
   async function compute(e) {
     e.preventDefault();
+    if (!product) return;
+
+    // Required-field validation: gather blank required fields top-to-bottom.
+    const missing = product.inputs.filter((f) => isRequiredField(f) && isBlank(values[f.key]));
+    if (missing.length) {
+      const iv = {};
+      for (const f of missing) iv[f.key] = true;
+      setInvalid(iv);
+      setError(`Please fill in the highlighted field${missing.length > 1 ? 's' : ''} to continue.`);
+      // Focus + scroll to the first (topmost) blank field.
+      const first = missing[0].key;
+      const el = formRef.current?.querySelector(`[data-field="${first}"] input, [data-field="${first}"] select`);
+      if (el) { el.focus({ preventScroll: true }); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+      return;
+    }
+
+    setInvalid({});
     setLoading(true);
     setError(null);
     setSaveState('idle');
@@ -240,7 +267,14 @@ export default function BenchmarkCalculator({ onDetailedFeedback, compact = fals
     <section className={compact ? 'calc-sec calc-sec--compact' : 'section calc-sec'} id="calculator">
       <div className={compact ? 'calc-card' : 'container'}>
         <div className={compact ? 'calc-screen' : 'calc-screen--plain'}>
-        {compact ? null : (
+        {compact ? (
+          !result && (
+            <div className="calc-card__head">
+              <h2 className="calc-card__title">Calculate Your Free Comparison</h2>
+              <p className="calc-card__sub">Live rates · no sign-up · no data stored</p>
+            </div>
+          )
+        ) : (
           <>
             <span className="eyebrow calc-sec__eyebrow">Free Benchmark · No sign-up · No data stored</span>
             <h2 className="section-title">Start Your Free Comparison Now</h2>
@@ -251,9 +285,9 @@ export default function BenchmarkCalculator({ onDetailedFeedback, compact = fals
           </>
         )}
 
-        <div className={`calcbox ${compact ? 'calcbox--compact' : ''}`}>
+        <div className={`calcbox ${compact ? 'calcbox--compact' : ''}${compact && result ? ' calcbox--noheader' : ''}`}>
           {(!compact || !result) && (
-            <form className={`calcbox__form${back ? ' is-back' : ''}`} onSubmit={compute}>
+            <form ref={formRef} className={`calcbox__form${back ? ' is-back' : ''}`} onSubmit={compute} noValidate>
               <div className="calcbox__seg">
                 {SEGMENT_TABS.map(({ key, label }) => (
                   <button
@@ -282,7 +316,11 @@ export default function BenchmarkCalculator({ onDetailedFeedback, compact = fals
               </div>
 
               {product?.inputs.map((f) => (
-                <Field key={f.key} field={f} value={values[f.key] ?? ''} onChange={setValue} ccyOptions={ccyOptions} bankOptions={banks} />
+                <Field
+                  key={f.key} field={f} value={values[f.key] ?? ''} onChange={setValue}
+                  ccyOptions={ccyOptions} bankOptions={banks}
+                  required={isRequiredField(f)} invalid={!!invalid[f.key]}
+                />
               ))}
 
               <button className="btn btn--red btn--block" type="submit" disabled={loading || !product}>

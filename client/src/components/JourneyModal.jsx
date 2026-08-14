@@ -5,6 +5,8 @@ import { safeHttpUrl, isStripeCheckoutUrl } from '../lib/safeUrl.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { listAdvisorDirectory, createLead } from '../lib/dashboardApi.js';
 import Certificate from './Certificate.jsx';
+import { buildCertificateImage } from '../lib/certificateImage.js';
+import { SITE_URL } from '../lib/site.js';
 
 /* Screen 3 — the "reveal + act on it" screen. Three vertical tiers: negotiate
    yourself ($1), get a coaching call ($99), or hire an expert ($199). The paid
@@ -340,15 +342,43 @@ Kind regards,
     }
   };
 
-  // $1 promo: open the share sheet with the certificate copy, then check out at
-  // $1. Optimistic — the $1 card charge is itself the anti-abuse filter.
+  // Share the certificate itself as an IMAGE (with the caption text). On mobile
+  // this uses the native share sheet's file support so the certificate PNG is
+  // attached to the post; on desktop (no file share) it downloads the PNG and
+  // copies the caption so the user can attach + post it.
+  const shareCertificate = async () => {
+    const url = SITE_URL;
+    let file = null;
+    try { file = await buildCertificateImage({ segment, product: context?.product, savingPct }); } catch { /* fall back below */ }
+
+    // 1) Native file share — image + caption together (mobile).
+    if (file && navigator.canShare?.({ files: [file] })) {
+      try { await navigator.share({ files: [file], text: CERT_SHARE_TEXT, title: 'BankBenchmark.sg' }); return true; }
+      catch { return false; } // user dismissed the sheet
+    }
+    // 2) Native text share (mobile without file support) — caption + link.
+    if (navigator.share) {
+      try { await navigator.share({ title: 'BankBenchmark.sg', text: CERT_SHARE_TEXT, url }); return true; }
+      catch { return false; }
+    }
+    // 3) Desktop — download the image + copy the caption to paste alongside it.
+    if (file) {
+      const href = URL.createObjectURL(file);
+      const a = document.createElement('a');
+      a.href = href; a.download = file.name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(href), 4000);
+    }
+    try { await navigator.clipboard.writeText(`${CERT_SHARE_TEXT} ${url}`); } catch { /* clipboard blocked */ }
+    setShared(true); setTimeout(() => setShared(false), 2500);
+    return true;
+  };
+
+  // $1 promo: share the certificate image, then check out at $1. Optimistic —
+  // the $1 card charge is itself the anti-abuse filter.
   const shareAndPay = async () => {
     if (!user) { pay('reveal_promo'); return; } // pay() routes to sign-in first
-    const url = typeof window !== 'undefined' ? window.location.origin : 'https://bankbenchmark.sg';
-    try {
-      if (navigator.share) await navigator.share({ title: 'BankBenchmark.sg', text: CERT_SHARE_TEXT, url });
-      else window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`${CERT_SHARE_TEXT} ${url}`)}`, '_blank', 'noopener,noreferrer');
-    } catch { /* dismissed — still proceed (optimistic promo) */ }
+    await shareCertificate();
     pay('reveal_promo');
   };
 
@@ -359,7 +389,7 @@ Kind regards,
     const text = ahead
       ? `My ${productLabel} is already ahead of the market — I just benchmarked my bank on BankBenchmark.sg`
       : `I could ${verb} ${savings ? fmtSaving(savings) : 'money'}/year on my ${productLabel} — I just benchmarked my bank on BankBenchmark.sg`;
-    const url = typeof window !== 'undefined' ? window.location.origin : 'https://bankbenchmark.sg';
+    const url = SITE_URL;
     try {
       if (navigator.share) { await navigator.share({ title: 'BankBenchmark.sg', text, url }); }
       else { await navigator.clipboard.writeText(`${text} ${url}`); setShared(true); setTimeout(() => setShared(false), 2000); }
@@ -384,8 +414,8 @@ Kind regards,
         <div className="jny-reveal">
           <div className="jny-reveal__top">
             <span className="jny-reveal__eyebrow">{SEG_LABEL[segment]} · your result</span>
-            <button className="jny-reveal__share" onClick={share} title="Share">
-              {shared ? 'Copied ✓' : '↗ Share'}
+            <button className="jny-reveal__share" onClick={ahead ? share : shareCertificate} title="Share">
+              {shared ? 'Shared ✓' : '↗ Share'}
             </button>
           </div>
           {ahead ? (
@@ -409,8 +439,9 @@ Kind regards,
           <>
             <h4 className="jny-sectlabel">How would you like to act on this?</h4>
             <div className="jny-tiers">
-              {TIERS.map((t) => (
+              {TIERS.map((t, i) => (
                 <div className={`jny-tier jny-tier--${t.accent}`} key={t.id}>
+                  <span className="jny-tier__badge">Option {i + 1}</span>
                   <div className="jny-tier__price">{t.price}</div>
                   <div className="jny-tier__body">
                     <div className="jny-tier__title">{t.title}</div>

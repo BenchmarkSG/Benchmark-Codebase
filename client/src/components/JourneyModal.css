@@ -78,13 +78,14 @@ body.jny-open .needhelp { display: none; }
 /* Vertical tiers */
 .jny-tiers { display: flex; flex-direction: column; gap: 12px; }
 .jny-tier {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 10px;
   border: 1.5px solid var(--line);
   border-radius: 14px;
-  padding: 18px;
+  padding: 22px 18px 18px;
   border-top-width: 4px;
   transition: box-shadow 0.15s ease, transform 0.12s ease;
 }
@@ -92,6 +93,18 @@ body.jny-open .needhelp { display: none; }
 .jny-tier--green { border-top-color: #1a9d6a; }
 .jny-tier--blue  { border-top-color: var(--blue-600); }
 .jny-tier--red   { border-top-color: var(--red-600); }
+
+/* "Option 1/2/3" badge straddling the card's top border (per the sketch). */
+.jny-tier__badge {
+  position: absolute;
+  top: -11px; left: 50%; transform: translateX(-50%);
+  color: #fff; background: var(--navy-900);
+  font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 3px 13px; border-radius: 999px; white-space: nowrap;
+}
+.jny-tier--green .jny-tier__badge { background: #1a9d6a; }
+.jny-tier--blue  .jny-tier__badge { background: var(--blue-600); }
+.jny-tier--red   .jny-tier__badge { background: var(--red-600); }
 .jny-tier__price {
   font-size: 20px; font-weight: 800;
   color: var(--navy-900);

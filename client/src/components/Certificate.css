@@ -41,3 +41,4 @@
   flex: none; width: 62px; height: 62px; border-radius: 8px;
   background: #fff; border: 1px solid var(--line); padding: 3px;
 }
+.cert__qr--ph { background: repeating-conic-gradient(#eef2f8 0% 25%, #fff 0% 50%) 50% / 12px 12px; }

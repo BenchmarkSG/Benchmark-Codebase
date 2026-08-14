@@ -13,7 +13,12 @@ const SLIDES = [
     title: (
       <>Your Bank is Quietly<br /><span className="hero__title-accent">Overcharging You.</span></>
     ),
-    lead: 'We compare and uncover the hidden  FX markups, loan margins, interest rates on deposits that Banks never advertise. See exactly how much you overpay (underline in small red line from See to overpay) - in 30 secs. No login required',
+    lead: (
+      <>
+        We compare and uncover the hidden FX markups, loan margins, interest rates on deposits that Banks never advertise.{' '}
+        <span className="hero__underline">See exactly how much you overpay</span> — in 30 secs. No login required
+      </>
+    ),
   },
 ];
 
