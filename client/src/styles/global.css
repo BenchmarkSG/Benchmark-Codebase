@@ -33,6 +33,25 @@
 
 * { box-sizing: border-box; }
 
+/* Guaranteed, consistent keyboard focus ring everywhere. `!important` so it wins
+   over the many component `:focus { outline: none }` rules — mouse users still get
+   no ring (that's :focus without :focus-visible), keyboard users always do. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--blue-500) !important;
+  outline-offset: 2px;
+}
+
+/* Respect users who ask for less motion: neutralise CSS animations/transitions
+   (auto-carousels also check this in JS). */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 html, body {
   margin: 0;
   padding: 0;

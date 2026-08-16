@@ -198,8 +198,9 @@
   font-size: 18px; font-weight: 800;
   line-height: 1;
 }
-.faq__a { max-height: 0; overflow: hidden; transition: max-height 0.28s ease; }
-.faq__item.is-open .faq__a { max-height: 360px; }
+.faq__a { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+/* Generous cap so long answers never clip on narrow screens. */
+.faq__item.is-open .faq__a { max-height: 800px; }
 .faq__a p {
   padding: 0 20px 18px;
   color: var(--muted);

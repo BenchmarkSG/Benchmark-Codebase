@@ -4,16 +4,23 @@ import DashboardLayout from './DashboardLayout.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { formatMoney, getReference } from '../api.js';
 import { listBenchmarks, updateBenchmark, deleteBenchmark, listMyLeads } from '../lib/dashboardApi.js';
+import { useConfirm } from '../components/ConfirmProvider.jsx';
+import { formatDate } from '../lib/formatDate.js';
+import JourneyModal from '../components/JourneyModal.jsx';
 
-// Action pipeline the user moves each benchmark through.
-const STAGES = [
-  { key: 'new', label: 'Not started' },
-  { key: 'email', label: 'Email drafted' },
-  { key: 'call', label: 'Call booked' },
-  { key: 'expert', label: 'Expert engaged' },
-  { key: 'negotiated', label: 'Negotiated' },
-];
-const stageIndex = (s) => Math.max(0, STAGES.findIndex((x) => x.key === s));
+// A rate value with its unit (defaults to %), so "3.5" never renders unit-less.
+const rate = (v, unit) => (v == null || v === '' ? '—' : `${v}${unit ? ` ${unit}` : '%'}`);
+
+// A saved benchmark's `stage` records which paid option the user took. Until they
+// take one it stays 'new' (locked) and the winning bank name stays hidden — it's
+// only revealed once they've unlocked a tier (Option 1/2/3) or negotiated.
+const TIER_META = {
+  email:      { icon: '🔓', label: 'Bank revealed',   view: 'email',  tier: 'reveal_promo', manage: 'View bank & email draft' },
+  call:       { icon: '📞', label: 'Coaching call',   view: 'call',   tier: 'call',         manage: 'Manage your call' },
+  expert:     { icon: '🧑‍💼', label: 'Expert engaged',  view: 'expert', tier: 'expert',       manage: 'Manage your expert' },
+  negotiated: { icon: '✅', label: 'Negotiated',      view: null,     tier: null,           manage: null },
+};
+const isUnlocked = (r) => !!r.stage && r.stage !== 'new';
 
 const LOAN_IDS = new Set(['housing_loan', 'personal_loan', 'vehicle_loan']);
 const FX_IDS = new Set(['cross_border']);
@@ -21,10 +28,15 @@ const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
 export default function UserDashboard() {
   const { user } = useAuth();
+  const confirm = useConfirm();
   const [rows, setRows] = useState(null); // null = loading
   const [error, setError] = useState('');
+  const [flash, setFlash] = useState(''); // transient "couldn't save" feedback
   const [products, setProducts] = useState([]);
-  const [myLeads, setMyLeads] = useState([]); // paid calls + expert requests
+  const [myLeads, setMyLeads] = useState([]); // paid calls + expert requests + reveals
+  const [journey, setJourney] = useState(null); // { ctx, resume } — options/manage flow
+
+  const failFlash = () => { setFlash('Couldn’t save that change — please try again.'); setTimeout(() => setFlash(''), 3500); };
 
   const load = () => {
     listBenchmarks().then(setRows).catch((e) => { setError(e.message || 'Could not load your benchmarks.'); setRows([]); });
@@ -34,13 +46,21 @@ export default function UserDashboard() {
   useEffect(() => { getReference().then((r) => setProducts(r.products || [])).catch(() => {}); }, []);
 
   const active = useMemo(() => (rows || []).filter((r) => r.stage !== 'dismissed'), [rows]);
+  // Never add different currencies together — headline figures use the user's
+  // most common currency, and only rows in that currency roll up into them.
+  const baseCcy = useMemo(() => {
+    const counts = {};
+    for (const r of active) { const c = r.currency || 'SGD'; counts[c] = (counts[c] || 0) + 1; }
+    return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'SGD';
+  }, [active]);
+  const inBase = (r) => (r.currency || 'SGD') === baseCcy;
   const potential = useMemo(
-    () => active.filter((r) => r.stage !== 'negotiated').reduce((s, r) => s + num(r.annual_saving), 0),
-    [active]
+    () => active.filter((r) => inBase(r) && r.stage !== 'negotiated').reduce((s, r) => s + num(r.annual_saving), 0),
+    [active, baseCcy] // eslint-disable-line react-hooks/exhaustive-deps
   );
   const realised = useMemo(
-    () => active.filter((r) => r.stage === 'negotiated').reduce((s, r) => s + num(r.saved_amount ?? r.annual_saving), 0),
-    [active]
+    () => active.filter((r) => inBase(r) && r.stage === 'negotiated').reduce((s, r) => s + num(r.saved_amount ?? r.annual_saving), 0),
+    [active, baseCcy] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   // Derived headline metrics for the mockup's KPI row.
@@ -62,6 +82,7 @@ export default function UserDashboard() {
     let current = 0, optimized = 0;
     for (const r of active) {
       if (r.direction === 'higher') continue; // yields aren't "costs"
+      if (!inBase(r)) continue; // keep the comparison within one currency
       const amt = num(r.inputs?.amount);
       if (!amt || !Number.isFinite(Number(r.your_rate)) || !Number.isFinite(Number(r.benchmark_rate))) continue;
       current += (Number(r.your_rate) / 100) * amt;
@@ -81,16 +102,40 @@ export default function UserDashboard() {
 
   const setStage = async (row, stage) => {
     setRows((rs) => rs.map((r) => (r.id === row.id ? { ...r, stage } : r)));
-    try { await updateBenchmark(row.id, { stage }); } catch { load(); }
+    try { await updateBenchmark(row.id, { stage }); } catch { failFlash(); load(); }
   };
-  const setSaved = async (row, saved_amount) => {
+  // Type freely (local state only); persist once on blur — no per-keystroke writes.
+  const setSavedLocal = (row, saved_amount) =>
     setRows((rs) => rs.map((r) => (r.id === row.id ? { ...r, saved_amount } : r)));
-    try { await updateBenchmark(row.id, { saved_amount: saved_amount === '' ? null : Number(saved_amount) }); } catch { load(); }
+  const persistSaved = async (row, value) => {
+    try { await updateBenchmark(row.id, { saved_amount: value === '' || value == null ? null : Number(value) }); }
+    catch { failFlash(); load(); }
   };
   const remove = async (row) => {
+    const ok = await confirm({
+      title: 'Delete this benchmark?',
+      body: 'This removes it from your dashboard and can’t be undone.',
+      confirmLabel: 'Delete', cancelLabel: 'Keep',
+    });
+    if (!ok) return;
     setRows((rs) => rs.filter((r) => r.id !== row.id));
-    try { await deleteBenchmark(row.id); } catch { load(); }
+    try { await deleteBenchmark(row.id); } catch { failFlash(); load(); }
   };
+
+  // Open the tier flow (JourneyModal) on the dashboard itself — no route home.
+  // Purchases/upgrades run through it; on close we reload so newly-unlocked
+  // benchmarks reveal their bank.
+  const contextFromBenchmark = (r) => ({
+    segment: r.segment, annualSaving: r.annual_saving, currency: r.currency, unit: r.unit,
+    direction: r.direction, status: r.result_status, bestBank: r.best_bank,
+    product: r.product_label || r.product, yourRate: r.your_rate, benchmarkRate: r.benchmark_rate,
+    benchmarkId: r.id,
+  });
+  const openJourney = (r, resume) => setJourney({ ctx: contextFromBenchmark(r), resume });
+  const openTier = (r, view) => openJourney(r, { afterAuth: true, view });               // buy a tier
+  const openManage = (r) => { const tv = TIER_META[r.stage]; openJourney(r, { afterAuth: true, view: tv.view, unlockedTier: tv.tier }); };
+  const openOptions = (r) => openJourney(r, { afterAuth: true, view: 'options' });        // compare / upgrade
+  const closeJourney = () => { setJourney(null); load(); };
 
   const firstName = user?.user_metadata?.full_name ? user.user_metadata.full_name.split(' ')[0] : '';
   const hasData = active.length > 0;
@@ -99,20 +144,24 @@ export default function UserDashboard() {
     <DashboardLayout eyebrow="Your dashboard" title={`Welcome back${firstName ? `, ${firstName}` : ''}!`}>
       <p className="dash__subtitle">Let’s optimise your banking costs.</p>
 
-      {/* ---- KPI row (4 headline metrics) ---- */}
-      <div className="udash__kpis">
-        <KpiCard icon="🐷" label="Estimated savings" value={`${formatMoney(Math.round(potential), 'SGD')}`}
-          unit="/ year" sub="Potential annual savings" tone="accent" />
-        <KpiCard icon="🏠" label="Best loan rate found"
-          value={bestLoan ? `${bestLoan.benchmark_rate}%` : '—'}
-          sub={bestLoan ? bestLoan.product_label || 'Loan' : 'Run a loan benchmark'} tone="green" />
-        <KpiCard icon="💱" label="FX transfer savings"
-          value={fxSaving > 0 ? formatMoney(Math.round(fxSaving), recentFx?.currency || 'SGD') : '—'}
-          sub={fx.length ? 'Lower transfer costs' : 'Run an FX benchmark'} />
-        <KpiCard icon="✈️" label="Recent remittance"
-          value={recentFx ? `${formatMoney(num(recentFx.inputs?.sent_amount), recentFx.inputs?.send_currency || recentFx.currency || 'SGD')}` : '—'}
-          sub={recentFx ? `Sent ${recentFx.inputs?.send_currency || ''} · optimised FX rate` : 'No transfers yet'} />
-      </div>
+      {flash && <div className="dash__flash" role="status">{flash}</div>}
+
+      {/* ---- KPI row (only once there's data — no misleading $0 / — for new users) ---- */}
+      {hasData && (
+        <div className="udash__kpis">
+          <KpiCard icon="🐷" label="Estimated savings" value={`${formatMoney(Math.round(potential), baseCcy)}`}
+            unit="/ year" sub="Potential annual savings" tone="accent" />
+          <KpiCard icon="🏠" label="Best loan rate found"
+            value={bestLoan ? `${bestLoan.benchmark_rate}%` : '—'}
+            sub={bestLoan ? bestLoan.product_label || 'Loan' : 'Run a loan benchmark'} tone="green" />
+          <KpiCard icon="💱" label="FX transfer savings"
+            value={fxSaving > 0 ? formatMoney(Math.round(fxSaving), recentFx?.currency || baseCcy) : '—'}
+            sub={fx.length ? 'Lower transfer costs' : 'Run an FX benchmark'} />
+          <KpiCard icon="✈️" label="Recent remittance"
+            value={recentFx ? `${formatMoney(num(recentFx.inputs?.sent_amount), recentFx.inputs?.send_currency || recentFx.currency || 'SGD')}` : '—'}
+            sub={recentFx ? `Sent ${recentFx.inputs?.send_currency || ''} · optimised FX rate` : 'No transfers yet'} />
+        </div>
+      )}
 
       {hasData && (
         <div className="udash__two">
@@ -121,17 +170,20 @@ export default function UserDashboard() {
             <div className="udash__panel-head"><h2>Your savings overview</h2></div>
             <div className="udash__save-hero">
               <span>You could save up to</span>
-              <div className="udash__save-badge">{formatMoney(Math.round(potential), 'SGD')}<em>/ year</em></div>
+              <div className="udash__save-badge">{formatMoney(Math.round(potential), baseCcy)}<em>/ year</em></div>
             </div>
             {costBars.current > 0 ? (
               <div className="udash__bars">
-                <Bar label="Current costs" value={costBars.current} max={costBars.current} tone="red" />
-                <Bar label="Optimised costs" value={costBars.optimized} max={costBars.current} tone="green" />
+                <Bar label="Current costs" value={costBars.current} max={costBars.current} tone="red" ccy={baseCcy} />
+                <Bar label="Optimised costs" value={costBars.optimized} max={costBars.current} tone="green" ccy={baseCcy} />
               </div>
             ) : (
               <p className="udash__hint">Add your current rate and amount to a benchmark to see a cost comparison.</p>
             )}
-            <a className="udash__link" href="#reports">View detailed report →</a>
+            <a
+              className="udash__link" href="#my-savings"
+              onClick={(e) => { e.preventDefault(); document.getElementById('my-savings')?.scrollIntoView({ behavior: 'smooth' }); }}
+            >View detailed report →</a>
           </section>
 
           {/* ---- Loan comparison ---- */}
@@ -142,15 +194,15 @@ export default function UserDashboard() {
                 {loans.slice(0, 3).map((r) => (
                   <div className="udash__cmp-row" key={r.id}>
                     <span className="udash__cmp-name">{r.product_label || r.product}</span>
-                    <span className="udash__cmp-you">{r.your_rate != null ? `${r.your_rate}%` : '—'}</span>
+                    <span className="udash__cmp-you">{rate(r.your_rate, r.unit)}</span>
                     <span className="udash__cmp-arrow">→</span>
-                    <span className="udash__cmp-best">✓ {r.benchmark_rate != null ? `${r.benchmark_rate}%` : '—'}</span>
+                    <span className="udash__cmp-best">✓ {rate(r.benchmark_rate, r.unit)}</span>
                   </div>
                 ))}
-                <a className="btn btn--navy udash__cmp-cta" href="#top">See loan options</a>
+                <a className="btn btn--navy udash__cmp-cta" href="#calculator">See loan options</a>
               </div>
             ) : (
-              <p className="udash__hint">No loan benchmarks yet. <a href="#top">Benchmark a loan →</a></p>
+              <p className="udash__hint">No loan benchmarks yet. <a href="#calculator">Benchmark a loan →</a></p>
             )}
           </section>
 
@@ -163,13 +215,13 @@ export default function UserDashboard() {
                   <span>Recent transfer</span>
                   <strong>{formatMoney(num(recentFx.inputs?.sent_amount), recentFx.inputs?.send_currency || 'SGD')}</strong>
                 </div>
-                <div className="udash__fx-line"><span>Your all-in cost</span><strong>{recentFx.your_rate != null ? `${recentFx.your_rate}%` : '—'}</strong></div>
-                <div className="udash__fx-line"><span>Best available</span><strong className="is-best">{recentFx.benchmark_rate != null ? `${recentFx.benchmark_rate}%` : '—'}</strong></div>
+                <div className="udash__fx-line"><span>Your all-in cost</span><strong>{rate(recentFx.your_rate, recentFx.unit)}</strong></div>
+                <div className="udash__fx-line"><span>Best available</span><strong className="is-best">{rate(recentFx.benchmark_rate, recentFx.unit)}</strong></div>
                 {num(recentFx.annual_saving) > 0 && (
                   <div className="udash__fx-save">+ {formatMoney(Math.round(num(recentFx.annual_saving)), recentFx.currency || 'SGD')} potential savings</div>
                 )}
               </div>
-              <a className="btn btn--navy udash__cmp-cta" href="#top">Compare rates</a>
+              <a className="btn btn--navy udash__cmp-cta" href="#calculator">Compare rates</a>
             </section>
           )}
 
@@ -178,7 +230,7 @@ export default function UserDashboard() {
             <div className="udash__panel-head"><h2>Offers &amp; recommendations</h2></div>
             <ul className="udash__offers">
               {recommendations.length ? recommendations.map((p) => (
-                <li key={p.id}><a href="#top">{p.label} — {p.blurb}</a></li>
+                <li key={p.id}><a href="#calculator">{p.label} — {p.blurb}</a></li>
               )) : <li className="udash__hint">You’ve benchmarked everything in your segment. Nice work.</li>}
             </ul>
             <div className="udash__expert">
@@ -186,7 +238,7 @@ export default function UserDashboard() {
                 <strong>Need a better deal?</strong>
                 <span>Connect with an expert negotiator to save more.</span>
               </div>
-              <a className="btn btn--primary" href="#top">Get negotiation help</a>
+              <a className="btn btn--primary" href="#calculator">Get negotiation help</a>
             </div>
           </section>
         </div>
@@ -196,13 +248,13 @@ export default function UserDashboard() {
       <h2 className="dash__section-title" id="my-savings">My savings &amp; benchmarks</h2>
       {error && <p className="dash__err">{error}</p>}
       {rows == null ? (
-        <p className="dash__note">Loading…</p>
+        <div className="dash__loading" role="status" aria-live="polite"><span className="dash__spinner" aria-hidden="true" /> Loading your benchmarks…</div>
       ) : active.length === 0 ? (
         <div className="dash__empty">
           <div className="dash__empty-icon">📊</div>
           <h3>No saved benchmarks yet</h3>
           <p>Run a benchmark and hit “Save to my dashboard” to start tracking your savings.</p>
-          <a className="btn btn--primary" href="#top">Calculate a benchmark →</a>
+          <a className="btn btn--primary" href="#calculator">Calculate a benchmark →</a>
         </div>
       ) : (
         <div className="ubm__list">
@@ -211,39 +263,67 @@ export default function UserDashboard() {
               <div className="ubm__top">
                 <div>
                   <div className="ubm__product">{r.product_label || r.product}{r.currency ? ` · ${r.currency}` : ''}</div>
-                  <div className="ubm__meta">{r.country_code} · saved {new Date(r.created_at).toLocaleDateString()}</div>
+                  <div className="ubm__meta">{r.country_code} · saved {formatDate(r.created_at)}</div>
                 </div>
-                <button className="ubm__del" onClick={() => remove(r)} aria-label="Remove">✕</button>
+                <div className="ubm__topright">
+                  {isUnlocked(r) && (
+                    <span className={`ubm__tier ubm__tier--${r.stage}`}>{TIER_META[r.stage]?.icon} {TIER_META[r.stage]?.label}</span>
+                  )}
+                  <button className="ubm__del" onClick={() => remove(r)} aria-label={`Remove ${r.product_label || r.product} benchmark`}>✕</button>
+                </div>
               </div>
 
               <div className="ubm__rates">
-                <div><span>You</span><strong>{r.your_rate ?? '—'}</strong></div>
+                <div><span>You</span><strong>{rate(r.your_rate, r.unit)}</strong></div>
                 <div className="ubm__arrow">→</div>
-                <div className="ubm__best"><span>Best{r.best_bank ? ` · ${r.best_bank}` : ''}</span><strong>{r.benchmark_rate ?? '—'}</strong></div>
+                <div className="ubm__best"><span>Best available</span><strong>{rate(r.benchmark_rate, r.unit)}</strong></div>
                 <div className="ubm__save">
                   <span>{r.direction === 'higher' ? 'Extra / yr' : 'Save / yr'}</span>
                   <strong>{formatMoney(Math.round(num(r.annual_saving)), r.currency || 'SGD')}</strong>
                 </div>
               </div>
 
-              {/* Action pipeline */}
-              <div className="ubm__pipe">
-                {STAGES.map((s, i) => (
-                  <button
-                    key={s.key}
-                    className={`ubm__stage ${i <= stageIndex(r.stage) ? 'is-done' : ''} ${r.stage === s.key ? 'is-current' : ''}`}
-                    onClick={() => setStage(r, s.key)}
-                  >
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-              {r.stage === 'negotiated' && (
+              {/* Bank name — hidden until a tier is unlocked */}
+              {isUnlocked(r) ? (
+                <div className="ubm__bank ubm__bank--open">
+                  <span className="ubm__bank-label">Best-match bank</span>
+                  <strong>🏦 {r.best_bank || 'Revealed'}</strong>
+                </div>
+              ) : (
+                <div className="ubm__bank ubm__bank--locked">
+                  <span className="ubm__bank-lock">🔒 Best-match bank hidden</span>
+                  <span className="ubm__bank-hint">Pick an option below to reveal it.</span>
+                </div>
+              )}
+
+              {/* Forward actions */}
+              {r.stage === 'negotiated' ? (
                 <label className="ubm__realised">
                   Actual saving secured
                   <input type="number" min="0" step="100" value={r.saved_amount ?? ''} placeholder={String(Math.round(num(r.annual_saving)))}
-                    onChange={(e) => setSaved(r, e.target.value)} />
+                    onChange={(e) => setSavedLocal(r, e.target.value)} onBlur={(e) => persistSaved(r, e.target.value)} />
                 </label>
+              ) : isUnlocked(r) ? (
+                <div className="ubm__manage">
+                  <button className="ubm__act ubm__act--primary" onClick={() => openManage(r)}>{TIER_META[r.stage].manage} →</button>
+                  <button className="ubm__act" onClick={() => openOptions(r)}>Upgrade options</button>
+                  <button className="ubm__act ubm__act--done" onClick={() => setStage(r, 'negotiated')}>Mark as negotiated</button>
+                </div>
+              ) : (
+                <div className="ubm__options">
+                  <span className="ubm__options-label">Take it forward — reveal the bank &amp; act:</span>
+                  <div className="ubm__optbtns">
+                    <button className="ubm__opt ubm__opt--1" onClick={() => openTier(r, 'email')}>
+                      <b>Reveal the bank</b><span>&amp; negotiate yourself · from $1</span>
+                    </button>
+                    <button className="ubm__opt ubm__opt--2" onClick={() => openTier(r, 'call')}>
+                      <b>Coaching call</b><span>we coach you · $99</span>
+                    </button>
+                    <button className="ubm__opt ubm__opt--3" onClick={() => openTier(r, 'expert')}>
+                      <b>Expert negotiator</b><span>done for you · $199</span>
+                    </button>
+                  </div>
+                </div>
               )}
             </article>
           ))}
@@ -251,36 +331,43 @@ export default function UserDashboard() {
       )}
 
       {realised > 0 && (
-        <p className="udash__realised-note">💚 You’ve realised {formatMoney(Math.round(realised), 'SGD')} in savings so far.</p>
+        <p className="udash__realised-note">💚 You’ve realised {formatMoney(Math.round(realised), baseCcy)} in savings so far.</p>
       )}
 
-      {/* ---- Consultations & bookings (paid calls + expert requests) ---- */}
+      {/* ---- Past transactions (reveals, calls, expert requests) ---- */}
       {myLeads.length > 0 && (
         <>
-          <h2 className="dash__section-title" id="my-consultations">My consultations &amp; bookings</h2>
+          <h2 className="dash__section-title" id="my-transactions">Past transactions &amp; bookings</h2>
           <div className="ubk__list">
-            {myLeads.map((l) => (
-              <article className="ubk" key={l.id}>
-                <span className="ubk__icon" aria-hidden="true">{l.source === 'expert' ? '🧑‍💼' : '📞'}</span>
-                <div className="ubk__body">
-                  <div className="ubk__title">
-                    {l.source === 'expert' ? 'Expert-led negotiation' : 'Negotiation coaching call'}
-                    {l.booked && <span className="ubk__badge">Booked</span>}
+            {myLeads.map((l) => {
+              const meta = l.source === 'expert'
+                ? { icon: '🧑‍💼', title: 'Expert-led negotiation', badge: l.booked ? 'Booked' : 'Requested' }
+                : l.source === 'reveal'
+                  ? { icon: '🔓', title: 'Bank reveal — self-negotiate', badge: 'Unlocked' }
+                  : { icon: '📞', title: 'Negotiation coaching call', badge: l.booked ? 'Booked' : 'Pending' };
+              return (
+                <article className="ubk" key={l.id}>
+                  <span className="ubk__icon" aria-hidden="true">{meta.icon}</span>
+                  <div className="ubk__body">
+                    <div className="ubk__title">
+                      {meta.title}
+                      <span className="ubk__badge">{meta.badge}</span>
+                    </div>
+                    <div className="ubk__meta">
+                      {l.product_label || 'Banking'}
+                      {l.segment ? ` · ${l.segment === 'sme' ? 'SME / Corporate' : 'Individual'}` : ''}
+                      {' · '}{formatDate(l.created_at)}
+                    </div>
                   </div>
-                  <div className="ubk__meta">
-                    {l.product_label || 'Banking'}
-                    {l.segment ? ` · ${l.segment === 'sme' ? 'SME / Corporate' : 'Individual'}` : ''}
-                    {' · '}{new Date(l.created_at).toLocaleDateString()}
-                  </div>
-                </div>
-                {num(l.annual_saving) > 0 && (
-                  <div className="ubk__save">
-                    <span>Opportunity</span>
-                    <strong>{formatMoney(Math.round(num(l.annual_saving)), 'SGD')}/yr</strong>
-                  </div>
-                )}
-              </article>
-            ))}
+                  {num(l.annual_saving) > 0 && (
+                    <div className="ubk__save">
+                      <span>Opportunity</span>
+                      <strong>{formatMoney(Math.round(num(l.annual_saving)), 'SGD')}/yr</strong>
+                    </div>
+                  )}
+                </article>
+              );
+            })}
           </div>
         </>
       )}
@@ -290,7 +377,7 @@ export default function UserDashboard() {
           <h2 className="dash__section-title">Recommended next</h2>
           <div className="dash__grid dash__cards-3 ureco">
             {recommendations.map((p) => (
-              <a className="dash-card ureco__card" href="#top" key={p.id}>
+              <a className="dash-card ureco__card" href="#calculator" key={p.id}>
                 <div className="ureco__title">{p.label}</div>
                 <div className="ureco__blurb">{p.blurb}</div>
                 <div className="ureco__cta">Benchmark it →</div>
@@ -299,6 +386,15 @@ export default function UserDashboard() {
           </div>
         </>
       )}
+
+      {/* Tier flow (options / purchase / manage) — runs on the dashboard itself. */}
+      <JourneyModal
+        open={!!journey}
+        onClose={closeJourney}
+        context={journey?.ctx || null}
+        resume={journey?.resume || null}
+        onRequireAuth={() => {}}
+      />
     </DashboardLayout>
   );
 }
@@ -313,12 +409,12 @@ function KpiCard({ icon, label, value, unit, sub, tone }) {
   );
 }
 
-function Bar({ label, value, max, tone }) {
+function Bar({ label, value, max, tone, ccy = 'SGD' }) {
   const pct = max > 0 ? Math.max(4, Math.round((value / max) * 100)) : 0;
   return (
     <div className="udash__bar">
       <div className="udash__bar-track"><div className={`udash__bar-fill udash__bar-fill--${tone}`} style={{ width: `${pct}%` }} /></div>
-      <div className="udash__bar-meta"><span>{label}</span><strong>{formatMoney(value, 'SGD')}</strong></div>
+      <div className="udash__bar-meta"><span>{label}</span><strong>{formatMoney(value, ccy)}</strong></div>
     </div>
   );
 }

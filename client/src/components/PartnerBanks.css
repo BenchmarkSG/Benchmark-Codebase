@@ -34,7 +34,9 @@
   animation-direction: reverse;
   animation-duration: 42s;
 }
-.marquee:hover .marquee__track { animation-play-state: paused; }
+/* Pause on hover AND on keyboard focus within, so it's reachable without a mouse. */
+.marquee:hover .marquee__track,
+.marquee:focus-within .marquee__track { animation-play-state: paused; }
 
 .marquee__item {
   flex: 0 0 auto;

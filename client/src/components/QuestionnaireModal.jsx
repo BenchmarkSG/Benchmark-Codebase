@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import './AdvisorModal.css';
 import './QuestionnaireModal.css';
 import { scoreQuestionnaire } from '../api.js';
 import { supabase, isSupabaseConfigured } from '../lib/supabase.js';
+import { useModalA11y } from '../hooks/useModalA11y.js';
+import { friendlyError } from '../lib/friendlyError.js';
+import { firstInvalidField, validationMessage } from '../lib/validateForm.js';
 
 /* Efficiency assessment: answer a short questionnaire → maturity score → optional
    "talk to an expert" hand-off (captured in public.treasury_profiles). */
@@ -13,6 +16,10 @@ export default function QuestionnaireModal({ questionnaire, onClose }) {
   const [contact, setContact] = useState({ full_name: '', email: '', phone: '', company: '' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const cardRef = useRef(null);
+  const formRef = useRef(null);
+
+  useModalA11y(!!questionnaire, cardRef, onClose);
 
   if (!questionnaire) return null;
   const q = questionnaire;
@@ -21,19 +28,25 @@ export default function QuestionnaireModal({ questionnaire, onClose }) {
 
   const submitAnswers = async (e) => {
     e.preventDefault();
-    setBusy(true); setError('');
+    setError('');
+    const bad = firstInvalidField(formRef.current);
+    if (bad) { setError(validationMessage(bad)); bad.focus(); return; }
+    setBusy(true);
     try {
       const res = await scoreQuestionnaire(q.id, answers);
       setScore(res);
       setStep('score');
     } catch (err) {
-      setError(err.message || 'Could not score your answers. Please try again.');
+      setError(friendlyError(err, 'Could not score your answers. Please try again.'));
     } finally { setBusy(false); }
   };
 
   const submitContact = async (e) => {
     e.preventDefault();
-    setBusy(true); setError('');
+    setError('');
+    const bad = firstInvalidField(formRef.current);
+    if (bad) { setError(validationMessage(bad)); bad.focus(); return; }
+    setBusy(true);
     try {
       if (!isSupabaseConfigured) throw new Error('Not available yet — Supabase isn’t configured.');
       const { error: insErr } = await supabase.from('treasury_profiles').insert({
@@ -45,14 +58,14 @@ export default function QuestionnaireModal({ questionnaire, onClose }) {
       if (insErr) throw insErr;
       setStep('done');
     } catch (err) {
-      setError(err.message || 'Could not submit. Please try again.');
+      setError(friendlyError(err, 'Could not submit. Please try again.'));
     } finally { setBusy(false); }
   };
 
   return (
     <div className="adv" role="dialog" aria-modal="true" aria-label={q.label}>
       <div className="adv__overlay" onClick={onClose} />
-      <div className="adv__card">
+      <div className="adv__card" ref={cardRef}>
         <button className="adv__close" onClick={onClose} aria-label="Close">×</button>
         <div className="adv__brand">Bank<span>Benchmark</span>.sg · Health Check</div>
 
@@ -60,7 +73,7 @@ export default function QuestionnaireModal({ questionnaire, onClose }) {
           <>
             <h2 className="adv__title">{q.label}</h2>
             <p className="adv__sub">{q.intro}</p>
-            <form className="adv__form" onSubmit={submitAnswers}>
+            <form className="adv__form" ref={formRef} onSubmit={submitAnswers} noValidate>
               {q.inputs.map((f) => (
                 <label className="adv__field" key={f.key}>
                   <span>{f.label}</span>
@@ -76,7 +89,7 @@ export default function QuestionnaireModal({ questionnaire, onClose }) {
                   )}
                 </label>
               ))}
-              {error && <div className="adv__error">{error}</div>}
+              {error && <div className="adv__error" role="alert">{error}</div>}
               <button type="submit" className="btn btn--primary btn--block adv__submit" disabled={busy}>
                 {busy ? 'Scoring…' : 'See my maturity score →'}
               </button>
@@ -107,7 +120,7 @@ export default function QuestionnaireModal({ questionnaire, onClose }) {
           <>
             <h2 className="adv__title">Talk to an expert</h2>
             <p className="adv__sub">Share your details and a specialist will reach out with tailored next steps.</p>
-            <form className="adv__form" onSubmit={submitContact}>
+            <form className="adv__form" ref={formRef} onSubmit={submitContact} noValidate>
               <label className="adv__field"><span>Full name</span>
                 <input type="text" required value={contact.full_name} onChange={setC('full_name')} placeholder="Jane Tan" /></label>
               <label className="adv__field"><span>Company</span>
@@ -118,7 +131,7 @@ export default function QuestionnaireModal({ questionnaire, onClose }) {
                 <label className="adv__field"><span>Phone (WhatsApp)</span>
                   <input type="tel" value={contact.phone} onChange={setC('phone')} placeholder="+65 9123 4567" /></label>
               </div>
-              {error && <div className="adv__error">{error}</div>}
+              {error && <div className="adv__error" role="alert">{error}</div>}
               <button type="submit" className="btn btn--red btn--block adv__submit" disabled={busy}>
                 {busy ? 'Submitting…' : 'Request my consultation →'}
               </button>

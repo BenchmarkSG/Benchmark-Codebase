@@ -1,17 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './Hero.css';
 import BenchmarkCalculator from './BenchmarkCalculator.jsx';
+import { CTA_PRIMARY } from '../lib/copy.js';
 
 const SLIDES = [
   {
     title: (
-      <>Stop Overpaying<br />Your Bank by<br /><span className="hero__title-accent">Thousands</span> Every Year</>
+      <>Stop Overpaying Your Bank by <span className="hero__title-accent">Thousands</span> Every Year</>
     ),
-    lead: 'Find out your number in 30 secs. Compare your bank against the best for mortgages, loans, remittances, trade finance, FX fees & current account credit interest. Your Bank is profitting from you, find out by how much?',
+    lead: 'Find out your number in 30 secs. Compare your bank against the best for mortgages, loans, remittances, trade finance, FX fees & current account credit interest. Your bank is profiting from you — find out by how much.',
   },
   {
     title: (
-      <>Your Bank is Quietly<br /><span className="hero__title-accent">Overcharging You.</span></>
+      <>Your Bank is Quietly <span className="hero__title-accent">Overcharging You.</span></>
     ),
     lead: (
       <>
@@ -22,14 +23,25 @@ const SLIDES = [
   },
 ];
 
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
 export default function Hero({ onDetailedFeedback, onStart, calcSelection, onRequireAuth }) {
   const [active, setActive] = useState(0);
+  const [paused, setPaused] = useState(prefersReducedMotion); // don't auto-rotate for reduced-motion users
+  const hovering = useRef(false);
 
-  // Auto-advance the left-column text carousel.
+  // Auto-advance the left-column text carousel — but never while paused, hovered,
+  // or for users who prefer reduced motion (WCAG 2.2.2).
   useEffect(() => {
-    const id = setInterval(() => setActive((i) => (i + 1) % SLIDES.length), 4600);
+    if (paused) return undefined;
+    const id = setInterval(() => {
+      if (!hovering.current) setActive((i) => (i + 1) % SLIDES.length);
+    }, 5200);
     return () => clearInterval(id);
-  }, []);
+  }, [paused]);
+
+  const slide = SLIDES[active];
 
   return (
     <section className="hero" id="top">
@@ -37,28 +49,44 @@ export default function Hero({ onDetailedFeedback, onStart, calcSelection, onReq
       <div className="container hero__grid">
         {/* Left column — text carousel */}
         <div className="hero__copy">
-          <div className="hero__textcarousel">
-            {SLIDES.map((s, i) => (
-              <div key={i} className={`hero__text ${i === active ? 'is-active' : ''}`} aria-hidden={i !== active}>
-                <h1 className="hero__title">{s.title}</h1>
-                <p className="hero__lead">{s.lead}</p>
-              </div>
-            ))}
+          <div
+            className="hero__textcarousel"
+            onMouseEnter={() => { hovering.current = true; }}
+            onMouseLeave={() => { hovering.current = false; }}
+          >
+            {/* Only the active slide is in the DOM — no clipping, and a single <h1>. */}
+            <div className="hero__text" key={active}>
+              <h1 className="hero__title">{slide.title}</h1>
+              <p className="hero__lead">{slide.lead}</p>
+            </div>
           </div>
 
-          <div className="hero__dots">
-            {SLIDES.map((_, i) => (
+          <div className="hero__controls">
+            <div className="hero__dots" role="tablist" aria-label="Highlights">
+              {SLIDES.map((_, i) => (
+                <button
+                  key={i}
+                  className={`hero__dot ${i === active ? 'is-active' : ''}`}
+                  onClick={() => setActive(i)}
+                  role="tab"
+                  aria-selected={i === active}
+                  aria-label={`Show message ${i + 1}`}
+                />
+              ))}
+            </div>
+            {SLIDES.length > 1 && (
               <button
-                key={i}
-                className={`hero__dot ${i === active ? 'is-active' : ''}`}
-                onClick={() => setActive(i)}
-                aria-label={`Show message ${i + 1}`}
-              />
-            ))}
+                className="hero__playpause"
+                onClick={() => setPaused((p) => !p)}
+                aria-label={paused ? 'Play highlights' : 'Pause highlights'}
+              >
+                {paused ? '▶' : '❚❚'}
+              </button>
+            )}
           </div>
 
           <button className="btn btn--red hero__cta" onClick={onStart}>
-            Calculate My Overpayment →
+            {CTA_PRIMARY} →
           </button>
 
           <ul className="hero__trust">

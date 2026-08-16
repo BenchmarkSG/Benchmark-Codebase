@@ -42,6 +42,21 @@
   padding: 16px 18px;
 }
 
+/* On-this-page jump list for the longer documents */
+.legal__toc {
+  margin-top: 22px; padding: 16px 20px;
+  background: var(--bg-soft); border: 1px solid var(--line); border-radius: 12px;
+}
+.legal__toc-label {
+  display: block; font-size: 11.5px; font-weight: 800; letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
+}
+.legal__toc ol { margin: 0; padding-left: 20px; columns: 2; column-gap: 28px; }
+.legal__toc li { margin: 4px 0; font-size: 13.5px; break-inside: avoid; }
+.legal__toc a { color: var(--blue-700); font-weight: 600; text-decoration: none; }
+.legal__toc a:hover { text-decoration: underline; }
+@media (max-width: 560px) { .legal__toc ol { columns: 1; } }
+
 .legal__section { margin-top: 30px; }
 .legal__section h2 {
   font-size: 18px;

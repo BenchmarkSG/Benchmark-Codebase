@@ -18,7 +18,7 @@ function groupBanks(list) {
 // SMEs and Corporates share the same product set, so they're one tab.
 const SEGMENT_TABS = [
   { key: 'individual', label: 'For Individuals' },
-  { key: 'sme', label: 'For SMEs / Corporates' },
+  { key: 'sme', label: 'For SMEs & Corporates' },
 ];
 const MAJORS = ['USD', 'EUR', 'GBP'];
 const dedupe = (arr) => [...new Set(arr.filter(Boolean))];
@@ -364,6 +364,18 @@ function Result({ result, product, compact, localCcy, onDetailedFeedback, onBack
   const higher = result.direction === 'higher';
   const crossBorder = product?.family === 'crossborder';
   const ahead = result.status === 'ahead';
+
+  // Visual comparison of your rate vs the best — bar widths relative to the
+  // larger of the two, plus the % gap for a positive "you could save" pill.
+  const yr = Number(result.yourRate);
+  const br = Number(result.benchmarkRate);
+  const maxRate = Math.max(yr, br) || 1;
+  const youW = Number.isFinite(yr) ? Math.max(8, Math.round((yr / maxRate) * 100)) : 0;
+  const bestW = Number.isFinite(br) ? Math.max(8, Math.round((br / maxRate) * 100)) : 0;
+  const savePct = (Number.isFinite(yr) && Number.isFinite(br) && yr > 0)
+    ? (() => { const p = higher ? (br - yr) / yr : (yr - br) / yr; return p > 0 ? Math.round(p * 100) : null; })()
+    : null;
+
   const saveLabel = saveState === 'saved' ? 'Saved to dashboard ✓'
     : saveState === 'saving' ? 'Saving…'
     : saveState === 'error' ? 'Couldn’t save — retry'
@@ -377,7 +389,6 @@ function Result({ result, product, compact, localCcy, onDetailedFeedback, onBack
           : <span className="res__product">{result.product}{result.currency ? ` · ${result.currency}` : ''}</span>}
         <span className="res__unit">{result.unit}</span>
       </div>
-      <div className="res__rule res__rule--thick" />
 
       {ahead ? (
         <div className="res__ahead">
@@ -413,17 +424,20 @@ function Result({ result, product, compact, localCcy, onDetailedFeedback, onBack
             <strong className="res__overpay-amt">{formatMoney(result.annualSaving, ccy)} / year</strong>
           </div>
 
-          <div className="res__rule res__rule--thin" />
-
-          <div className="res__rows">
-            <div className="res__row">
-              <span className="res__row-label">{crossBorder ? 'Your all-in cost' : 'Your bank’s rate'}</span>
-              <span className="res__row-val">{result.yourRate}%</span>
+          <div className="res__cmp">
+            <div className="res__cmp-row">
+              <span className="res__cmp-label">{crossBorder ? 'Your all-in cost' : 'Your bank’s rate'}</span>
+              <span className="res__cmp-track"><span className="res__cmp-fill res__cmp-fill--you" style={{ width: `${youW}%` }} /></span>
+              <span className="res__cmp-val res__cmp-val--you">{result.yourRate}%</span>
             </div>
-            <div className="res__row">
-              <span className="res__row-label">Best available</span>
-              <span className="res__row-val res__row-val--best">{result.benchmarkRate}%</span>
+            <div className="res__cmp-row">
+              <span className="res__cmp-label">Best available</span>
+              <span className="res__cmp-track"><span className="res__cmp-fill res__cmp-fill--best" style={{ width: `${bestW}%` }} /></span>
+              <span className="res__cmp-val res__cmp-val--best">{result.benchmarkRate}%</span>
             </div>
+            {savePct != null && (
+              <div className="res__cmp-save">✓ Best available is {savePct}% {higher ? 'higher' : 'lower'}</div>
+            )}
           </div>
 
           <p className="res__tagline">Save the money your bank is making off you.</p>

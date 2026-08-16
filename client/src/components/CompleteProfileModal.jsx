@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './AuthModal.css';
 import { useAuth } from '../context/AuthContext.jsx';
 import { supabase } from '../lib/supabase.js';
 import { INCOME_BRACKETS, isProfileComplete } from '../lib/profileFields.js';
+import { useModalA11y } from '../hooks/useModalA11y.js';
+import { friendlyError } from '../lib/friendlyError.js';
 
 /* Shown after sign-in when a user's profile is missing the phone / income we
    normally collect at sign-up — i.e. OAuth (Google) sign-ups. It's a gentle
@@ -14,6 +16,11 @@ export default function CompleteProfileModal() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [dismissed, setDismissed] = useState(false);
+  const cardRef = useRef(null);
+
+  const isOpen = !!(user && needs && !dismissed && !recovery);
+  const dismiss = () => setDismissed(true);
+  useModalA11y(isOpen, cardRef, dismiss);
 
   // Check the signed-in user's profile whenever they change.
   useEffect(() => {
@@ -60,7 +67,7 @@ export default function CompleteProfileModal() {
       if (error) throw error;
       setNeeds(false);
     } catch (err) {
-      setError(err.message || 'Could not save. Please try again.');
+      setError(friendlyError(err, 'Could not save. Please try again.'));
     } finally {
       setBusy(false);
     }
@@ -68,27 +75,27 @@ export default function CompleteProfileModal() {
 
   return (
     <div className="auth" role="dialog" aria-modal="true" aria-label="Complete your profile">
-      <div className="auth__overlay" onClick={() => setDismissed(true)} />
-      <div className="auth__card">
-        <button className="auth__close" onClick={() => setDismissed(true)} aria-label="Close">×</button>
+      <div className="auth__overlay" onClick={dismiss} />
+      <div className="auth__card" ref={cardRef}>
+        <button className="auth__close" onClick={dismiss} aria-label="Close">×</button>
 
         <div className="auth__brand">Bank<span>Benchmark</span>.sg</div>
         <h2 className="auth__title">Complete your profile</h2>
         <p className="auth__sub">
-          Just two more details so we can tailor your benchmarks and reach you on WhatsApp.
+          A couple more details so we can tailor your benchmarks and reach you on WhatsApp.
         </p>
 
         <form className="auth__form" onSubmit={submit}>
           <label className="auth__field">
             <span>Full name</span>
-            <input type="text" required value={form.name} onChange={set('name')} placeholder="Jane Tan" autoComplete="name" />
+            <input type="text" value={form.name} onChange={set('name')} placeholder="Jane Tan" autoComplete="name" />
           </label>
           <label className="auth__field">
-            <span>Phone (WhatsApp)</span>
-            <input type="tel" required value={form.phone} onChange={set('phone')} placeholder="+65 9123 4567" autoComplete="tel" />
+            <span>Phone (WhatsApp) <em className="auth__req" aria-hidden="true">*</em></span>
+            <input type="tel" required value={form.phone} onChange={set('phone')} placeholder="+65 9123 4567" autoComplete="tel" inputMode="tel" />
           </label>
           <label className="auth__field">
-            <span>Monthly income</span>
+            <span>Monthly income <em className="auth__req" aria-hidden="true">*</em></span>
             <select className="auth__select" required value={form.income} onChange={set('income')}>
               <option value="" disabled>Select a range…</option>
               {INCOME_BRACKETS.map((b) => (
@@ -97,7 +104,7 @@ export default function CompleteProfileModal() {
             </select>
           </label>
 
-          {error && <div className="auth__error">{error}</div>}
+          {error && <div className="auth__error" role="alert">{error}</div>}
 
           <button type="submit" className="btn btn--primary btn--block auth__submit" disabled={busy}>
             {busy ? 'Saving…' : 'Save profile'}
@@ -105,7 +112,7 @@ export default function CompleteProfileModal() {
         </form>
 
         <p className="auth__switch">
-          <button type="button" onClick={() => setDismissed(true)}>I’ll do this later</button>
+          <button type="button" onClick={dismiss}>I’ll do this later</button>
         </p>
       </div>
     </div>

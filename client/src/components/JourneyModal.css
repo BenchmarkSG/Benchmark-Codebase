@@ -30,12 +30,13 @@
 
 .jny__close {
   position: absolute;
-  top: 16px; right: 18px;
+  top: 14px; right: 14px;
   border: none;
   background: var(--blue-50);
-  width: 34px; height: 34px;
+  display: grid; place-items: center;
+  width: 40px; height: 40px;
   border-radius: 50%;
-  font-size: 22px; line-height: 1;
+  font-size: 24px; line-height: 1;
   color: var(--navy-800); cursor: pointer;
   z-index: 2;
 }
@@ -89,10 +90,10 @@ body.jny-open .needhelp { display: none; }
   border-top-width: 4px;
   transition: box-shadow 0.15s ease, transform 0.12s ease;
 }
-.jny-tier:hover { box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+.jny-tier:hover { box-shadow: var(--shadow-sm); }
 .jny-tier--green { border-top-color: #1a9d6a; }
 .jny-tier--blue  { border-top-color: var(--blue-600); }
-.jny-tier--red   { border-top-color: var(--red-600); }
+.jny-tier--violet { border-top-color: #6a34c9; }
 
 /* "Option 1/2/3" badge straddling the card's top border (per the sketch). */
 .jny-tier__badge {
@@ -104,11 +105,12 @@ body.jny-open .needhelp { display: none; }
 }
 .jny-tier--green .jny-tier__badge { background: #1a9d6a; }
 .jny-tier--blue  .jny-tier__badge { background: var(--blue-600); }
-.jny-tier--red   .jny-tier__badge { background: var(--red-600); }
+.jny-tier--violet .jny-tier__badge { background: #6a34c9; }
 .jny-tier__price {
   font-size: 20px; font-weight: 800;
   color: var(--navy-900);
 }
+.jny-tier__was { color: var(--muted); font-weight: 600; font-size: 15px; margin-right: 4px; }
 .jny-tier__body { width: 100%; }
 .jny-tier__title { font-size: 15.5px; font-weight: 800; color: var(--navy-900); }
 .jny-tier__desc { font-size: 12.5px; color: var(--muted); margin-top: 4px; line-height: 1.45; }
@@ -123,11 +125,11 @@ body.jny-open .needhelp { display: none; }
 }
 .jny-tier--green .jny-tier__cta { background: #1a9d6a; }
 .jny-tier--blue  .jny-tier__cta { background: var(--blue-600); }
-.jny-tier--red   .jny-tier__cta { background: var(--red-600); }
+.jny-tier--violet .jny-tier__cta { background: #6a34c9; }
 .jny-tier__cta:hover { filter: brightness(1.06); }
 
 /* Sub-views (email / call / expert) */
-.jny__back { border: none; background: transparent; color: var(--blue-600); font-weight: 700; font-size: 13px; padding: 0 0 12px; cursor: pointer; }
+.jny__back { border: none; background: transparent; color: var(--blue-600); font-weight: 700; font-size: 13.5px; padding: 10px 6px 12px; margin-left: -6px; cursor: pointer; min-height: 40px; }
 .jny-sub__title { font-size: 18px; font-weight: 800; color: var(--navy-900); }
 .jny-sub__sub { font-size: 13.5px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
 .jny-pill {
@@ -162,8 +164,8 @@ body.jny-open .needhelp { display: none; }
   border-radius: 10px; padding: 10px 12px; font-weight: 700;
 }
 .jny-note--warn {
-  font-size: 13px; color: #a6771a; background: #fff8e8; border: 1px solid #f2e0b0;
-  border-radius: 10px; padding: 10px 12px; font-weight: 600;
+  font-size: 13px; color: #6b4e08; background: #fff8e8; border: 1px solid #e6cf88;
+  border-radius: 10px; padding: 10px 12px; font-weight: 700;
   display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;
 }
 .jny-linkbtn { border: none; background: transparent; color: var(--blue-600); font-weight: 800; font-size: 13px; cursor: pointer; text-decoration: underline; }
@@ -189,18 +191,46 @@ body.jny-open .needhelp { display: none; }
 .jny-unlock__name { font-size: 24px; font-weight: 800; color: var(--navy-900); line-height: 1.1; }
 .jny-unlock__rate { font-size: 13px; font-weight: 700; color: var(--blue-600); }
 
-.jny-paths { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
-.jny-path { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
-.jny-path--promo { border-color: #b6e6ca; background: #f2fbf6; }
-.jny-path__head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-.jny-path__label { font-size: 14px; font-weight: 800; color: var(--navy-900); }
-.jny-path__price { font-size: 18px; font-weight: 800; color: var(--navy-900); }
-.jny-path__price s { color: var(--muted); font-weight: 600; font-size: 14px; margin-right: 5px; }
-.jny-paths__or { position: relative; text-align: center; }
-.jny-paths__or::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: var(--line); }
-.jny-paths__or span { position: relative; background: #fff; padding: 0 12px; font-size: 12px; font-weight: 800; color: var(--muted); }
-/* Path CTAs sit right under the head — trim the shared .jny-pay top gap a touch. */
-.jny-path .jny-pay { margin-top: 12px; }
+/* Two pricing paths shown SIDE BY SIDE so they read as two parallel choices,
+   not a $9-then-$1 sequence:  [ Standard $9 ]  OR  [ Share & save $1 ]. */
+.jny-paths__lead { margin-top: 16px; font-size: 12.5px; font-weight: 700; color: var(--navy-700); text-align: center; }
+.jny-paths {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: stretch;
+  column-gap: 14px;
+}
+.jny-path {
+  display: flex; flex-direction: column;
+  border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px;
+}
+.jny-path--promo { position: relative; border-color: #b6e6ca; background: #f2fbf6; }
+.jny-path__badge {
+  position: absolute; top: -10px; right: 12px;
+  background: #12945a; color: #fff;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 999px; box-shadow: 0 2px 6px rgba(18, 148, 90, 0.28);
+}
+.jny-path__head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.jny-path__label { font-size: 13.5px; font-weight: 800; color: var(--navy-900); }
+.jny-path__price { font-size: 18px; font-weight: 800; color: var(--navy-900); white-space: nowrap; }
+.jny-path__price s { color: var(--muted); font-weight: 600; font-size: 13px; margin-right: 4px; }
+
+/* Vertical OR divider sitting in the centre column between the two cards. */
+.jny-paths__or { position: relative; display: flex; align-items: center; justify-content: center; }
+.jny-paths__or::before {
+  content: ''; position: absolute; top: 6px; bottom: 6px; left: 50%;
+  width: 1px; background: var(--line); transform: translateX(-50%);
+}
+.jny-paths__or span {
+  position: relative; background: #fff; padding: 6px 0;
+  font-size: 11px; font-weight: 800; color: var(--muted);
+}
+
+/* Equal head heights → buttons line up across both cards; notes sit below. */
+.jny-path .jny-pay { width: 100%; margin-top: 12px; font-size: 14px; padding-left: 12px; padding-right: 12px; }
+.jny-path .jny-note { margin-top: 10px; margin-bottom: 0; }
 .jny-pay:disabled { opacity: 0.6; cursor: not-allowed; }
 .jny-sched__link { display: inline-block; margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--blue-600); }
 .jny-sched__ph {
@@ -242,9 +272,19 @@ body.jny-open .needhelp { display: none; }
 
 @media (max-width: 560px) {
   .jny__panel { padding: 20px 16px; }
+  /* Keep the embedded scheduler from forcing a tall nested scroll on phones. */
+  .jny-sched__frame, .jny-sched__frame iframe { min-height: 520px; }
   .jny-tier { flex-wrap: wrap; }
   .jny-tier__cta { width: 100%; }
   .jny-expert { flex-wrap: wrap; }
   .jny-expert__pick { width: 100%; }
   .jny-actions .btn { flex-basis: 100%; }
+  /* Stack the two pricing paths; the OR becomes a horizontal divider between. */
+  .jny-paths { grid-template-columns: 1fr; column-gap: 0; row-gap: 10px; }
+  .jny-paths__or { min-height: 22px; }
+  .jny-paths__or::before {
+    top: 50%; bottom: auto; left: 8px; right: 8px;
+    width: auto; height: 1px; transform: translateY(-50%);
+  }
+  .jny-paths__or span { padding: 0 12px; }
 }

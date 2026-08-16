@@ -25,12 +25,15 @@
 }
 .adv__close {
   position: absolute;
-  top: 14px; right: 16px;
+  top: 10px; right: 12px;
+  display: grid; place-items: center;
+  width: 40px; height: 40px; border-radius: 50%;
   border: none; background: transparent;
-  font-size: 24px; line-height: 1;
+  font-size: 26px; line-height: 1;
   color: var(--muted); cursor: pointer;
 }
-.adv__close:hover { color: var(--navy-900); }
+.adv__close:hover { color: var(--navy-900); background: var(--bg-soft); }
+.adv__req { color: var(--red-600); font-style: normal; margin-left: 2px; }
 
 .adv__brand { font-size: 13px; font-weight: 800; color: var(--navy-900); letter-spacing: 0.01em; }
 .adv__brand span { color: var(--blue-600); }

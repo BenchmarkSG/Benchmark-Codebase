@@ -7,34 +7,59 @@
   display: flex;
   flex-direction: row;
   align-items: stretch;
-  background: var(--blue-50);
+  /* Two-tone split down the centre, each half a LIGHT tint of its group's hue:
+     Individuals = navy/slate tint, SMEs = blue tint. Boundary lands on the
+     divider line; the white circle covers the seam. Arrows + CTAs carry the
+     saturated version of the same hues. */
+  background: linear-gradient(to right, #e1e5ef 0 50%, #d9e6fb 50% 100%);
   border: 1px solid var(--line);
   border-radius: 22px;
   box-shadow: var(--shadow-sm);
 }
-/* Halves are transparent + borderless so the one box reads as a single panel. */
+/* Halves are transparent + borderless so the one box reads as a single panel.
+   Flex column so each CTA can be pinned to the bottom (see below). */
 .sw .segments__col {
   flex: 1;
   padding: 26px 30px;
   background: transparent;
   border: none;
   border-radius: 0;
+  display: flex;
+  flex-direction: column;
 }
+/* Push both Compare buttons to the bottom of their (equal-height) column so
+   they line up on one horizontal baseline regardless of list length. */
+.sw .segments__col .btn { margin-top: auto; }
 /* Stretch the centre column to the cards' height and let the circle fill it,
    so the "Compare what matters" badge is as tall as the flanking cards. */
 /* Small positive gutter (was a -16px overlap that crowded the arrows into the
    column text) so the arcs have room to sit outside the circle. */
-.sw .segments__mid { margin: 0 6px; align-self: stretch; z-index: 2; }
+.sw .segments__mid { margin: 0 6px; align-self: stretch; z-index: 2; position: relative; }
+/* Vertical rule down the centre, splitting the panel into two clear halves.
+   Runs the full height behind the circle, which covers its own middle stretch. */
+.sw .segments__mid::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 14px;
+  bottom: 14px;
+  width: 1px;
+  background: #a4b6d4;
+  transform: translateX(-50%);
+  z-index: 0;
+}
 .sw .segments__circle {
   width: auto;
   height: 100%;
   aspect-ratio: 1 / 1;
   max-width: 200px;
   max-height: 200px;
-  /* Blend into the surrounding box — no white disc, just the text + arrows. */
-  background: transparent;
-  border: none;
-  box-shadow: none;
+  /* A crisp white badge with a ring so it reads as a distinct hub sitting on
+     the divider line between the two halves. */
+  background: #fff;
+  border: 1.5px solid #cdd9ec;
+  box-shadow: var(--shadow-sm);
+  z-index: 1;
 }
 .sw .segments__circle span { font-size: clamp(15px, 1.5vw, 20px); max-width: 62%; line-height: 1.3; }
 /* Size the arrows relative to the circle so they always sweep OUTSIDE its edge
@@ -47,6 +72,22 @@
   height: 136%;
   transform: translate(-50%, -50%);
 }
+
+/* Distinct, non-red CTAs — one on-brand colour per audience (scoped here so the
+   rest of the site keeps its unified-red buttons). */
+/* Cross-linked colour groups:
+   BLUE  = Individuals button + right arrow + SMEs background
+   NAVY  = SMEs button + left arrow + Individuals background */
+.sw .segments__col--ind .btn {
+  background: var(--blue-500);
+  box-shadow: 0 8px 20px rgba(47, 123, 216, 0.28);
+}
+.sw .segments__col--ind .btn:hover { background: var(--blue-600); }
+.sw .segments__col--sme .btn {
+  background: var(--navy-800);
+  box-shadow: 0 8px 20px rgba(18, 41, 77, 0.24);
+}
+.sw .segments__col--sme .btn:hover { background: var(--navy-900); }
 
 /* Bottom — Why Choose, heading centered, reasons in a 4-across row */
 .sw__why {
@@ -91,8 +132,14 @@
   .sw .segments__circle { max-width: 168px; max-height: 168px; }
 }
 @media (max-width: 620px) {
-  .sw .segments__stack { flex-direction: column; }
+  /* Stacked vertically — split the two light tints top (navy) / bottom (blue). */
+  .sw .segments__stack {
+    flex-direction: column;
+    background: linear-gradient(to bottom, #e1e5ef 0 50%, #d9e6fb 50% 100%);
+  }
   .sw .segments__mid { margin: -14px auto; align-self: center; }
+  /* Columns are stacked now — a vertical centre line no longer applies. */
+  .sw .segments__mid::before { display: none; }
   /* Stacked vertically — revert to the compact fixed-size badge. */
   .sw .segments__circle {
     width: 132px; height: 132px; aspect-ratio: auto;

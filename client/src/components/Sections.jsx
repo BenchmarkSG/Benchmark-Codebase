@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import './Sections.css';
 import { getReference } from '../api.js';
+import { CTA_PRIMARY } from '../lib/copy.js';
 
 /* -------- Banking products we compare --------
    Sourced from the same /api/reference catalog as the benchmark calculator, so
@@ -22,7 +23,7 @@ export function Products({ onCompare }) {
 
       <div className="products__toggle">
         <button className={seg === 'individual' ? 'is-active' : ''} onClick={() => setSeg('individual')}>For Individuals</button>
-        <button className={seg === 'sme' ? 'is-active' : ''} onClick={() => setSeg('sme')}>For SMEs/Corporate </button>
+        <button className={seg === 'sme' ? 'is-active' : ''} onClick={() => setSeg('sme')}>For SMEs &amp; Corporates</button>
       </div>
 
       <div className="products__grid">
@@ -121,15 +122,16 @@ export function Segments({ onGetStarted, onCompare }) {
           <div className="segments__circle">
             <svg className="segments__arrows" viewBox="0 0 148 148" fill="none" aria-hidden="true">
               <defs>
+                {/* Arrows swapped: left = navy, right = blue */}
                 <marker id="ah-blue" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto">
-                  <path d="M0 0 L7 3.5 L0 7 Z" fill="#1d63c4" />
+                  <path d="M0 0 L7 3.5 L0 7 Z" fill="#2f7bd8" />
                 </marker>
-                <marker id="ah-red" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto">
-                  <path d="M0 0 L7 3.5 L0 7 Z" fill="#d81e29" />
+                <marker id="ah-navy" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto">
+                  <path d="M0 0 L7 3.5 L0 7 Z" fill="#12294d" />
                 </marker>
               </defs>
-              <path d="M24 46 A58 58 0 0 0 30 104" stroke="#1d63c4" strokeWidth="3" strokeLinecap="round" markerEnd="url(#ah-blue)" />
-              <path d="M124 102 A58 58 0 0 0 118 44" stroke="#d81e29" strokeWidth="3" strokeLinecap="round" markerEnd="url(#ah-red)" />
+              <path d="M24 46 A58 58 0 0 0 30 104" stroke="#12294d" strokeWidth="3" strokeLinecap="round" markerEnd="url(#ah-navy)" />
+              <path d="M124 102 A58 58 0 0 0 118 44" stroke="#2f7bd8" strokeWidth="3" strokeLinecap="round" markerEnd="url(#ah-blue)" />
             </svg>
             <span>Compare What Matters Most to You</span>
           </div>
@@ -338,7 +340,7 @@ export function FinalCTA({ onGetStarted, onConnect }) {
           on your behalf, armed with your specific benchmarking data. You only pay if we deliver savings.
         </p>
         <div className="finalcta__actions">
-          <button className="btn finalcta__btn" onClick={onGetStarted}>Get My Free Benchmark Now</button>
+          <button className="btn finalcta__btn" onClick={onGetStarted}>{CTA_PRIMARY} →</button>
           <button className="btn finalcta__btn-alt" onClick={onConnect}>Book a Call →</button>
         </div>
       </div>
@@ -403,20 +405,16 @@ export function Footer() {
       </div>
 
       <p className="container footer__legal">
-        BankBenchmark.sg is an independent rate and fee benchmarking service. We are an
-        ACRA-registered Singapore enterprise (UEN: [XXXXXX]), thus we are legally accountable,
-        traceable, and subject to Singapore's rigorous corporate governance standards. Our
-        registration is your assurance of legitimacy, transparency, and long-term commitment.
-        It is not a bank, a financial adviser, or a Capital Markets Services licence
-        holder, and is not licensed or regulated by the Monetary Authority of Singapore (MAS).
-        Nothing on this site constitutes financial, legal, or tax advice, or an offer to buy or sell
-        any product. Benchmarks are indicative and based on curated market data together with
-        anonymised, crowdsourced figures; your actual rates depend on your own circumstances. Bank
-        names and logos are shown for identification only — we are not affiliated with, or endorsed
-        by, any bank. Figures are illustrative. For regulated financial advice, please consult our
-        MAS-licensed advisors. We aspire to be leading voice of the individuals and SMEs in Banking.
-        Every customer, irrespective of its size, deserves equitable pricing and a Bank that values
-        their business.
+        BankBenchmark.sg is an independent rate and fee benchmarking service. It is not a bank, a
+        financial adviser, or a Capital Markets Services licence holder, and is not licensed or
+        regulated by the Monetary Authority of Singapore (MAS). Nothing on this site constitutes
+        financial, legal, or tax advice, or an offer to buy or sell any product. Benchmarks are
+        indicative and based on curated market data together with anonymised, crowdsourced figures;
+        your actual rates depend on your own circumstances. Bank names and logos are shown for
+        identification only — we are not affiliated with, or endorsed by, any bank. Figures are
+        illustrative. For regulated financial advice, please consult a MAS-licensed adviser. We aspire
+        to be a leading voice for individuals and SMEs in banking — every customer, regardless of size,
+        deserves equitable pricing and a bank that values their business.
       </p>
 
       <div className="container footer__bottom">

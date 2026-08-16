@@ -249,9 +249,12 @@ const DISCLAIMER = {
 
 const DOCS = { terms: TERMS, privacy: PRIVACY, disclaimer: DISCLAIMER };
 
+// Stable anchor id from a heading like "4. Accounts" → "sec-4-accounts".
+const slug = (h) => 'sec-' + h.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
 function Section({ s }) {
   return (
-    <section className="legal__section">
+    <section className="legal__section" id={slug(s.h)} style={{ scrollMarginTop: '80px' }}>
       <h2>{s.h}</h2>
       {s.p?.map((t, i) => <p key={i}>{t}</p>)}
       {s.list && (
@@ -289,6 +292,22 @@ export default function LegalPage({ doc }) {
           <h1 className="legal__title">{data.title}</h1>
           <p className="legal__updated">Last updated: {EFFECTIVE_DATE}</p>
           <p className="legal__intro">{data.intro}</p>
+
+          {data.sections.length > 4 && (
+            <nav className="legal__toc" aria-label="On this page">
+              <span className="legal__toc-label">On this page</span>
+              <ol>
+                {data.sections.map((s) => (
+                  <li key={s.h}>
+                    <a
+                      href={`#${slug(s.h)}`}
+                      onClick={(e) => { e.preventDefault(); document.getElementById(slug(s.h))?.scrollIntoView({ behavior: 'smooth' }); }}
+                    >{s.h}</a>
+                  </li>
+                ))}
+              </ol>
+            </nav>
+          )}
 
           {data.sections.map((s) => <Section key={s.h} s={s} />)}
 

@@ -25,17 +25,11 @@
    wide child (the calculator card) can't push the layout past the viewport. */
 .hero__copy, .hero__media { min-width: 0; }
 
-/* Left text carousel — slides in from the right, moving left */
-.hero__textcarousel { position: relative; min-height: 300px; overflow: hidden; }
-.hero__text {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  transform: translateX(48px);
-  transition: opacity 0.55s ease, transform 0.55s ease;
-  pointer-events: none;
-}
-.hero__text.is-active { opacity: 1; transform: translateX(0); pointer-events: auto; }
+/* Left text carousel — only the active slide is rendered (static flow, so it
+   never clips), with a gentle fade-in on change. */
+.hero__textcarousel { position: relative; min-height: 250px; }
+.hero__text { animation: hero-fade 0.5s ease both; }
+@keyframes hero-fade { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
 
 /* Left copy */
 .hero__title {
@@ -74,21 +68,27 @@
 
 .hero__cta { margin-top: 24px; }
 
-/* Carousel dots (left column) */
-.hero__dots {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-start;
-  margin-top: 22px;
-}
+/* Carousel controls (dots + play/pause) */
+.hero__controls { display: flex; align-items: center; gap: 12px; margin-top: 22px; }
+.hero__dots { display: flex; gap: 6px; }
+/* 24px hit area with a smaller visible dot (meets WCAG 2.5.8). */
 .hero__dot {
-  width: 9px; height: 9px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(255, 255, 255, 0.4);
-  transition: all 0.2s ease;
+  width: 24px; height: 24px; padding: 0;
+  border: none; background: transparent; cursor: pointer;
+  display: grid; place-items: center;
 }
-.hero__dot.is-active { background: #fff; width: 26px; border-radius: 6px; }
+.hero__dot::before {
+  content: ''; width: 9px; height: 9px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4); transition: all 0.2s ease;
+}
+.hero__dot.is-active::before { background: #fff; width: 22px; border-radius: 6px; }
+.hero__playpause {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(255, 255, 255, 0.08);
+  color: #fff; font-size: 11px; line-height: 1; cursor: pointer;
+  display: grid; place-items: center;
+}
+.hero__playpause:hover { background: rgba(255, 255, 255, 0.18); }
 
 /* Right column — calculator card */
 .hero__media { position: relative; }

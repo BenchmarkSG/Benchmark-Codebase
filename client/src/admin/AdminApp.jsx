@@ -6,6 +6,12 @@ import EditableTable from './EditableTable.jsx';
 import { INCOME_LABELS } from '../lib/profileFields.js';
 import { SERVES_LABELS } from '../lib/advisorFields.js';
 import { ADMIN_EMAIL } from '../lib/roles.js';
+import { useConfirm } from '../components/ConfirmProvider.jsx';
+import { formatDate } from '../lib/formatDate.js';
+import { friendlyError } from '../lib/friendlyError.js';
+
+// Cap how many rows we pull per table so large tables can't hang the portal.
+const ROW_LIMIT = 500;
 
 // A manually-maintained rate is "due for review" once it hasn't been edited or
 // verified in this many days — surfaced in the portal so daily upkeep has a worklist.
@@ -84,7 +90,7 @@ const SECTIONS = [
       { key: 'phone', label: 'Phone' },
       { key: 'score', label: 'Score' },
       { key: 'band', label: 'Band' },
-      { key: 'created_at', label: 'Submitted', get: (r) => (r.created_at ? new Date(r.created_at).toLocaleDateString() : '') },
+      { key: 'created_at', label: 'Submitted', get: (r) => (r.created_at ? formatDate(r.created_at) : '') },
     ],
   },
   {
@@ -96,7 +102,7 @@ const SECTIONS = [
       { key: 'email', label: 'Email' },
       { key: 'phone', label: 'Phone (WhatsApp)' },
       { key: 'monthly_income', label: 'Monthly income', get: (r) => INCOME_LABELS[r.monthly_income] || r.monthly_income },
-      { key: 'created_at', label: 'Registered', get: (r) => (r.created_at ? new Date(r.created_at).toLocaleDateString() : '') },
+      { key: 'created_at', label: 'Registered', get: (r) => (r.created_at ? formatDate(r.created_at) : '') },
     ],
   },
   {
@@ -114,7 +120,7 @@ const SECTIONS = [
       { key: 'products', label: 'Products', get: (r) => (r.products || []).join(', ') },
       { key: 'photo_url', label: 'Photo', type: 'link' },
       { key: 'status', label: 'Status', type: 'text', editable: true },
-      { key: 'created_at', label: 'Applied', get: (r) => (r.created_at ? new Date(r.created_at).toLocaleDateString() : '') },
+      { key: 'created_at', label: 'Applied', get: (r) => (r.created_at ? formatDate(r.created_at) : '') },
     ],
   },
   {
@@ -153,7 +159,7 @@ function LoginGate() {
       const { error } = await signInWithEmail(email.trim(), password);
       if (error) throw error;
     } catch (err) {
-      setError(err.message || 'Sign in failed');
+      setError(friendlyError(err, 'Sign in failed. Check your email and password.'));
       setBusy(false);
     }
   };
@@ -166,7 +172,7 @@ function LoginGate() {
         <p className="adm-login__sub">Restricted area. Authorised administrators only.</p>
         <label>Email<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@benchmark.com" autoComplete="username" required /></label>
         <label>Password<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required /></label>
-        {error && <div className="adm-error">{error}</div>}
+        {error && <div className="adm-error" role="alert">{error}</div>}
         <button className="adm-btn adm-btn--save adm-login__submit" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
         <a className="adm-login__back" href="/">← Back to site</a>
       </form>
@@ -178,12 +184,14 @@ function Section({ config, country }) {
   const [rows, setRows] = useState(null);
   const [error, setError] = useState('');
   const [showDueOnly, setShowDueOnly] = useState(false);
+  const [query, setQuery] = useState('');
 
   const load = useCallback(async () => {
     setRows(null); setError('');
     let q = supabase.from(config.table).select(config.select);
     if (config.byCountry && country) q = q.eq(config.byCountry, country);
     if (config.order) q = q.order(config.order, { ascending: !config.desc });
+    q = q.limit(ROW_LIMIT);
     const { data, error } = await q;
     if (error) setError(error.message);
     else setRows(data);
@@ -212,15 +220,32 @@ function Section({ config, country }) {
     setRows((rs) => rs.map((r) => (r[config.pk] === row[config.pk] ? { ...r, updated_at: nowIso } : r)));
   };
 
-  if (error) return <div className="adm-error">{error}</div>;
-  if (!rows) return <div className="adm-loading">Loading…</div>;
-  if (!rows.length) return <div className="adm-loading">{config.emptyText || 'No rows. Seed the data first (npm run seed:rates).'}</div>;
+  if (error) return <div className="adm-error" role="alert">{error}</div>;
+  if (!rows) return <div className="adm-loading"><span className="dash__spinner" aria-hidden="true" /> Loading…</div>;
 
   const dueCount = config.verifiable ? rows.filter(isDue).length : 0;
-  const visibleRows = showDueOnly ? rows.filter(isDue) : rows;
+  const dueFiltered = showDueOnly ? rows.filter(isDue) : rows;
+  const term = query.trim().toLowerCase();
+  const visibleRows = !term ? dueFiltered : dueFiltered.filter((r) =>
+    config.columns.some((c) => String((c.get ? c.get(r) : r[c.key]) ?? '').toLowerCase().includes(term)));
+
+  const emptyLabel = rows.length === 0
+    ? (config.emptyText || 'No rows yet.')
+    : (showDueOnly && dueFiltered.length === 0)
+      ? 'All caught up — nothing is due for review. 🎉'
+      : term
+        ? `No rows match “${query}”.`
+        : 'Nothing to show.';
 
   return (
     <>
+      <div className="adm-controls">
+        <input
+          className="adm-search" type="search" value={query} onChange={(e) => setQuery(e.target.value)}
+          placeholder={`Search ${config.title.toLowerCase()}…`} aria-label={`Search ${config.title}`}
+        />
+        {rows.length >= ROW_LIMIT && <span className="adm-controls__note">Showing first {ROW_LIMIT} — refine with search.</span>}
+      </div>
       {config.verifiable && (
         <div className="adm-freshbar">
           <span className={`adm-freshbar__count ${dueCount ? 'is-due' : ''}`}>
@@ -233,8 +258,8 @@ function Section({ config, country }) {
         </div>
       )}
       <p className="adm-section__count">
-        {visibleRows.length} rows{config.columns.some((c) => c.editable)
-          ? ' · click the pencil to edit a rate, or ✓ Verify to confirm it’s still current.'
+        {visibleRows.length} of {rows.length} rows{config.columns.some((c) => c.editable)
+          ? ' · click a value or the pencil to edit, or ✓ Verify to confirm it’s still current.'
           : ' · read-only.'}
       </p>
       <EditableTable
@@ -243,6 +268,7 @@ function Section({ config, country }) {
         rowKey={(r) => r[config.pk]}
         onSave={onSave}
         onVerify={config.verifiable ? onVerify : undefined}
+        emptyLabel={emptyLabel}
       />
     </>
   );
@@ -252,6 +278,7 @@ function Section({ config, country }) {
 // Approve, writes into product_rates (which the updated_at trigger stamps fresh).
 function RateProposals({ country }) {
   const { user } = useAuth();
+  const confirm = useConfirm();
   const [proposals, setProposals] = useState(null);
   const [current, setCurrent] = useState({}); // natural-key -> live product_rates row
   const [error, setError] = useState('');
@@ -281,6 +308,12 @@ function RateProposals({ country }) {
     : e);
 
   const approve = async (p) => {
+    const ok = await confirm({
+      title: 'Publish this rate change?',
+      body: `This writes ${p.bank} ${p.product} = ${p.proposed_rate} straight into the live product rates the public calculator uses.`,
+      confirmLabel: 'Publish', cancelLabel: 'Cancel', danger: false,
+    });
+    if (!ok) return;
     setBusyId(p.id); setError('');
     try {
       const cur = current[keyOf(p)];
@@ -303,11 +336,17 @@ function RateProposals({ country }) {
       if (e2) throw rlsError(e2);
       setProposals((ps) => ps.filter((x) => x.id !== p.id));
     } catch (e) {
-      setError(e.message || 'Approve failed');
+      setError(friendlyError(e, 'Could not publish that change — please try again.'));
     } finally { setBusyId(null); }
   };
 
   const dismiss = async (p) => {
+    const ok = await confirm({
+      title: 'Dismiss this proposal?',
+      body: `Discard the proposed ${p.bank} ${p.product} update. This can’t be undone.`,
+      confirmLabel: 'Dismiss', cancelLabel: 'Keep',
+    });
+    if (!ok) return;
     setBusyId(p.id); setError('');
     try {
       const { error } = await supabase.from('rate_proposals')
@@ -316,17 +355,17 @@ function RateProposals({ country }) {
       if (error) throw rlsError(error);
       setProposals((ps) => ps.filter((x) => x.id !== p.id));
     } catch (e) {
-      setError(e.message || 'Dismiss failed');
+      setError(friendlyError(e, 'Could not dismiss that proposal — please try again.'));
     } finally { setBusyId(null); }
   };
 
-  if (error && !proposals) return <div className="adm-error">{error}</div>;
-  if (!proposals) return <div className="adm-loading">Loading…</div>;
-  if (!proposals.length) return <div className="adm-loading">No pending updates. Staged proposals (npm run stage:rates) awaiting review appear here.</div>;
+  if (error && !proposals) return <div className="adm-error" role="alert">{error}</div>;
+  if (!proposals) return <div className="adm-loading"><span className="dash__spinner" aria-hidden="true" /> Loading…</div>;
+  if (!proposals.length) return <div className="adm-empty-note">No pending updates right now. Newly staged rate proposals awaiting review will appear here.</div>;
 
   return (
     <>
-      {error && <div className="adm-error">{error}</div>}
+      {error && <div className="adm-error" role="alert">{error}</div>}
       <p className="adm-section__count">
         {proposals.length} proposed change{proposals.length === 1 ? '' : 's'} · Approve writes it into product rates (and marks it verified), or Dismiss.
       </p>
@@ -334,8 +373,8 @@ function RateProposals({ country }) {
         <table className="adm-table">
           <thead>
             <tr>
-              <th>Source</th><th>Product</th><th>Bank</th><th>Ccy</th>
-              <th>Current → Proposed</th><th>As of</th><th className="adm-actions-col">Actions</th>
+              <th scope="col">Source</th><th scope="col">Product</th><th scope="col">Bank</th><th scope="col">Ccy</th>
+              <th scope="col">Current → Proposed</th><th scope="col">As of</th><th className="adm-actions-col" scope="col">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -356,7 +395,7 @@ function RateProposals({ country }) {
                     <span className={`adm-prop__new ${changed ? 'is-changed' : ''}`}>{p.proposed_rate}</span>
                     {isNew && <span className="adm-prop__tag">new</span>}
                   </td>
-                  <td data-label="As of">{p.as_of || '—'}</td>
+                  <td data-label="As of">{p.as_of ? formatDate(p.as_of) : '—'}</td>
                   <td className="adm-actions-col" data-label="Actions">
                     <div className="adm-rowactions">
                       <button className="adm-btn adm-btn--save" disabled={busyId === p.id} onClick={() => approve(p)}>

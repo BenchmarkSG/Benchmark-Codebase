@@ -3,10 +3,12 @@ import './JourneyModal.css';
 import { formatMoney, getReference, createCheckout, getCheckoutSession } from '../api.js';
 import { safeHttpUrl, isStripeCheckoutUrl } from '../lib/safeUrl.js';
 import { useAuth } from '../context/AuthContext.jsx';
-import { listAdvisorDirectory, createLead } from '../lib/dashboardApi.js';
+import { listAdvisorDirectory, createLead, updateBenchmark } from '../lib/dashboardApi.js';
 import Certificate from './Certificate.jsx';
 import { buildCertificateImage } from '../lib/certificateImage.js';
 import { SITE_URL } from '../lib/site.js';
+import { useModalA11y } from '../hooks/useModalA11y.js';
+import { useConfirm } from './ConfirmProvider.jsx';
 
 /* Screen 3 — the "reveal + act on it" screen. Three vertical tiers: negotiate
    yourself ($1), get a coaching call ($99), or hire an expert ($199). The paid
@@ -31,7 +33,7 @@ const TIERS = [
     cta: 'Book a Call',
   },
   {
-    id: 'expert', price: '$199', accent: 'red',
+    id: 'expert', price: '$199', accent: 'violet',
     title: 'Reveal the Best Bank & Price and I need an expert (ex-banker) to negotiate on my behalf',
     desc: 'A specialist ex-banker prepares and leads the negotiation with your bank for you. Fee fully refundable if no savings.',
     cta: 'Book an Expert',
@@ -42,6 +44,9 @@ const TIERS = [
 // share. Both map back to the 'email' (reveal) view on return from Stripe.
 const REVEAL_TIERS = ['reveal_std', 'reveal_promo'];
 const VIEW_FOR_TIER = { reveal_std: 'email', reveal_promo: 'email', call: 'call', expert: 'expert' };
+// The dashboard gates a saved benchmark's bank reveal on its `stage`; a completed
+// purchase moves it to the matching stage so the unlock persists.
+const STAGE_FOR_TIER = { reveal_std: 'email', reveal_promo: 'email', call: 'call', expert: 'expert' };
 const CERT_SHARE_TEXT = 'Just ran an audit on my banking & treasury services using BankBenchmark.sg. Turns out companies are leaving serious money on the table with hidden fees. Optimized my stack and unlocked a cleaner structure. Transparency is everything in finance.';
 
 // Demo advisor directory for "Find an expert". Real signed-up advisors get wired
@@ -115,9 +120,8 @@ function Scheduler({ url, prefill, note }) {
       ) : (
         <div className="jny-sched__ph">
           <span className="jny-sched__ph-icon">📅</span>
-          <strong>Calendly scheduler appears here</strong>
-          <p>Pick a slot and both you and your advisor get a calendar invite automatically.</p>
-          <small>Set <code>VITE_CALENDLY_URL</code> (or the advisor's link) to go live.</small>
+          <strong>We’ll confirm your time by WhatsApp</strong>
+          <p>Live self-scheduling is being finalised. In the meantime our team will reach out to lock in a slot that works for you — and you’ll get a calendar invite.</p>
         </div>
       )}
       {note && <p className="jny-note">{note}</p>}
@@ -133,6 +137,8 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
   const [emailBody, setEmailBody] = useState('');
   const [copied, setCopied] = useState(false);
   const [shared, setShared] = useState(false);
+  const [sharing, setSharing] = useState(false); // native share sheet is open / in progress
+  const [promoMsg, setPromoMsg] = useState(''); // "finish the share to unlock $1" notice
   const [advisors, setAdvisors] = useState([]);
   const [sentTo, setSentTo] = useState(null); // advisor id once a lead is created
   const [paymentsEnabled, setPaymentsEnabled] = useState(false);
@@ -140,6 +146,9 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
   const [busy, setBusy] = useState(false);
   const [payError, setPayError] = useState('');
   const bookedRef = useRef(null); // Stripe session already logged to the dashboard
+  const unlockRef = useRef(null); // benchmark stage already marked for this tier
+  const cardRef = useRef(null);
+  const confirm = useConfirm();
 
   const segment = context?.segment && SEG_LABEL[context.segment] ? context.segment : 'individual';
   const savings = context?.annualSaving ?? null;
@@ -182,6 +191,30 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
     }).catch(() => { bookedRef.current = null; }); // allow a retry if the insert failed
   };
 
+  // On a confirmed purchase, mark the source benchmark's stage so the dashboard
+  // reveals its bank going forward, and record a "reveal" transaction (calls and
+  // experts already log their own leads elsewhere).
+  const applyUnlock = (tier) => {
+    const stage = STAGE_FOR_TIER[tier];
+    if (!stage) return;
+    const bid = context?.benchmarkId;
+    const sig = `${bid || ''}:${tier}`;
+    if (unlockRef.current === sig) return;
+    unlockRef.current = sig;
+    if (bid) updateBenchmark(bid, { stage }).catch(() => {});
+    if (REVEAL_TIERS.includes(tier) && user) {
+      createLead({
+        source: 'reveal',
+        segment: context?.segment || 'individual',
+        product_label: context?.product || null,
+        annual_saving: context?.annualSaving ?? null,
+        full_name: user.user_metadata?.full_name || null,
+        email: user.email || null,
+        booked: true,
+      }).catch(() => {});
+    }
+  };
+
   // Build the negotiation email from the benchmark context.
   const emailSubject = `Request to review my ${productLabel} pricing`;
   const defaultBody = useMemo(() => {
@@ -220,18 +253,29 @@ Kind regards,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [context]);
 
+  // Hide the floating Need Help widget while the modal is open. (Scroll-lock,
+  // Escape and focus-trap are handled by useModalA11y below.)
   useEffect(() => {
     if (!open) return undefined;
-    const onKey = (e) => e.key === 'Escape' && onClose();
-    document.addEventListener('keydown', onKey);
-    document.body.style.overflow = 'hidden';
-    document.body.classList.add('jny-open'); // hides the floating Need Help widget
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = '';
-      document.body.classList.remove('jny-open');
-    };
-  }, [open, onClose]);
+    document.body.classList.add('jny-open');
+    return () => document.body.classList.remove('jny-open');
+  }, [open]);
+
+  // Don't lose an edited negotiation email on a stray backdrop click / Escape.
+  const requestClose = async () => {
+    const editedEmail = view === 'email' && !!emailBody && emailBody !== defaultBody;
+    if (editedEmail && !REVEAL_TIERS.includes(paidTier)) {
+      const ok = await confirm({
+        title: 'Discard your draft?',
+        body: 'Your edits to the negotiation email haven’t been copied yet — close and lose them?',
+        confirmLabel: 'Discard', cancelLabel: 'Keep editing',
+      });
+      if (!ok) return;
+    }
+    onClose();
+  };
+
+  useModalA11y(open, cardRef, requestClose);
 
   // Is Stripe configured on the server? (Controls whether paid tiers charge.)
   useEffect(() => {
@@ -243,11 +287,14 @@ Kind regards,
   useEffect(() => {
     if (!open) return;
     setEmailTo(''); setEmailBody(defaultBody); setCopied(false); setShared(false);
+    setSharing(false); setPromoMsg('');
     if (resume?.afterAuth) {
       // Returned from signing in/up — restore the exact screen they were on.
+      // `unlockedTier` lets the dashboard reopen an already-purchased tier in
+      // read/manage mode (bank + scheduler shown, no re-payment prompt).
       setView(resume.view || 'options');
       setExpert(resume.expert || null);
-      setSentTo(null); setPaidTier(null); setPayError('');
+      setSentTo(null); setPaidTier(resume.unlockedTier || null); setPayError('');
       return;
     }
     if (resume) {
@@ -263,8 +310,9 @@ Kind regards,
             setPayError('We couldn’t confirm your payment. Please try again.');
             return;
           }
-          // Payment confirmed — log the paid call to the user's dashboard.
+          // Payment confirmed — log the paid call + unlock the source benchmark.
           if (resume.tier === 'call') recordCallBooking(resume.sessionId, s);
+          applyUnlock(resume.tier);
         });
       }
     } else {
@@ -339,6 +387,7 @@ Kind regards,
       // Stripe not configured / failed → fall back to demo scheduling.
       sessionStorage.removeItem('bb_journey');
       setPaidTier(tier); setBusy(false);
+      applyUnlock(tier); // demo mode has no redirect — mark the benchmark now
     }
   };
 
@@ -374,12 +423,22 @@ Kind regards,
     return true;
   };
 
-  // $1 promo: share the certificate image, then check out at $1. Optimistic —
-  // the $1 card charge is itself the anti-abuse filter.
+  // $1 promo: the discount is EARNED by actually sharing the certificate. Only
+  // continue to the $1 checkout once the share genuinely completes. If the user
+  // opens the share sheet and dismisses it without posting (shareCertificate →
+  // false), we stop here so the promo price can't be claimed without sharing.
   const shareAndPay = async () => {
-    if (!user) { pay('reveal_promo'); return; } // pay() routes to sign-in first
-    await shareCertificate();
-    pay('reveal_promo');
+    if (!user) { pay('reveal_promo'); return; } // sign-in first; resume returns them here to share
+    setPromoMsg('');
+    setSharing(true);
+    let didShare = false;
+    try { didShare = await shareCertificate(); } catch { didShare = false; }
+    setSharing(false);
+    if (!didShare) {
+      setPromoMsg('Looks like the share was cancelled. Share your certificate to unlock the $1 price — or use “Pay $9 & reveal” instead.');
+      return;
+    }
+    pay('reveal_promo'); // share done — pay() takes over (busy + redirect to Stripe)
   };
 
   if (!open) return null;
@@ -406,9 +465,9 @@ Kind regards,
 
   return (
     <div className="jny" role="dialog" aria-modal="true" aria-label="Your next steps">
-      <div className="jny__backdrop" onClick={onClose} />
-      <div className="jny__panel">
-        <button className="jny__close" onClick={onClose} aria-label="Close">×</button>
+      <div className="jny__backdrop" onClick={requestClose} />
+      <div className="jny__panel" ref={cardRef}>
+        <button className="jny__close" onClick={requestClose} aria-label="Close">×</button>
 
         {/* Reveal panel — the winning bank + saving, with a share button */}
         <div className="jny-reveal">
@@ -442,7 +501,9 @@ Kind regards,
               {TIERS.map((t, i) => (
                 <div className={`jny-tier jny-tier--${t.accent}`} key={t.id}>
                   <span className="jny-tier__badge">Option {i + 1}</span>
-                  <div className="jny-tier__price">{t.price}</div>
+                  <div className="jny-tier__price">
+                    {t.id === 'email' ? <><s className="jny-tier__was">$9</s> $1</> : t.price}
+                  </div>
                   <div className="jny-tier__body">
                     <div className="jny-tier__title">{t.title}</div>
                     <div className="jny-tier__desc">{t.desc}</div>
@@ -488,7 +549,7 @@ Kind regards,
                   <button className="btn btn--primary" onClick={copyEmail}>{copied ? 'Copied ✓' : 'Copy email'}</button>
                   <a className="btn btn--red" href={mailtoHref}>Open in mail app →</a>
                 </div>
-                <p className="jny-note">Demo — nothing is sent from our side yet.</p>
+                <p className="jny-note">You send this yourself from your own inbox — we never email your bank on your behalf.</p>
               </>
             ) : (
               <>
@@ -498,28 +559,33 @@ Kind regards,
                 )}
                 <Certificate segment={segment} product={context?.product} savingPct={savingPct} />
 
+                <p className="jny-paths__lead">Choose how you’d like to unlock — pick one:</p>
                 <div className="jny-paths">
                   <div className="jny-path">
                     <div className="jny-path__head">
                       <span className="jny-path__label">Standard access</span>
                       <span className="jny-path__price">$9</span>
                     </div>
-                    <button className="btn btn--ghost jny-pay" disabled={busy} onClick={() => pay('reveal_std')}>
+                    <button className="btn btn--ghost jny-pay" disabled={busy || sharing} onClick={() => pay('reveal_std')}>
                       {!user ? 'Sign in to continue →' : busy ? 'Redirecting…' : 'Pay $9 & reveal →'}
                     </button>
+                    <p className="jny-note">Pay now — no sharing needed.</p>
                   </div>
 
                   <div className="jny-paths__or"><span>OR</span></div>
 
                   <div className="jny-path jny-path--promo">
+                    <span className="jny-path__badge">Save $8</span>
                     <div className="jny-path__head">
                       <span className="jny-path__label">⚡ Share &amp; save</span>
                       <span className="jny-path__price"><s>$9</s> $1</span>
                     </div>
-                    <button className="btn btn--primary jny-pay" disabled={busy} onClick={shareAndPay}>
-                      {!user ? 'Sign in to continue →' : busy ? 'Redirecting…' : 'Share & unlock for $1 →'}
+                    <button className="btn btn--primary jny-pay" disabled={busy || sharing} onClick={shareAndPay}>
+                      {!user ? 'Sign in to continue →' : sharing ? 'Waiting to share…' : busy ? 'Redirecting…' : 'Share & unlock for $1 →'}
                     </button>
-                    <p className="jny-note">Share your certificate on LinkedIn or X, then unlock for $1.</p>
+                    {promoMsg
+                      ? <p className="jny-note jny-note--warn">{promoMsg}</p>
+                      : <p className="jny-note">Post your certificate on LinkedIn or X.</p>}
                   </div>
                 </div>
                 <p className="jny-note">🔒 Secure payment via Stripe. The bank name unlocks right after.</p>
@@ -590,7 +656,7 @@ Kind regards,
                   ))}
                 </div>
                 {!advisors.length && (
-                  <p className="jny-note">Sample advisors for the demo — real founding advisors get listed here once approved.</p>
+                  <p className="jny-note">Example specialists — you’ll be matched with a verified advisor for your situation.</p>
                 )}
               </>
             ) : (

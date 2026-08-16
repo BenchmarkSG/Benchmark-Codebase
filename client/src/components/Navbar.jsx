@@ -3,6 +3,7 @@ import './Navbar.css';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useAdvisorRow } from '../hooks/useAdvisorRow.js';
 import { isAdminEmail } from '../lib/roles.js';
+import { CTA_PRIMARY } from '../lib/copy.js';
 
 const LINKS = [
   ['#how', 'How it works'],
@@ -100,7 +101,7 @@ export default function Navbar({ onGetStarted, onSignIn }) {
           )}
           {/* CTA is hidden on phones (see Navbar.css). */}
           <button className="btn btn--primary nav__cta" onClick={onGetStarted}>
-            Get My Free Benchmark
+            {CTA_PRIMARY}
           </button>
           <button
             className={`nav__burger ${menuOpen ? 'is-open' : ''}`}
@@ -118,7 +119,7 @@ export default function Navbar({ onGetStarted, onSignIn }) {
             <a key={href} href={href} onClick={close}>{label}</a>
           ))}
           <button className="btn btn--primary nav__mobile-cta" onClick={() => { close(); onGetStarted(); }}>
-            Get My Free Benchmark
+            {CTA_PRIMARY}
           </button>
         </div>
       )}

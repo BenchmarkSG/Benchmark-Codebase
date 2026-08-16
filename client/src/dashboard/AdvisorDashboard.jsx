@@ -7,6 +7,16 @@ import { formatMoney } from '../api.js';
 import { ADVISOR_SEGMENTS, ADVISOR_PRODUCTS, ADVISOR_SPECIALIZATIONS } from '../lib/advisorFields.js';
 import { listAssignedLeads, updateLead, updateMyAdvisor } from '../lib/dashboardApi.js';
 import { safeHttpUrl } from '../lib/safeUrl.js';
+import { formatDate } from '../lib/formatDate.js';
+import { friendlyError } from '../lib/friendlyError.js';
+
+// Advisor workspace tabs — kept in the URL hash (#advisor/<tab>) so refresh and
+// the browser Back button work and tabs are deep-linkable.
+const TAB_KEYS = ['overview', 'clients', 'bookings', 'earnings', 'resources', 'profile'];
+const readTabFromHash = () => {
+  const seg = (window.location.hash.replace(/^#\/?/, '').split('/')[1] || 'overview');
+  return TAB_KEYS.includes(seg) ? seg : 'overview';
+};
 
 const LEAD_STAGES = [
   { key: 'new', label: 'New' },
@@ -93,9 +103,20 @@ function StatusBanner({ advisor }) {
 }
 
 function AdvisorWorkspace({ advisor, onProfileSaved }) {
-  const [tab, setTab] = useState('overview');
+  const [tab, setTabState] = useState(readTabFromHash);
   const [leads, setLeads] = useState(null);
   const [error, setError] = useState('');
+  const [flash, setFlash] = useState('');
+
+  // Keep the active tab in the URL hash so refresh / Back behave correctly.
+  useEffect(() => {
+    const on = () => setTabState(readTabFromHash());
+    window.addEventListener('hashchange', on);
+    return () => window.removeEventListener('hashchange', on);
+  }, []);
+  const setTab = (t) => { window.location.hash = t === 'overview' ? 'advisor' : `advisor/${t}`; };
+
+  const failFlash = () => { setFlash('Couldn’t save that change — please try again.'); setTimeout(() => setFlash(''), 3500); };
 
   const load = () => {
     listAssignedLeads(advisor.id).then(setLeads).catch((e) => { setError(e.message || 'Could not load leads.'); setLeads([]); });
@@ -122,8 +143,10 @@ function AdvisorWorkspace({ advisor, onProfileSaved }) {
 
   const patchLead = async (lead, patch) => {
     setLeads((ls) => ls.map((l) => (l.id === lead.id ? { ...l, ...patch } : l)));
-    try { await updateLead(lead.id, patch); } catch { load(); }
+    try { await updateLead(lead.id, patch); } catch { failFlash(); load(); }
   };
+  // Local-only update (for text inputs) — persisted separately on blur.
+  const patchLocal = (lead, patch) => setLeads((ls) => ls.map((l) => (l.id === lead.id ? { ...l, ...patch } : l)));
 
   const tabs = [
     { key: 'overview', label: 'Overview' },
@@ -148,14 +171,15 @@ function AdvisorWorkspace({ advisor, onProfileSaved }) {
       </div>
 
       {error && <p className="dash__err">{error}</p>}
+      {flash && <div className="dash__flash" role="status">{flash}</div>}
 
       {tab === 'overview' && <Overview advisor={advisor} leads={leads} m={m} onPatch={patchLead} onGoto={setTab} />}
       {tab === 'clients' && (
-        <LeadList leads={leads} filter={(l) => l.stage !== 'closed_lost'} onPatch={patchLead}
+        <LeadList leads={leads} filter={(l) => l.stage !== 'closed_lost'} onPatch={patchLead} onLocalPatch={patchLocal}
           emptyText="No client leads yet. Approved advisors appear in the expert picker; matched requests show up here." />
       )}
       {tab === 'bookings' && (
-        <LeadList leads={leads} filter={(l) => l.booked} onPatch={patchLead} showCalendly advisor={advisor}
+        <LeadList leads={leads} filter={(l) => l.booked} onPatch={patchLead} onLocalPatch={patchLocal} showCalendly advisor={advisor}
           emptyText="No bookings yet. When a client books a call, it appears here." />
       )}
       {tab === 'earnings' && <Earnings m={m} />}
@@ -219,7 +243,9 @@ function Overview({ advisor, leads, m, onPatch, onGoto }) {
               <div className="adv-neg__tip"><span className="adv-neg__tip-label">💡 Suggested opening</span>{suggestionFor(active)}</div>
               <div className="adv-neg__stages">
                 {LEAD_STAGES.map((s) => (
-                  <button key={s.key} className={`alead__stage ${active.stage === s.key ? 'is-current' : ''}`} onClick={() => onPatch(active, { stage: s.key })}>{s.label}</button>
+                  <button key={s.key} className={`alead__stage ${active.stage === s.key ? 'is-current' : ''}`}
+                    aria-current={active.stage === s.key ? 'step' : undefined} aria-label={`Set stage: ${s.label}`}
+                    onClick={() => onPatch(active, { stage: s.key })}>{s.label}</button>
                 ))}
               </div>
               <button className="adv-panel__link" onClick={() => onGoto('resources')}>Open negotiation scripts →</button>
@@ -366,8 +392,8 @@ function Resources() {
 }
 
 /* ------------------------------------------------------------------ Leads --- */
-function LeadList({ leads, filter, onPatch, emptyText, showCalendly, advisor }) {
-  if (leads == null) return <p className="dash__note">Loading…</p>;
+function LeadList({ leads, filter, onPatch, onLocalPatch, emptyText, showCalendly, advisor }) {
+  if (leads == null) return <div className="dash__loading" role="status"><span className="dash__spinner" aria-hidden="true" /> Loading…</div>;
   const rows = leads.filter(filter);
   if (!rows.length) {
     return <div className="dash__empty"><div className="dash__empty-icon">📥</div><h3>Nothing here yet</h3><p>{emptyText}</p></div>;
@@ -380,7 +406,7 @@ function LeadList({ leads, filter, onPatch, emptyText, showCalendly, advisor }) 
             <div>
               <div className="alead__name">{l.full_name || 'Client'}{l.company ? ` · ${l.company}` : ''}</div>
               <div className="alead__meta">
-                {l.product_label || l.product || 'Enquiry'} · {new Date(l.created_at).toLocaleDateString()}
+                {l.product_label || l.product || 'Enquiry'} · {formatDate(l.created_at)}
                 {l.annual_saving ? ` · opportunity ${formatMoney(Math.round(l.annual_saving), 'SGD')}/yr` : ''}
               </div>
             </div>
@@ -399,15 +425,23 @@ function LeadList({ leads, filter, onPatch, emptyText, showCalendly, advisor }) 
 
           <div className="alead__stages">
             {LEAD_STAGES.map((s) => (
-              <button key={s.key} className={`alead__stage ${l.stage === s.key ? 'is-current' : ''}`} onClick={() => onPatch(l, { stage: s.key })}>
+              <button key={s.key} className={`alead__stage ${l.stage === s.key ? 'is-current' : ''}`}
+                aria-current={l.stage === s.key ? 'step' : undefined} aria-label={`Set stage: ${s.label}`}
+                onClick={() => onPatch(l, { stage: s.key })}>
                 {s.label}
               </button>
             ))}
           </div>
           {l.stage === 'closed_won' && (
             <div className="alead__won">
-              <label>Savings delivered <input type="number" min="0" step="100" value={l.saved_amount ?? ''} onChange={(e) => onPatch(l, { saved_amount: e.target.value === '' ? null : Number(e.target.value) })} /></label>
-              <label>Success fee <input type="number" min="0" step="50" value={l.fee_amount ?? ''} onChange={(e) => onPatch(l, { fee_amount: e.target.value === '' ? null : Number(e.target.value) })} /></label>
+              <label>Savings delivered
+                <input type="number" min="0" step="100" value={l.saved_amount ?? ''}
+                  onChange={(e) => onLocalPatch(l, { saved_amount: e.target.value })}
+                  onBlur={(e) => onPatch(l, { saved_amount: e.target.value === '' ? null : Number(e.target.value) })} /></label>
+              <label>Success fee
+                <input type="number" min="0" step="50" value={l.fee_amount ?? ''}
+                  onChange={(e) => onLocalPatch(l, { fee_amount: e.target.value })}
+                  onBlur={(e) => onPatch(l, { fee_amount: e.target.value === '' ? null : Number(e.target.value) })} /></label>
             </div>
           )}
         </article>
@@ -450,7 +484,7 @@ function ProfileEditor({ advisor, onSaved }) {
       setSaved(true);
       onSaved?.();
     } catch (err) {
-      setError(err.message || 'Could not save. Please try again.');
+      setError(friendlyError(err, 'Could not save. Please try again.'));
     } finally { setBusy(false); }
   };
 

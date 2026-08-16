@@ -233,7 +233,7 @@
   color: var(--navy-900);
   background: #fff;
 }
-.calcbox__field input::placeholder { color: #9aa7bd; font-weight: 500; }
+.calcbox__field input::placeholder { color: #6f7d94; font-weight: 500; }
 .calcbox__field select:focus,
 .calcbox__field input:focus { outline: none; border-color: var(--blue-500); }
 .calcbox__field input[type='range'] { accent-color: var(--blue-600); }
@@ -274,24 +274,62 @@
 /* --- Redesigned result: red rules, "overpaying" headline, rate rows, tagline --- */
 .res__top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .res__product { font-weight: 800; color: var(--navy-900); font-size: 15px; }
-.res__rule { border-radius: 999px; background: var(--red-600); }
-.res__rule--thick { height: 4px; margin: 10px 0 16px; }
-.res__rule--thin { height: 2px; margin: 14px 0; opacity: 0.85; }
-
-.res__overpay { text-align: center; }
-.res__overpay-lead { display: block; font-size: 15px; font-weight: 700; color: var(--navy-700); }
-.res__overpay-lead strong { color: var(--red-600); font-weight: 800; }
-.res__overpay-amt { display: block; margin-top: 6px; font-size: 30px; font-weight: 800; color: var(--navy-900); letter-spacing: -0.02em; }
-
-.res__rows { display: flex; flex-direction: column; gap: 10px; }
-.res__row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.res__row-label { font-size: 14px; font-weight: 700; color: var(--navy-800); }
-.res__row-val {
-  min-width: 68px; text-align: center;
-  border: 1px solid var(--line); border-radius: 9px; padding: 7px 12px;
-  background: #fff; font-size: 16px; font-weight: 800; color: var(--navy-900);
+.res__overpay {
+  text-align: center; margin-top: 16px;
+  background: linear-gradient(180deg, #eef5fd, #fff);
+  border: 1px solid #c3d8f5; border-radius: 16px;
+  padding: 18px 16px 22px;
 }
-.res__row-val--best { color: var(--blue-600); border-color: #c3d8f5; background: var(--blue-50); }
+.res__overpay-lead { display: block; font-size: 15px; font-weight: 700; color: var(--navy-700); }
+/* The emphasised word blends with its neighbours in colour; a red hand-drawn
+   brush swoosh underneath does the emphasising instead of a red font. */
+.res__overpay-lead strong { position: relative; color: inherit; font-weight: 800; }
+.res__overpay-lead strong::after {
+  content: '';
+  position: absolute; left: -5px; right: -5px; bottom: -8px; height: 12px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 18' fill='none'%3E%3Cpath d='M5 11 C40 5 95 15 135 7' stroke='%23d81e29' stroke-width='7' stroke-linecap='round'/%3E%3Cpath d='M9 14 C46 10 92 16 129 11' stroke='%23d81e29' stroke-width='3.2' stroke-linecap='round' opacity='0.6'/%3E%3C/svg%3E") no-repeat center / 100% 100%;
+  pointer-events: none;
+}
+/* Bigger, thicker brush swoosh under the headline amount. inline-block so the
+   stroke hugs the number's width, not the full centred row. */
+.res__overpay-amt {
+  display: inline-block; position: relative;
+  margin-top: 20px; font-size: 30px; font-weight: 800; color: var(--navy-900); letter-spacing: -0.02em;
+}
+.res__overpay-amt::after {
+  content: '';
+  position: absolute; left: -6px; right: -6px; bottom: -10px; height: 16px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 22' fill='none'%3E%3Cpath d='M6 13 C48 6 112 18 154 9' stroke='%23d81e29' stroke-width='9' stroke-linecap='round'/%3E%3Cpath d='M11 17 C54 12 104 19 149 14' stroke='%23d81e29' stroke-width='4' stroke-linecap='round' opacity='0.55'/%3E%3C/svg%3E") no-repeat center / 100% 100%;
+  pointer-events: none;
+}
+
+/* Visual "you vs best" comparison chart — proportional bars tell the story. */
+/* One shared 3-column grid (label | track | value) so BOTH bars start and end
+   on the same lines regardless of label/value width. Rows are display:contents
+   so their children land directly in these shared columns. */
+.res__cmp { margin-top: 22px; display: grid; grid-template-columns: minmax(96px, max-content) 1fr auto; align-items: center; column-gap: 12px; row-gap: 12px; }
+.res__cmp-row { display: contents; }
+.res__cmp-label { font-size: 13px; font-weight: 700; color: var(--navy-800); text-align: left; }
+.res__cmp-track { height: 10px; border-radius: 999px; background: #eef1f6; overflow: hidden; }
+.res__cmp-fill {
+  display: block; height: 100%; border-radius: 999px;
+  transform-origin: left center; animation: res-cmp-grow 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.res__cmp-fill--you { background: linear-gradient(90deg, #ef7c86, var(--red-600)); }
+.res__cmp-fill--best { background: linear-gradient(90deg, #6fd3a3, #12945a); }
+.res__cmp-val {
+  min-width: 62px; text-align: center;
+  border-radius: 9px; padding: 6px 10px; font-size: 15px; font-weight: 800;
+  border: 1px solid var(--line); background: #fff; color: var(--navy-900);
+}
+.res__cmp-val--you { color: var(--red-600); border-color: #f3c3c7; background: #fdf2f3; }
+.res__cmp-val--best { color: #12945a; border-color: #b6e6ca; background: #f2fbf6; }
+.res__cmp-save {
+  grid-column: 1 / -1; justify-self: center; margin-top: 2px;
+  font-size: 12.5px; font-weight: 800; color: #0f7a44;
+  background: #eafaf1; border: 1px solid #b6e6ca; border-radius: 999px; padding: 5px 12px;
+}
+@keyframes res-cmp-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
 .res__tagline { margin-top: 14px; text-align: center; font-size: 13.5px; font-weight: 700; color: var(--navy-700); }
 

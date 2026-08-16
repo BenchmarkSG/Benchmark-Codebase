@@ -3,7 +3,9 @@
   position: fixed;
   right: 20px;
   bottom: 20px;
-  z-index: 900;
+  /* Below every modal/overlay (journey 100, auth/advisor 1000, confirm 2000);
+     above page content. */
+  z-index: 60;
   display: inline-flex;
   align-items: center;
   gap: 10px;
