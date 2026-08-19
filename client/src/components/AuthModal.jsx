@@ -106,7 +106,7 @@ export default function AuthModal({ open, onClose }) {
       <div className="auth__card" ref={cardRef}>
         <button className="auth__close" onClick={onClose} aria-label="Close">×</button>
 
-        <div className="auth__brand">Bank<span>Benchmark</span>.sg</div>
+        <div className="auth__brand"><span>Fee</span>Optima</div>
         <h2 className="auth__title">{title}</h2>
         <p className="auth__sub">{sub}</p>
 
@@ -215,7 +215,7 @@ export default function AuthModal({ open, onClose }) {
               <button type="button" onClick={() => switchMode('signin')}>Sign in</button>
             </>
           ) : (
-            <>New to BankBenchmark?{' '}
+            <>New to FeeOptima?{' '}
               <button type="button" onClick={() => switchMode('signup')}>Create one</button>
             </>
           )}

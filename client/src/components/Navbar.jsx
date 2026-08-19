@@ -81,7 +81,7 @@ export default function Navbar({ onGetStarted, onSignIn }) {
     <header className="nav" ref={ref}>
       <div className="container nav__inner">
         <a className="nav__brand" href="#top" onClick={close}>
-          Bank<span className="nav__brand-accent">Benchmark</span>
+          <span className="nav__brand-accent">Fee</span>Optima
           <span className="nav__tld">.sg</span>
         </a>
         <nav className="nav__links">

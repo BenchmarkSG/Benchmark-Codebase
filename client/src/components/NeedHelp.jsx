@@ -9,7 +9,7 @@ const NUMBER = (import.meta.env.VITE_WHATSAPP_NUMBER || DEFAULT_NUMBER).replace(
 // Pre-filled first message (text only — this opens a WhatsApp chat, never a call).
 const MESSAGE =
   import.meta.env.VITE_WHATSAPP_MESSAGE ||
-  'Hi BankBenchmark team, I need help with a benchmark / my bank fees.';
+  'Hi FeeOptima team, I need help with a benchmark / my bank fees.';
 
 const WA_URL = `https://wa.me/${NUMBER}?text=${encodeURIComponent(MESSAGE)}`;
 

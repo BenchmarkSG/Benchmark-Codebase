@@ -112,7 +112,7 @@ export default function AdvisorModal({ open, onClose }) {
       <div className="adv__overlay" onClick={requestClose} />
       <div className="adv__card" ref={cardRef}>
         <button className="adv__close" onClick={requestClose} aria-label="Close">×</button>
-        <div className="adv__brand">Bank<span>Benchmark</span>.sg · Founding Advisors</div>
+        <div className="adv__brand"><span>Fee</span>Optima · Founding Advisors</div>
 
         {done ? (
           <div className="adv__success-wrap">
@@ -202,7 +202,7 @@ export default function AdvisorModal({ open, onClose }) {
 
               <label className="adv__check">
                 <input type="checkbox" checked={form.contact_consent} onChange={set('contact_consent')} />
-                <span>I’m happy to be contacted by BankBenchmark about advisor opportunities (email / WhatsApp).</span>
+                <span>I’m happy to be contacted by FeeOptima about advisor opportunities (email / WhatsApp).</span>
               </label>
               <label className="adv__check">
                 <input type="checkbox" required checked={form.accepted_terms} onChange={set('accepted_terms')} />

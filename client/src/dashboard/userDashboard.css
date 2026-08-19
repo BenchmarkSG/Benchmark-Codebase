@@ -130,6 +130,8 @@
 /* Forward options (locked benchmark) */
 .ubm__options { margin-top: 12px; }
 .ubm__options-label { font-size: 12px; font-weight: 700; color: var(--navy-800); }
+.ubm__reveal { width: 100%; margin-top: 8px; justify-content: center; font-size: 14px; }
+.ubm__options-hint { display: block; margin-top: 6px; font-size: 11.5px; color: var(--muted); font-weight: 600; }
 .ubm__optbtns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
 .ubm__opt {
   text-align: left; cursor: pointer; border-radius: 12px; padding: 11px 12px;

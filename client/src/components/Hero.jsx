@@ -26,7 +26,7 @@ const SLIDES = [
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-export default function Hero({ onDetailedFeedback, onStart, calcSelection, onRequireAuth }) {
+export default function Hero({ onDetailedFeedback, onReveal, onStart, calcSelection, onRequireAuth }) {
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(prefersReducedMotion); // don't auto-rotate for reduced-motion users
   const hovering = useRef(false);
@@ -98,7 +98,7 @@ export default function Hero({ onDetailedFeedback, onStart, calcSelection, onReq
 
         {/* Right column — free benchmark calculator */}
         <div className="hero__media">
-          <BenchmarkCalculator compact onDetailedFeedback={onDetailedFeedback} selection={calcSelection} onRequireAuth={onRequireAuth} />
+          <BenchmarkCalculator compact onDetailedFeedback={onDetailedFeedback} onReveal={onReveal} selection={calcSelection} onRequireAuth={onRequireAuth} />
         </div>
       </div>
     </section>

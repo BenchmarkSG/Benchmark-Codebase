@@ -10,8 +10,8 @@ export default defineConfig({
       injectRegister: 'auto',
       includeAssets: ['favicon-64.png', 'apple-touch-icon.png'],
       manifest: {
-        name: 'BankBenchmark.sg — Stop Overpaying Your Bank',
-        short_name: 'BankBenchmark',
+        name: 'FeeOptima — Stop Overpaying Your Bank',
+        short_name: 'FeeOptima',
         description:
           'Instantly benchmark your bank against the best options in Singapore & SEA for mortgages, loans, FX, deposits and more.',
         id: '/',

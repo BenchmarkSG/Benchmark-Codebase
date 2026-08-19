@@ -166,7 +166,7 @@ const WHY = [
 export function WhyChoose() {
   return (
     <div className="why">
-      <h2 className="section-title why__title">Why Choose Bank<span className="accent-blue">Benchmark</span>.sg?</h2>
+      <h2 className="section-title why__title">Why Choose <span className="accent-blue">Fee</span>Optima?</h2>
       <p className="section-sub why__sub">Independent, expert-led benchmarking focused on real savings.</p>
       <div className="why__list">
         {WHY.map((w) => (
@@ -258,7 +258,7 @@ export function Founding({ onBecomeMember }) {
     <div className="founding">
       <h2 className="section-title founding__title">Join Our Advisors Community</h2>
       <p className="section-sub founding__sub">
-        Be among the first banking specialists on BankBenchmark and get matched with the individuals
+        Be among the first banking specialists on FeeOptima and get matched with the individuals
         and businesses who need your expertise. Founding advisors enjoy:
       </p>
       <div className="founding__grid">
@@ -379,7 +379,7 @@ export function Footer() {
     <footer className="footer">
       <div className="container footer__grid">
         <div>
-          <div className="footer__brand">Bank<span>Benchmark</span>.sg</div>
+          <div className="footer__brand"><span>Fee</span>Optima</div>
           <p>Independent bank benchmarking for individuals, SMEs and corporates across Singapore & SEA.</p>
           <div className="footer__social" aria-label="Follow us">
             {SOCIALS.map((s) => (
@@ -405,7 +405,7 @@ export function Footer() {
       </div>
 
       <p className="container footer__legal">
-        BankBenchmark.sg is an independent rate and fee benchmarking service. It is not a bank, a
+        FeeOptima is an independent rate and fee benchmarking service. It is not a bank, a
         financial adviser, or a Capital Markets Services licence holder, and is not licensed or
         regulated by the Monetary Authority of Singapore (MAS). Nothing on this site constitutes
         financial, legal, or tax advice, or an offer to buy or sell any product. Benchmarks are
@@ -418,7 +418,7 @@ export function Footer() {
       </p>
 
       <div className="container footer__bottom">
-        <span>© {new Date().getFullYear()} BankBenchmark.sg — Prototype. Figures are illustrative.</span>
+        <span>© {new Date().getFullYear()} FeeOptima — Prototype. Figures are illustrative.</span>
         <span className="footer__tagline">Don't let your bank keep the difference.</span>
       </div>
     </footer>

@@ -31,13 +31,13 @@ function bodyRuns({ product, savingPct }) {
     return [
       { t: 'We saved ' }, { t: `${savingPct}%`, b: true }, { t: ' on our ' }, { t: service, b: true },
       { t: ' by comparing our bank costs with the fee-benchmarking tool at ' },
-      { t: 'BankBenchmark.sg', b: true }, { t: ' — you could too. Please share widely.' },
+      { t: 'FeeOptima', b: true }, { t: ' — you could too. Please share widely.' },
     ];
   }
   return [
     { t: 'We compared our ' }, { t: service, b: true },
     { t: ' against the market with the fee-benchmarking tool at ' },
-    { t: 'BankBenchmark.sg', b: true }, { t: ' — and found real savings. You could too. Please share widely.' },
+    { t: 'FeeOptima', b: true }, { t: ' — and found real savings. You could too. Please share widely.' },
   ];
 }
 
@@ -193,11 +193,11 @@ export async function buildCertificateImage({ segment = 'individual', product, s
   ctx.textBaseline = 'top';
   const brandTop = cy + 8;
   ctx.font = fontStr(800, 18);
-  ctx.fillStyle = C.navy900; ctx.fillText('Bank', PAD, brandTop);
-  const bankW = ctx.measureText('Bank').width;
-  ctx.fillStyle = C.blue600; ctx.fillText('Benchmark', PAD + bankW, brandTop);
+  ctx.fillStyle = C.blue600; ctx.fillText('Fee', PAD, brandTop);
+  const feeW = ctx.measureText('Fee').width;
+  ctx.fillStyle = C.navy900; ctx.fillText('Optima', PAD + feeW, brandTop);
   ctx.font = fontStr(600, 12); ctx.fillStyle = C.muted;
-  ctx.fillText('@BankBenchmark · bankbenchmark.sg', PAD, brandTop + 24);
+  ctx.fillText('@FeeOptima · feeoptima.com', PAD, brandTop + 24);
 
   const qrSize = 62, qrX = CARD_W - PAD - qrSize, qrY = cy;
   roundRect(ctx, qrX, qrY, qrSize, qrSize, 8);
@@ -207,5 +207,5 @@ export async function buildCertificateImage({ segment = 'individual', product, s
 
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
   if (!blob) return null;
-  return new File([blob], 'bankbenchmark-certificate.png', { type: 'image/png' });
+  return new File([blob], 'feeoptima-certificate.png', { type: 'image/png' });
 }

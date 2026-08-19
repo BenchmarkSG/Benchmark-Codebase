@@ -21,15 +21,15 @@ const SEG_LABEL = { individual: 'Individual', sme: 'SME / Corporate' };
 
 const TIERS = [
   {
-    id: 'email', price: '$1', accent: 'green',
-    title: 'Reveal the Best Bank & Price and I’ll negotiate directly with my bank',
-    desc: 'We draft a ready-to-send email you can fire off to your relationship manager today.',
-    cta: 'Reveal Bank Name',
+    id: 'email', price: 'Free', accent: 'green',
+    title: 'I’ll negotiate directly with my bank',
+    desc: 'Included with your reveal — we draft a ready-to-send email you can fire off to your relationship manager today.',
+    cta: 'Draft My Email',
   },
   {
     id: 'call', price: '$99', accent: 'blue',
     title: 'Reveal the Best Bank & Price and help me negotiate with my bank',
-    desc: 'A BankBenchmark specialist reviews your numbers and coaches you through the call. Fees fully refundable if no savings.',
+    desc: 'A FeeOptima specialist reviews your numbers and coaches you through the call. Fees fully refundable if no savings.',
     cta: 'Book a Call',
   },
   {
@@ -40,14 +40,13 @@ const TIERS = [
   },
 ];
 
-// Option 1 has two prices for the same unlock: $9 standard, or $1 after a social
-// share. Both map back to the 'email' (reveal) view on return from Stripe.
-const REVEAL_TIERS = ['reveal_std', 'reveal_promo'];
-const VIEW_FOR_TIER = { reveal_std: 'email', reveal_promo: 'email', call: 'call', expert: 'expert' };
+// The ~$1 reveal happens BEFORE this modal (on the result screen); returning from
+// its Stripe checkout lands on the 'options' view (certificate + the 3 actions).
+const VIEW_FOR_TIER = { reveal: 'options', call: 'call', expert: 'expert' };
 // The dashboard gates a saved benchmark's bank reveal on its `stage`; a completed
 // purchase moves it to the matching stage so the unlock persists.
-const STAGE_FOR_TIER = { reveal_std: 'email', reveal_promo: 'email', call: 'call', expert: 'expert' };
-const CERT_SHARE_TEXT = 'Just ran an audit on my banking & treasury services using BankBenchmark.sg. Turns out companies are leaving serious money on the table with hidden fees. Optimized my stack and unlocked a cleaner structure. Transparency is everything in finance.';
+const STAGE_FOR_TIER = { reveal: 'revealed', call: 'call', expert: 'expert' };
+const CERT_SHARE_TEXT = 'Just ran an audit on my banking & treasury services using FeeOptima. Turns out companies are leaving serious money on the table with hidden fees. Optimized my stack and unlocked a cleaner structure. Transparency is everything in finance.';
 
 // Demo advisor directory for "Find an expert". Real signed-up advisors get wired
 // in via the PII-safe public view (advisor_directory).
@@ -137,8 +136,6 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
   const [emailBody, setEmailBody] = useState('');
   const [copied, setCopied] = useState(false);
   const [shared, setShared] = useState(false);
-  const [sharing, setSharing] = useState(false); // native share sheet is open / in progress
-  const [promoMsg, setPromoMsg] = useState(''); // "finish the share to unlock $1" notice
   const [advisors, setAdvisors] = useState([]);
   const [sentTo, setSentTo] = useState(null); // advisor id once a lead is created
   const [paymentsEnabled, setPaymentsEnabled] = useState(false);
@@ -202,7 +199,7 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
     if (unlockRef.current === sig) return;
     unlockRef.current = sig;
     if (bid) updateBenchmark(bid, { stage }).catch(() => {});
-    if (REVEAL_TIERS.includes(tier) && user) {
+    if (tier === 'reveal' && user) {
       createLead({
         source: 'reveal',
         segment: context?.segment || 'individual',
@@ -264,7 +261,7 @@ Kind regards,
   // Don't lose an edited negotiation email on a stray backdrop click / Escape.
   const requestClose = async () => {
     const editedEmail = view === 'email' && !!emailBody && emailBody !== defaultBody;
-    if (editedEmail && !REVEAL_TIERS.includes(paidTier)) {
+    if (editedEmail) {
       const ok = await confirm({
         title: 'Discard your draft?',
         body: 'Your edits to the negotiation email haven’t been copied yet — close and lose them?',
@@ -287,7 +284,6 @@ Kind regards,
   useEffect(() => {
     if (!open) return;
     setEmailTo(''); setEmailBody(defaultBody); setCopied(false); setShared(false);
-    setSharing(false); setPromoMsg('');
     if (resume?.afterAuth) {
       // Returned from signing in/up — restore the exact screen they were on.
       // `unlockedTier` lets the dashboard reopen an already-purchased tier in
@@ -402,12 +398,12 @@ Kind regards,
 
     // 1) Native file share — image + caption together (mobile).
     if (file && navigator.canShare?.({ files: [file] })) {
-      try { await navigator.share({ files: [file], text: CERT_SHARE_TEXT, title: 'BankBenchmark.sg' }); return true; }
+      try { await navigator.share({ files: [file], text: CERT_SHARE_TEXT, title: 'FeeOptima' }); return true; }
       catch { return false; } // user dismissed the sheet
     }
     // 2) Native text share (mobile without file support) — caption + link.
     if (navigator.share) {
-      try { await navigator.share({ title: 'BankBenchmark.sg', text: CERT_SHARE_TEXT, url }); return true; }
+      try { await navigator.share({ title: 'FeeOptima', text: CERT_SHARE_TEXT, url }); return true; }
       catch { return false; }
     }
     // 3) Desktop — download the image + copy the caption to paste alongside it.
@@ -423,34 +419,16 @@ Kind regards,
     return true;
   };
 
-  // $1 promo: the discount is EARNED by actually sharing the certificate. Only
-  // continue to the $1 checkout once the share genuinely completes. If the user
-  // opens the share sheet and dismisses it without posting (shareCertificate →
-  // false), we stop here so the promo price can't be claimed without sharing.
-  const shareAndPay = async () => {
-    if (!user) { pay('reveal_promo'); return; } // sign-in first; resume returns them here to share
-    setPromoMsg('');
-    setSharing(true);
-    let didShare = false;
-    try { didShare = await shareCertificate(); } catch { didShare = false; }
-    setSharing(false);
-    if (!didShare) {
-      setPromoMsg('Looks like the share was cancelled. Share your certificate to unlock the $1 price — or use “Pay $9 & reveal” instead.');
-      return;
-    }
-    pay('reveal_promo'); // share done — pay() takes over (busy + redirect to Stripe)
-  };
-
   if (!open) return null;
 
   const share = async () => {
     const verb = isYield ? 'earn an extra' : 'save';
     const text = ahead
-      ? `My ${productLabel} is already ahead of the market — I just benchmarked my bank on BankBenchmark.sg`
-      : `I could ${verb} ${savings ? fmtSaving(savings) : 'money'}/year on my ${productLabel} — I just benchmarked my bank on BankBenchmark.sg`;
+      ? `My ${productLabel} is already ahead of the market — I just benchmarked my bank on FeeOptima`
+      : `I could ${verb} ${savings ? fmtSaving(savings) : 'money'}/year on my ${productLabel} — I just benchmarked my bank on FeeOptima`;
     const url = SITE_URL;
     try {
-      if (navigator.share) { await navigator.share({ title: 'BankBenchmark.sg', text, url }); }
+      if (navigator.share) { await navigator.share({ title: 'FeeOptima', text, url }); }
       else { await navigator.clipboard.writeText(`${text} ${url}`); setShared(true); setTimeout(() => setShared(false), 2000); }
     } catch { /* user dismissed share sheet */ }
   };
@@ -493,104 +471,57 @@ Kind regards,
           )}
         </div>
 
-        {/* OPTIONS — three vertical tiers */}
+        {/* OPTIONS — the shareable certificate + the three follow-on actions.
+            The bank is already unlocked here (the ~$1 reveal was paid first). */}
         {view === 'options' && (
           <>
-            <h4 className="jny-sectlabel">How would you like to act on this?</h4>
+            <Certificate segment={segment} product={context?.product} savingPct={savingPct} />
+            <h4 className="jny-sectlabel">Your bank is unlocked — how would you like to act on it?</h4>
             <div className="jny-tiers">
               {TIERS.map((t, i) => (
                 <div className={`jny-tier jny-tier--${t.accent}`} key={t.id}>
                   <span className="jny-tier__badge">Option {i + 1}</span>
-                  <div className="jny-tier__price">
-                    {t.id === 'email' ? <><s className="jny-tier__was">$9</s> $1</> : t.price}
-                  </div>
+                  <div className="jny-tier__price">{t.price}</div>
                   <div className="jny-tier__body">
                     <div className="jny-tier__title">{t.title}</div>
                     <div className="jny-tier__desc">{t.desc}</div>
                   </div>
                   <button className="jny-tier__cta" onClick={() => setView(t.id)}>{t.cta} →</button>
-                  {t.id === 'email' && (
-                    <p className="jny-tier__promo"><s>Standard $9</s> · ⚡ Just $1 when you share on social!</p>
-                  )}
                 </div>
               ))}
             </div>
           </>
         )}
 
-        {/* REVEAL BANK NAME — $9 standard, or $1 after a social share */}
+        {/* OPTION 1 (free) — the ready-to-send negotiation email. The bank is
+            already unlocked (the ~$1 reveal was paid before this modal). */}
         {view === 'email' && (
           <div className="jny-sub">
             <button className="jny__back" onClick={back}>← Back to options</button>
-            {payError && <div className="jny-note jny-note--warn">{payError}</div>}
-            {(!paymentsEnabled || REVEAL_TIERS.includes(paidTier)) ? (
-              <>
-                {REVEAL_TIERS.includes(paidTier) && <div className="jny-note jny-note--ok">✓ Payment received — unlocked below.</div>}
-                <h4 className="jny-sub__title">Your best-match bank</h4>
-                <div className="jny-unlock">
-                  <span className="jny-unlock__name">{bank || 'Top provider'}</span>
-                  {context?.benchmarkRate != null && (
-                    <span className="jny-unlock__rate">Best price · {context.benchmarkRate}{context?.unit ? ` ${context.unit}` : '%'}</span>
-                  )}
-                </div>
-                <p className="jny-sub__sub">Here’s a ready-to-send email to negotiate directly with your bank.</p>
+            <h4 className="jny-sub__title">Your best-match bank</h4>
+            <div className="jny-unlock">
+              <span className="jny-unlock__name">{bank || 'Top provider'}</span>
+              {context?.benchmarkRate != null && (
+                <span className="jny-unlock__rate">Best price · {context.benchmarkRate}{context?.unit ? ` ${context.unit}` : '%'}</span>
+              )}
+            </div>
+            <p className="jny-sub__sub">Here’s a ready-to-send email to negotiate directly with your bank.</p>
 
-                <label className="jny-field">
-                  <span className="jny-label">To — your bank's email (optional)</span>
-                  <input type="email" placeholder="relationship.manager@yourbank.com" value={emailTo} onChange={(e) => setEmailTo(e.target.value)} />
-                </label>
-                <label className="jny-field">
-                  <span className="jny-label">Subject</span>
-                  <input type="text" value={emailSubject} readOnly />
-                </label>
-                <textarea className="jny-textarea" rows={12} value={emailBody} onChange={(e) => setEmailBody(e.target.value)} />
+            <label className="jny-field">
+              <span className="jny-label">To — your bank's email (optional)</span>
+              <input type="email" placeholder="relationship.manager@yourbank.com" value={emailTo} onChange={(e) => setEmailTo(e.target.value)} />
+            </label>
+            <label className="jny-field">
+              <span className="jny-label">Subject</span>
+              <input type="text" value={emailSubject} readOnly />
+            </label>
+            <textarea className="jny-textarea" rows={12} value={emailBody} onChange={(e) => setEmailBody(e.target.value)} />
 
-                <div className="jny-actions">
-                  <button className="btn btn--primary" onClick={copyEmail}>{copied ? 'Copied ✓' : 'Copy email'}</button>
-                  <a className="btn btn--red" href={mailtoHref}>Open in mail app →</a>
-                </div>
-                <p className="jny-note">You send this yourself from your own inbox — we never email your bank on your behalf.</p>
-              </>
-            ) : (
-              <>
-                <h4 className="jny-sub__title">Unlock the bank name &amp; best price</h4>
-                {!user && (
-                  <div className="jny-note jny-note--warn">Sign in first so your unlock is linked to your account.</div>
-                )}
-                <Certificate segment={segment} product={context?.product} savingPct={savingPct} />
-
-                <p className="jny-paths__lead">Choose how you’d like to unlock — pick one:</p>
-                <div className="jny-paths">
-                  <div className="jny-path">
-                    <div className="jny-path__head">
-                      <span className="jny-path__label">Standard access</span>
-                      <span className="jny-path__price">$9</span>
-                    </div>
-                    <button className="btn btn--ghost jny-pay" disabled={busy || sharing} onClick={() => pay('reveal_std')}>
-                      {!user ? 'Sign in to continue →' : busy ? 'Redirecting…' : 'Pay $9 & reveal →'}
-                    </button>
-                    <p className="jny-note">Pay now — no sharing needed.</p>
-                  </div>
-
-                  <div className="jny-paths__or"><span>OR</span></div>
-
-                  <div className="jny-path jny-path--promo">
-                    <span className="jny-path__badge">Save $8</span>
-                    <div className="jny-path__head">
-                      <span className="jny-path__label">⚡ Share &amp; save</span>
-                      <span className="jny-path__price"><s>$9</s> $1</span>
-                    </div>
-                    <button className="btn btn--primary jny-pay" disabled={busy || sharing} onClick={shareAndPay}>
-                      {!user ? 'Sign in to continue →' : sharing ? 'Waiting to share…' : busy ? 'Redirecting…' : 'Share & unlock for $1 →'}
-                    </button>
-                    {promoMsg
-                      ? <p className="jny-note jny-note--warn">{promoMsg}</p>
-                      : <p className="jny-note">Post your certificate on LinkedIn or X.</p>}
-                  </div>
-                </div>
-                <p className="jny-note">🔒 Secure payment via Stripe. The bank name unlocks right after.</p>
-              </>
-            )}
+            <div className="jny-actions">
+              <button className="btn btn--primary" onClick={copyEmail}>{copied ? 'Copied ✓' : 'Copy email'}</button>
+              <a className="btn btn--red" href={mailtoHref}>Open in mail app →</a>
+            </div>
+            <p className="jny-note">You send this yourself from your own inbox — we never email your bank on your behalf.</p>
           </div>
         )}
 
@@ -603,7 +534,7 @@ Kind regards,
             {paymentsEnabled && paidTier !== 'call' ? (
               <>
                 <p className="jny-sub__sub">
-                  <span className="jny-pill">$99</span> A BankBenchmark specialist reviews your numbers and coaches you through the negotiation.
+                  <span className="jny-pill">$99</span> A FeeOptima specialist reviews your numbers and coaches you through the negotiation.
                 </p>
                 {!user && (
                   <div className="jny-note jny-note--warn">
@@ -618,7 +549,7 @@ Kind regards,
             ) : (
               <>
                 {paidTier === 'call' && <div className="jny-note jny-note--ok">✓ Payment received — pick a time below.</div>}
-                <p className="jny-sub__sub"><span className="jny-pill">$99</span> A BankBenchmark specialist coaches you through the negotiation.</p>
+                <p className="jny-sub__sub"><span className="jny-pill">$99</span> A FeeOptima specialist coaches you through the negotiation.</p>
                 <Scheduler url={CALENDLY_URL} prefill={bookingPrefill} note="You and the specialist both receive the calendar invite from Calendly." />
               </>
             )}

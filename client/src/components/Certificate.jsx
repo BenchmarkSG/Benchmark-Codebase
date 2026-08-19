@@ -33,8 +33,8 @@ export default function Certificate({ segment = 'individual', product, savingPct
   }, [site]);
 
   const savedLine = savingPct
-    ? <>We saved <strong>{savingPct}%</strong> on our <strong>{service}</strong> by comparing our bank costs with the fee-benchmarking tool at <strong>BankBenchmark.sg</strong> — you could too. Please share widely.</>
-    : <>We compared our <strong>{service}</strong> against the market with the fee-benchmarking tool at <strong>BankBenchmark.sg</strong> — and found real savings. You could too. Please share widely.</>;
+    ? <>We saved <strong>{savingPct}%</strong> on our <strong>{service}</strong> by comparing our bank costs with the fee-benchmarking tool at <strong>FeeOptima</strong> — you could too. Please share widely.</>
+    : <>We compared our <strong>{service}</strong> against the market with the fee-benchmarking tool at <strong>FeeOptima</strong> — and found real savings. You could too. Please share widely.</>;
 
   return (
     <div className="cert">
@@ -44,8 +44,8 @@ export default function Certificate({ segment = 'individual', product, savingPct
       <p className="cert__q">Your bank is profiting from you — find out by how much.</p>
       <div className="cert__foot">
         <div className="cert__brand">
-          <span className="cert__logo">Bank<span>Benchmark</span></span>
-          <span className="cert__handle">@BankBenchmark · bankbenchmark.sg</span>
+          <span className="cert__logo"><span>Fee</span>Optima</span>
+          <span className="cert__handle">@FeeOptima · feeoptima.com</span>
         </div>
         {qrSrc
           ? (

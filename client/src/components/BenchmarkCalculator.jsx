@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './BenchmarkCalculator.css';
-import { getReference, calcBenchmark, formatMoney, getBanks } from '../api.js';
+import { getReference, calcBenchmark, formatMoney, getBanks, getRevealPrice } from '../api.js';
 import { BANK_LOGOS } from './BankLogos.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { saveBenchmark } from '../lib/dashboardApi.js';
@@ -106,7 +106,7 @@ function Field({ field, value, onChange, ccyOptions, bankOptions, required, inva
   );
 }
 
-export default function BenchmarkCalculator({ onDetailedFeedback, compact = false, selection = null, onRequireAuth }) {
+export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, compact = false, selection = null, onRequireAuth }) {
   const { user } = useAuth();
   const [ref, setRef] = useState(null);
   const [error, setError] = useState(null);
@@ -117,6 +117,7 @@ export default function BenchmarkCalculator({ onDetailedFeedback, compact = fals
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saveState, setSaveState] = useState('idle'); // idle | saving | saved | error
+  const [savedId, setSavedId] = useState(null); // id of this result's saved-benchmark row (once saved)
   const [banks, setBanks] = useState([]); // provider directory for the chosen country
   const [back, setBack] = useState(false); // true after "Recalculate" → animate the form back in
   const [invalid, setInvalid] = useState({}); // { fieldKey: true } for blank required fields
@@ -197,32 +198,52 @@ export default function BenchmarkCalculator({ onDetailedFeedback, compact = fals
     setInvalid((iv) => (iv[key] ? { ...iv, [key]: false } : iv));
   };
 
+  // The saved-benchmark payload for the current result.
+  function currentSaveRow() {
+    return {
+      segment,
+      country_code: country,
+      product: product.id,
+      product_label: result.product,
+      currency: result.currency || localCcy,
+      unit: result.unit,
+      direction: result.direction,
+      result_status: result.status,
+      your_rate: result.yourRate,
+      benchmark_rate: result.benchmarkRate,
+      market_typical: result.marketTypical,
+      annual_saving: result.annualSaving,
+      monthly_saving: result.monthlySaving,
+      best_bank: result.bestBank ?? null,
+      inputs: values,
+    };
+  }
+
   async function saveCurrent() {
     if (!result || !product) return;
     if (!user) { onRequireAuth?.(); return; }
     setSaveState('saving');
     try {
-      await saveBenchmark({
-        segment,
-        country_code: country,
-        product: product.id,
-        product_label: result.product,
-        currency: result.currency || localCcy,
-        unit: result.unit,
-        direction: result.direction,
-        result_status: result.status,
-        your_rate: result.yourRate,
-        benchmark_rate: result.benchmarkRate,
-        market_typical: result.marketTypical,
-        annual_saving: result.annualSaving,
-        monthly_saving: result.monthlySaving,
-        best_bank: result.bestBank ?? null,
-        inputs: values,
-      });
+      const row = await saveBenchmark(currentSaveRow());
+      setSavedId(row?.id ?? null);
       setSaveState('saved');
     } catch {
       setSaveState('error');
     }
+  }
+
+  // Reveal: hand the reveal flow both the result context AND the save payload so
+  // it can persist this benchmark (as 'revealed') to the dashboard — reusing the
+  // existing saved row if the user already hit "Save".
+  function revealCurrent() {
+    if (!result || !product) return;
+    onReveal?.({
+      ...result,
+      currency: result.currency || localCcy,
+      segment,
+      benchmarkId: savedId || undefined,
+      saveRow: currentSaveRow(),
+    });
   }
 
   async function compute(e) {
@@ -247,6 +268,7 @@ export default function BenchmarkCalculator({ onDetailedFeedback, compact = fals
     setLoading(true);
     setError(null);
     setSaveState('idle');
+    setSavedId(null);
     try {
       // Drop empty fields; the server fills sensible fallbacks.
       const payload = { country, product: product.id };
@@ -340,6 +362,7 @@ export default function BenchmarkCalculator({ onDetailedFeedback, compact = fals
             <div className="calcbox__result">
               {!result ? <Placeholder /> : (
                 <Result result={result} product={product} compact={compact} localCcy={localCcy}
+                  onReveal={revealCurrent}
                   onDetailedFeedback={() => onDetailedFeedback({ ...result, currency: result.currency || localCcy, segment })}
                   onBack={() => { setResult(null); setBack(true); }}
                   isAuthed={!!user} saveState={saveState} onSave={saveCurrent} />
@@ -359,8 +382,18 @@ function standingText(result) {
   return `better than ${result.percentileBeaten}% of the ${result.poolSize} providers we benchmark`;
 }
 
-function Result({ result, product, compact, localCcy, onDetailedFeedback, onBack, isAuthed, saveState, onSave }) {
-  const ccy = result.currency || localCcy || 'SGD'; // rate products (e.g. housing loan) carry no currency
+function Result({ result, product, compact, localCcy, onReveal, onDetailedFeedback, onBack, isAuthed, saveState, onSave }) {
+  const ccy = result.currency || localCcy || 'SGD';
+  // Localized reveal price (~S$1 in the market currency) for the CTA label.
+  const [revealPrice, setRevealPrice] = useState(null);
+  useEffect(() => {
+    let live = true;
+    getRevealPrice(ccy).then((p) => { if (live && p) setRevealPrice(p); });
+    return () => { live = false; };
+  }, [ccy]);
+  const revealLabel = revealPrice
+    ? formatMoney(revealPrice.major, (revealPrice.currency || ccy).toUpperCase())
+    : formatMoney(1, ccy); // rate products (e.g. housing loan) carry no currency
   const higher = result.direction === 'higher';
   const crossBorder = product?.family === 'crossborder';
   const ahead = result.status === 'ahead';
@@ -469,9 +502,10 @@ function Result({ result, product, compact, localCcy, onDetailedFeedback, onBack
         </div>
       )}
 
-      <button className="btn btn--block res__detail" onClick={onDetailedFeedback}>
-        {ahead ? 'Get a Free Expert Review →' : 'Show me options →'}
+      <button className="btn btn--block res__detail" onClick={onReveal}>
+        {ahead ? `Reveal the Best Available — ${revealLabel} →` : `Reveal the Best Bank — ${revealLabel} →`}
       </button>
+      <p className="res__reveal-note">🔒 {revealLabel} charged securely · full refund if you’re not satisfied.</p>
 
       <button
         className="btn btn--ghost btn--block res__save"
@@ -485,7 +519,7 @@ function Result({ result, product, compact, localCcy, onDetailedFeedback, onBack
         <small className="res__detail-note">
           {ahead
             ? "Confirm you're optimally placed — and check your other products for savings."
-            : 'Free to see savings · Pay only a % of what we actually save you.'}
+            : 'Reveal your best-match bank + a shareable certificate, then negotiate — yourself (free), with a coach, or an expert.'}
         </small>
       )}
     </div>

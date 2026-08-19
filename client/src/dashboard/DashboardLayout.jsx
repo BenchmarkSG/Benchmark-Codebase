@@ -19,7 +19,7 @@ export default function DashboardLayout({ title, eyebrow, tabs, activeTab, onTab
     <div className="dash">
       <header className="dash__top">
         <div className="dash__top-inner">
-          <a className="dash__brand" href="#top">Bank<span>Benchmark</span>.sg</a>
+          <a className="dash__brand" href="#top"><span>Fee</span>Optima</a>
           <div className="dash__top-right">
             {user ? (
               <>

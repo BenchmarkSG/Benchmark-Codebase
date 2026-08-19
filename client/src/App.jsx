@@ -19,6 +19,9 @@ import {
   FinalCTA,
   Footer,
 } from './components/Sections.jsx';
+import { createCheckout } from './api.js';
+import { isStripeCheckoutUrl } from './lib/safeUrl.js';
+import { saveBenchmark, updateBenchmark } from './lib/dashboardApi.js';
 
 // Where a not-logged-in user was when we sent them to sign in, so we can bring
 // them back to the exact journey screen after auth — even when sign-up (email
@@ -85,7 +88,7 @@ export default function App() {
   // Open the auth modal. If a `resumeIntent` is given (e.g. from inside the
   // journey), stash it so we can return the user to that exact screen post-auth.
   const requireAuth = useCallback((resumeIntent) => {
-    if (resumeIntent && resumeIntent.kind === 'journey') {
+    if (resumeIntent && (resumeIntent.kind === 'journey' || resumeIntent.kind === 'reveal')) {
       try { localStorage.setItem(AFTER_AUTH_KEY, JSON.stringify({ at: Date.now(), ...resumeIntent })); } catch { /* ignore */ }
     }
     setAuthOpen(true);
@@ -93,18 +96,60 @@ export default function App() {
   const openAuth = useCallback(() => setAuthOpen(true), []);
   const closeAuth = useCallback(() => setAuthOpen(false), []);
 
+  // The ~$1 reveal — SIGN IN FIRST (captures email + name), then charge in the
+  // user's market currency (FX-localized, priced server-side). On return from
+  // Stripe the modal opens to the certificate + the three options. If Stripe
+  // isn't configured, fall back to a demo reveal so the flow still works.
+  const revealBank = useCallback(async (ctx) => {
+    if (!user) { requireAuth({ kind: 'reveal', context: ctx }); return; }
+    // Auto-save this benchmark so the reveal persists to the dashboard. Reuse an
+    // already-saved row (ctx.benchmarkId) rather than creating a duplicate.
+    let ready = ctx || {};
+    if (!ready.benchmarkId && ready.saveRow) {
+      try { const row = await saveBenchmark(ready.saveRow); ready = { ...ready, benchmarkId: row?.id }; }
+      catch { /* proceed without persistence */ }
+    }
+    try {
+      sessionStorage.setItem('bb_journey', JSON.stringify({ tier: 'reveal', context: ready }));
+      const { url } = await createCheckout({
+        tier: 'reveal',
+        currency: ready.currency || 'SGD',
+        product: ready.product || null,
+        segment: ready.segment || 'individual',
+        email: user?.email || undefined,
+      });
+      if (!isStripeCheckoutUrl(url)) throw new Error('Unexpected checkout URL');
+      window.location.assign(url);
+    } catch {
+      sessionStorage.removeItem('bb_journey');
+      // Demo (no Stripe): mark the saved benchmark revealed and open the modal.
+      if (ready.benchmarkId) updateBenchmark(ready.benchmarkId, { stage: 'revealed' }).catch(() => {});
+      setContext(ready);
+      setResume({ tier: 'reveal', demo: true });
+      setTiersOpen(true);
+    }
+  }, [user, requireAuth]);
+
   // Once the user is authenticated (in-session sign-in, or after an email-confirm
   // / OAuth reload), reopen the journey exactly where they left off.
   useEffect(() => {
     if (!user) return;
     const intent = readAfterAuth();
-    if (!intent || intent.kind !== 'journey') return;
+    if (!intent) return;
+    // Signed in specifically to start the reveal → proceed straight to the $1 checkout.
+    if (intent.kind === 'reveal') {
+      clearAfterAuth();
+      setAuthOpen(false);
+      revealBank(intent.context || null);
+      return;
+    }
+    if (intent.kind !== 'journey') return;
     clearAfterAuth();
     setAuthOpen(false);
     setContext(intent.context || null);
     setResume({ afterAuth: true, view: intent.view || 'options', expert: intent.expert || null });
     setTiersOpen(true);
-  }, [user]);
+  }, [user, revealBank]);
 
   const openAdvisor = useCallback(() => setAdvisorOpen(true), []);
   const closeAdvisor = useCallback(() => setAdvisorOpen(false), []);
@@ -113,14 +158,14 @@ export default function App() {
     <>
       <Navbar onGetStarted={scrollToCalc} onSignIn={openAuth} />
       <main>
-        <Hero onDetailedFeedback={openTiers} onStart={scrollToCalc} calcSelection={calcSelection} onRequireAuth={requireAuth} />
+        <Hero onDetailedFeedback={openTiers} onReveal={revealBank} onStart={scrollToCalc} calcSelection={calcSelection} onRequireAuth={requireAuth} />
         <WorksProducts onGetStarted={scrollToCalc} onCompare={handleCompare} />
         <RealSavings />
         <SegmentsWhy onGetStarted={scrollToCalc} onCompare={handleCompare} />
         <PartnerBanks />
         <EfficiencyChecks />
         <TrustedFounding onBecomeMember={openAdvisor} />
-        <FinalCTA onGetStarted={scrollToCalc} onConnect={() => openTiers()} />
+        <FinalCTA onGetStarted={scrollToCalc} onConnect={scrollToCalc} />
         <FAQ />
       </main>
       <Footer />

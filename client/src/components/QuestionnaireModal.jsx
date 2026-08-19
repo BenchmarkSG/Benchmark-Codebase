@@ -67,7 +67,7 @@ export default function QuestionnaireModal({ questionnaire, onClose }) {
       <div className="adv__overlay" onClick={onClose} />
       <div className="adv__card" ref={cardRef}>
         <button className="adv__close" onClick={onClose} aria-label="Close">×</button>
-        <div className="adv__brand">Bank<span>Benchmark</span>.sg · Health Check</div>
+        <div className="adv__brand"><span>Fee</span>Optima · Health Check</div>
 
         {step === 'form' && (
           <>

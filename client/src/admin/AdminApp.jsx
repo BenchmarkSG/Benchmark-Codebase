@@ -167,7 +167,7 @@ function LoginGate() {
   return (
     <div className="adm-login">
       <form className="adm-login__card" onSubmit={submit}>
-        <div className="adm-login__brand">Bank<span>Benchmark</span> · Admin</div>
+        <div className="adm-login__brand"><span>Fee</span>Optima · Admin</div>
         <h1>Admin sign in</h1>
         <p className="adm-login__sub">Restricted area. Authorised administrators only.</p>
         <label>Email<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@benchmark.com" autoComplete="username" required /></label>
@@ -429,7 +429,7 @@ function Editor({ onSignOut, email }) {
   return (
     <div className="adm">
       <header className="adm-header">
-        <div className="adm-header__brand">Bank<span>Benchmark</span> · Admin</div>
+        <div className="adm-header__brand"><span>Fee</span>Optima · Admin</div>
         <div className="adm-header__right">
           <a className="adm-header__home" href="#top">↗ View site</a>
           <span className="adm-header__user">{email}</span>

@@ -9,6 +9,12 @@ import {
 import * as ratesRepo from './ratesRepo.js';
 import * as fxModule from './fx.js';
 import * as payments from './payments.js';
+import * as email from './email.js';
+
+// Session ids we've already emailed a confirmation for — best-effort in-process
+// dedupe so the client re-verifying a session doesn't re-send (a stub; a durable
+// store / idempotency key would replace this in production).
+const emailedSessions = new Set();
 
 // Wrap an async handler so rejected promises become clean 5xx responses.
 // The raw error is logged server-side only; the client gets a generic message
@@ -20,7 +26,7 @@ const asyncRoute = (fn) => (req, res, next) => fn(req, res).catch((err) => {
 });
 
 // Origins allowed to call this API from a browser. Configure ALLOWED_ORIGINS as a
-// comma-separated list in production (e.g. https://bankbenchmark.sg). In dev we
+// comma-separated list in production (e.g. https://feeoptima.com). In dev we
 // also accept the Vite/preview localhost origins. Non-browser callers (curl,
 // server-to-server, tests) send no Origin header and are always allowed.
 const configuredOrigins = (process.env.ALLOWED_ORIGINS || '')
@@ -77,19 +83,51 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
   // ---- Stripe payments (JourneyModal tiers). No-ops without STRIPE_SECRET_KEY. --
   app.post('/api/checkout', strictLimiter, asyncRoute(async (req, res) => {
     if (!payments.isPaymentsConfigured) return res.status(503).json({ error: 'Payments not configured' });
-    const { tier, advisorId, product, segment, email } = req.body || {};
+    const { tier, advisorId, product, segment, email, currency } = req.body || {};
     if (!payments.getTier(tier)) return res.status(400).json({ error: 'Unknown tier' });
     // Only trust the Origin if it's allow-listed; never the Host header. The
     // success/cancel base otherwise comes from server-set PUBLIC_BASE_URL.
     const reqOrigin = req.headers.origin || '';
     const origin = reqOrigin && isOriginAllowed(reqOrigin) ? reqOrigin : '';
-    res.json(await payments.createCheckout({ tier, origin, email, advisorId, product, segment }));
+    res.json(await payments.createCheckout({ tier, origin, email, advisorId, product, segment, currency }));
+  }));
+
+  // Localized ~S$1 reveal price for display. Needs only FX (not Stripe), so it
+  // works in demo mode too; the actual charge is recomputed at checkout time.
+  app.get('/api/checkout/reveal-price', asyncRoute(async (req, res) => {
+    res.json(await payments.revealAmountFor(String(req.query.currency || 'SGD')));
   }));
 
   app.get('/api/checkout/session', asyncRoute(async (req, res) => {
     if (!payments.isPaymentsConfigured) return res.status(503).json({ error: 'Payments not configured' });
     if (!req.query.id) return res.status(400).json({ error: 'Missing session id' });
-    res.json(await payments.retrieveCheckout(String(req.query.id)));
+    const id = String(req.query.id);
+    const result = await payments.retrieveCheckout(id);
+    // On the first verified-paid read, fire the purchase confirmation email
+    // (fire-and-forget; never blocks or fails the response).
+    if (result?.paid && result.email && !emailedSessions.has(id)) {
+      emailedSessions.add(id);
+      email.sendConfirmation({
+        to: result.email, tier: result.tier, product: result.product,
+        amountTotal: result.amountTotal, currency: result.currency,
+      }).catch(() => {});
+    }
+    res.json(result);
+  }));
+
+  // Internal trigger for the REMINDER (before a session) and FEEDBACK (after)
+  // emails. Guarded by a shared secret — a cron job or Calendly webhook posts
+  // here when a booking is due. Disabled unless INTERNAL_TASK_KEY is set.
+  app.post('/api/internal/notify', asyncRoute(async (req, res) => {
+    const secret = process.env.INTERNAL_TASK_KEY || '';
+    if (!secret || req.headers['x-internal-key'] !== secret) return res.status(403).json({ error: 'Forbidden' });
+    const { type, to, name, kind, whenText, product } = req.body || {};
+    if (!to || !type) return res.status(400).json({ error: 'Missing type/to' });
+    const send = type === 'reminder' ? email.sendReminder
+      : type === 'feedback' ? email.sendFeedback
+        : null;
+    if (!send) return res.status(400).json({ error: 'Unknown notify type' });
+    res.json(await send({ to, name, kind, whenText, product }));
   }));
 
   // Instant benchmark. Rate products compare a single rate; cross-border derives

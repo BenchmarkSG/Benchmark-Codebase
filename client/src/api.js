@@ -42,6 +42,11 @@ export const getCheckoutSession = (id) =>
   fetch(`${BASE}/checkout/session?id=${encodeURIComponent(id)}`)
     .then((r) => (r.ok ? r.json() : null))
     .catch(() => null);
+// Localized ~S$1 reveal price for display (charge is recomputed server-side).
+export const getRevealPrice = (currency) =>
+  fetch(`${BASE}/checkout/reveal-price?currency=${encodeURIComponent(currency || 'SGD')}`)
+    .then((r) => (r.ok ? r.json() : null))
+    .catch(() => null);
 
 // Bank directory for a country (id, name, category) — powers the provider picker.
 export const getBanks = (country) =>

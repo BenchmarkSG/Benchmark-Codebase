@@ -5,4 +5,4 @@
 //
 // NOTE: do NOT use this for auth redirects — those must return to the actual
 // current origin (see AuthContext).
-export const SITE_URL = (import.meta.env.VITE_PUBLIC_SITE_URL || 'https://bankbenchmark.sg').replace(/\/+$/, '');
+export const SITE_URL = (import.meta.env.VITE_PUBLIC_SITE_URL || 'https://feeoptima.com').replace(/\/+$/, '');

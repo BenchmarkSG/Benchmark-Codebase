@@ -43,7 +43,7 @@ export default function HowItWorks({ onGetStarted }) {
   return (
     <div className="hiw">
       <h2 className="section-title hiw__title">
-        How Bank<span className="accent-blue">Benchmark</span>.sg Works
+        How <span className="accent-blue">Fee</span>Optima Works
       </h2>
       <p className="hiw__sub">From your data to benchmarks to real, banked savings.</p>
 

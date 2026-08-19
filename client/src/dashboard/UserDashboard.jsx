@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import './userDashboard.css';
 import DashboardLayout from './DashboardLayout.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
-import { formatMoney, getReference } from '../api.js';
+import { formatMoney, getReference, createCheckout } from '../api.js';
 import { listBenchmarks, updateBenchmark, deleteBenchmark, listMyLeads } from '../lib/dashboardApi.js';
+import { isStripeCheckoutUrl } from '../lib/safeUrl.js';
 import { useConfirm } from '../components/ConfirmProvider.jsx';
 import { formatDate } from '../lib/formatDate.js';
 import JourneyModal from '../components/JourneyModal.jsx';
@@ -11,14 +12,15 @@ import JourneyModal from '../components/JourneyModal.jsx';
 // A rate value with its unit (defaults to %), so "3.5" never renders unit-less.
 const rate = (v, unit) => (v == null || v === '' ? '—' : `${v}${unit ? ` ${unit}` : '%'}`);
 
-// A saved benchmark's `stage` records which paid option the user took. Until they
-// take one it stays 'new' (locked) and the winning bank name stays hidden — it's
-// only revealed once they've unlocked a tier (Option 1/2/3) or negotiated.
+// A saved benchmark's `stage`. It stays 'new' (bank hidden) until the ~$1 reveal
+// is paid → 'revealed' (bank shown; draft the email free or upgrade to a call /
+// expert), then 'call' / 'expert' once those are booked, or 'negotiated' at the end.
 const TIER_META = {
-  email:      { icon: '🔓', label: 'Bank revealed',   view: 'email',  tier: 'reveal_promo', manage: 'View bank & email draft' },
-  call:       { icon: '📞', label: 'Coaching call',   view: 'call',   tier: 'call',         manage: 'Manage your call' },
-  expert:     { icon: '🧑‍💼', label: 'Expert engaged',  view: 'expert', tier: 'expert',       manage: 'Manage your expert' },
-  negotiated: { icon: '✅', label: 'Negotiated',      view: null,     tier: null,           manage: null },
+  revealed:   { icon: '🔓', label: 'Bank revealed',   view: 'options', tier: 'reveal', manage: 'View bank & draft email' },
+  email:      { icon: '🔓', label: 'Bank revealed',   view: 'email',   tier: 'reveal', manage: 'View bank & email draft' },
+  call:       { icon: '📞', label: 'Coaching call',   view: 'call',    tier: 'call',   manage: 'Manage your call' },
+  expert:     { icon: '🧑‍💼', label: 'Expert engaged',  view: 'expert',  tier: 'expert', manage: 'Manage your expert' },
+  negotiated: { icon: '✅', label: 'Negotiated',      view: null,      tier: null,     manage: null },
 };
 const isUnlocked = (r) => !!r.stage && r.stage !== 'new';
 
@@ -136,6 +138,26 @@ export default function UserDashboard() {
   const openManage = (r) => { const tv = TIER_META[r.stage]; openJourney(r, { afterAuth: true, view: tv.view, unlockedTier: tv.tier }); };
   const openOptions = (r) => openJourney(r, { afterAuth: true, view: 'options' });        // compare / upgrade
   const closeJourney = () => { setJourney(null); load(); };
+
+  // Pay the ~$1 reveal for a saved benchmark (user is already signed in here).
+  // On return the benchmark's stage becomes 'revealed' and its bank appears.
+  // Falls back to a demo reveal if Stripe isn't configured.
+  const revealBank = async (r) => {
+    const ctx = contextFromBenchmark(r);
+    try {
+      sessionStorage.setItem('bb_journey', JSON.stringify({ tier: 'reveal', context: ctx }));
+      const { url } = await createCheckout({
+        tier: 'reveal', currency: ctx.currency || 'SGD',
+        product: ctx.product || null, segment: ctx.segment || 'individual', email: user?.email || undefined,
+      });
+      if (!isStripeCheckoutUrl(url)) throw new Error('Unexpected checkout URL');
+      window.location.assign(url);
+    } catch {
+      sessionStorage.removeItem('bb_journey');
+      setStage(r, 'revealed'); // demo: unlock locally + persist
+      openJourney({ ...r, stage: 'revealed' }, { tier: 'reveal', demo: true });
+    }
+  };
 
   const firstName = user?.user_metadata?.full_name ? user.user_metadata.full_name.split(' ')[0] : '';
   const hasData = active.length > 0;
@@ -311,18 +333,11 @@ export default function UserDashboard() {
                 </div>
               ) : (
                 <div className="ubm__options">
-                  <span className="ubm__options-label">Take it forward — reveal the bank &amp; act:</span>
-                  <div className="ubm__optbtns">
-                    <button className="ubm__opt ubm__opt--1" onClick={() => openTier(r, 'email')}>
-                      <b>Reveal the bank</b><span>&amp; negotiate yourself · from $1</span>
-                    </button>
-                    <button className="ubm__opt ubm__opt--2" onClick={() => openTier(r, 'call')}>
-                      <b>Coaching call</b><span>we coach you · $99</span>
-                    </button>
-                    <button className="ubm__opt ubm__opt--3" onClick={() => openTier(r, 'expert')}>
-                      <b>Expert negotiator</b><span>done for you · $199</span>
-                    </button>
-                  </div>
+                  <span className="ubm__options-label">Reveal your best-match bank to act on it:</span>
+                  <button className="ubm__act ubm__act--primary ubm__reveal" onClick={() => revealBank(r)}>
+                    🔓 Reveal the Best Bank — $1 →
+                  </button>
+                  <span className="ubm__options-hint">Then negotiate yourself (free), with a coach, or an expert · full refund if not satisfied.</span>
                 </div>
               )}
             </article>

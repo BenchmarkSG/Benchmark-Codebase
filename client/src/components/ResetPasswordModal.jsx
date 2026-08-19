@@ -45,7 +45,7 @@ export default function ResetPasswordModal() {
       <div className="auth__overlay" onClick={clearRecovery} />
       <div className="auth__card" ref={cardRef}>
         <button className="auth__close" onClick={clearRecovery} aria-label="Close">×</button>
-        <div className="auth__brand">Bank<span>Benchmark</span>.sg</div>
+        <div className="auth__brand"><span>Fee</span>Optima</div>
         <h2 className="auth__title">Set a new password</h2>
 
         {done ? (

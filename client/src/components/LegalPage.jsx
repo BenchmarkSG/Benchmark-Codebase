@@ -7,18 +7,18 @@ import { Footer } from './Sections.jsx';
    review before launch. Effective date is fixed, not auto-generated. */
 
 const EFFECTIVE_DATE = '7 August 2026';
-const CONTACT_EMAIL = 'hello@bankbenchmark.sg';
-const PRIVACY_EMAIL = 'privacy@bankbenchmark.sg';
+const CONTACT_EMAIL = 'hello@feeoptima.com';
+const PRIVACY_EMAIL = 'privacy@feeoptima.com';
 
 const TERMS = {
   title: 'Terms & Conditions',
   intro:
-    'These Terms govern your access to and use of BankBenchmark.sg (the “Service”). By using the Service, creating an account, or submitting information through it, you agree to these Terms. If you do not agree, please do not use the Service.',
+    'These Terms govern your access to and use of FeeOptima (the “Service”). By using the Service, creating an account, or submitting information through it, you agree to these Terms. If you do not agree, please do not use the Service.',
   sections: [
     {
       h: '1. Who we are',
       p: [
-        'BankBenchmark.sg is an independent rate- and fee-benchmarking service for individuals, SMEs and corporates across Singapore and South-East Asia.',
+        'FeeOptima is an independent rate- and fee-benchmarking service for individuals, SMEs and corporates across Singapore and South-East Asia.',
         'We are not a bank, a financial adviser, a broker, or a holder of a Capital Markets Services licence, and we are not licensed or regulated by the Monetary Authority of Singapore (MAS).',
       ],
     },
@@ -69,7 +69,7 @@ const TERMS = {
     {
       h: '9. Intellectual property',
       p: [
-        'The Service, including its content, design, and software, is owned by BankBenchmark.sg or its licensors and is protected by law. You may use it for your own personal or internal business purposes only, and you may not copy, scrape, resell, or create derivative works from it without our written permission.',
+        'The Service, including its content, design, and software, is owned by FeeOptima or its licensors and is protected by law. You may use it for your own personal or internal business purposes only, and you may not copy, scrape, resell, or create derivative works from it without our written permission.',
       ],
     },
     {
@@ -81,7 +81,7 @@ const TERMS = {
     {
       h: '11. Limitation of liability',
       p: [
-        'To the maximum extent permitted by law, BankBenchmark.sg and its team will not be liable for any indirect, incidental, or consequential loss, or for any loss of profits, savings, data, or goodwill, arising from your use of, or reliance on, the Service. Nothing in these Terms excludes liability that cannot be excluded under applicable law.',
+        'To the maximum extent permitted by law, FeeOptima and its team will not be liable for any indirect, incidental, or consequential loss, or for any loss of profits, savings, data, or goodwill, arising from your use of, or reliance on, the Service. Nothing in these Terms excludes liability that cannot be excluded under applicable law.',
       ],
     },
     {
@@ -106,12 +106,12 @@ const TERMS = {
 const PRIVACY = {
   title: 'Privacy Policy',
   intro:
-    'This Privacy Policy explains how BankBenchmark.sg collects, uses, discloses, and protects personal data when you use the Service. We handle personal data in accordance with Singapore’s Personal Data Protection Act 2012 (PDPA).',
+    'This Privacy Policy explains how FeeOptima collects, uses, discloses, and protects personal data when you use the Service. We handle personal data in accordance with Singapore’s Personal Data Protection Act 2012 (PDPA).',
   sections: [
     {
       h: '1. Scope',
       p: [
-        'This policy applies to the BankBenchmark.sg website and app. It covers personal data of visitors, registered users, health-check respondents, and advisor applicants.',
+        'This policy applies to the FeeOptima website and app. It covers personal data of visitors, registered users, health-check respondents, and advisor applicants.',
       ],
     },
     {
@@ -206,12 +206,12 @@ const PRIVACY = {
 const DISCLAIMER = {
   title: 'Disclaimer',
   intro:
-    'Please read this disclaimer carefully. It applies to all information, benchmarks, and figures shown on BankBenchmark.sg.',
+    'Please read this disclaimer carefully. It applies to all information, benchmarks, and figures shown on FeeOptima.',
   sections: [
     {
       h: '1. Independent, unlicensed service',
       p: [
-        'BankBenchmark.sg is an independent rate- and fee-benchmarking service. It is not a bank, a financial adviser, or a Capital Markets Services licence holder, and it is not licensed or regulated by the Monetary Authority of Singapore (MAS).',
+        'FeeOptima is an independent rate- and fee-benchmarking service. It is not a bank, a financial adviser, or a Capital Markets Services licence holder, and it is not licensed or regulated by the Monetary Authority of Singapore (MAS).',
       ],
     },
     {
@@ -241,7 +241,7 @@ const DISCLAIMER = {
     {
       h: '6. No liability for your decisions',
       p: [
-        'You are responsible for any decision you make. To the maximum extent permitted by law, BankBenchmark.sg accepts no liability for any loss arising from reliance on information shown on the Service. See our Terms & Conditions for the full limitation of liability.',
+        'You are responsible for any decision you make. To the maximum extent permitted by law, FeeOptima accepts no liability for any loss arising from reliance on information shown on the Service. See our Terms & Conditions for the full limitation of liability.',
       ],
     },
   ],
@@ -282,7 +282,7 @@ export default function LegalPage({ doc }) {
     <>
       <header className="legal__topbar">
         <div className="container legal__topbar-inner">
-          <a href="#top" className="legal__brand">Bank<span>Benchmark</span>.sg</a>
+          <a href="#top" className="legal__brand"><span>Fee</span>Optima</a>
           <a href="#top" className="legal__back">← Back to home</a>
         </div>
       </header>
@@ -323,7 +323,7 @@ export default function LegalPage({ doc }) {
 
           {doc !== 'disclaimer' && (
             <p className="legal__disclaimer">
-              <strong>Regulatory note.</strong> BankBenchmark.sg is an independent rate- and fee-benchmarking
+              <strong>Regulatory note.</strong> FeeOptima is an independent rate- and fee-benchmarking
               service. It is not a bank, a financial adviser, or a Capital Markets Services licence holder,
               and is not licensed or regulated by the Monetary Authority of Singapore (MAS). Nothing here is
               financial, legal, or tax advice. Benchmarks are indicative and illustrative; bank names and logos

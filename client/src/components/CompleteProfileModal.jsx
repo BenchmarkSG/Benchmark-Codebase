@@ -79,7 +79,7 @@ export default function CompleteProfileModal() {
       <div className="auth__card" ref={cardRef}>
         <button className="auth__close" onClick={dismiss} aria-label="Close">×</button>
 
-        <div className="auth__brand">Bank<span>Benchmark</span>.sg</div>
+        <div className="auth__brand"><span>Fee</span>Optima</div>
         <h2 className="auth__title">Complete your profile</h2>
         <p className="auth__sub">
           A couple more details so we can tailor your benchmarks and reach you on WhatsApp.
