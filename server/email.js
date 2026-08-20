@@ -15,9 +15,18 @@
 //   EMAIL_FROM         from address, e.g. 'FeeOptima <hello@feeoptima.com>'
 //   INTERNAL_TASK_KEY  shared secret guarding /api/internal/notify
 
+import { ZERO_DECIMAL } from './payments.js';
+
 const KEY = process.env.RESEND_API_KEY || '';
 const FROM = process.env.EMAIL_FROM || 'FeeOptima <hello@feeoptima.com>';
 export const isEmailConfigured = !!KEY;
+
+// HTML-escape anything user-influenced before it is interpolated into email
+// markup (name, product, whenText travel via client → Stripe metadata → here;
+// unescaped they'd let a payer send attacker HTML from our branded address).
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+));
 
 // Send one email. Never throws — returns { ok } so callers can fire-and-forget.
 export async function sendMail({ to, subject, html, text }) {
@@ -47,8 +56,6 @@ const TIER_LABEL = {
   call: 'negotiation coaching call',
   expert: 'expert-led negotiation',
 };
-const ZERO_DECIMAL = new Set(['bif', 'clp', 'djf', 'gnf', 'jpy', 'kmf', 'krw', 'mga', 'pyg', 'rwf', 'ugx', 'vnd', 'vuv', 'xaf', 'xof', 'xpf']);
-
 function money(amount, currency) {
   if (amount == null) return '';
   const cur = String(currency || 'sgd').toUpperCase();
@@ -80,29 +87,30 @@ function shell(heading, bodyHtml) {
 export function confirmationEmail({ tier, name, amountTotal, currency, product }) {
   const label = TIER_LABEL[tier] || 'order';
   const amt = money(amountTotal, currency);
-  const hi = name ? `Hi ${name},` : 'Hi,';
-  const line = tier === 'reveal'
-    ? `Your best-match bank is unlocked${product ? ` for your ${product}` : ''}. Head back to ${BRAND} to see it, grab your shareable certificate, and draft your negotiation email — free.`
-    : `Thanks for booking your ${label}${product ? ` for your ${product}` : ''}. You'll choose a time next, and the calendar invite arrives by email.`;
-  const html = shell(`${cap(label)} confirmed`, `<p>${hi}</p><p>${line}</p>${amt ? `<p style="margin-top:14px"><strong>Amount:</strong> ${amt}</p>` : ''}<p style="margin-top:14px">Not satisfied? Just reply — full refund, no questions.</p>`);
-  const text = `${hi}\n\n${line}\n${amt ? `\nAmount: ${amt}\n` : ''}\nNot satisfied? Reply for a full refund.\n\n— ${BRAND}`;
+  // Build each line twice: escaped values for HTML, raw for plain text.
+  const hi = (n) => (n ? `Hi ${n},` : 'Hi,');
+  const line = (p) => (tier === 'reveal'
+    ? `Your best-match bank is unlocked${p ? ` for your ${p}` : ''}. Head back to ${BRAND} to see it, grab your shareable certificate, and draft your negotiation email — free.`
+    : `Thanks for booking your ${label}${p ? ` for your ${p}` : ''}. You'll choose a time next, and the calendar invite arrives by email.`);
+  const html = shell(`${cap(label)} confirmed`, `<p>${hi(name && esc(name))}</p><p>${line(product && esc(product))}</p>${amt ? `<p style="margin-top:14px"><strong>Amount:</strong> ${amt}</p>` : ''}<p style="margin-top:14px">Not satisfied? Just reply — full refund, no questions.</p>`);
+  const text = `${hi(name)}\n\n${line(product)}\n${amt ? `\nAmount: ${amt}\n` : ''}\nNot satisfied? Reply for a full refund.\n\n— ${BRAND}`;
   return { subject: `Your ${BRAND} ${label} is confirmed`, html, text };
 }
 
 export function reminderEmail({ name, kind, whenText }) {
   const label = TIER_LABEL[kind] || 'session';
-  const hi = name ? `Hi ${name},` : 'Hi,';
-  const line = `A quick reminder about your ${label}${whenText ? ` on ${whenText}` : ' coming up soon'}. Have your latest statement handy so we can move fast on the numbers.`;
-  const html = shell('See you soon', `<p>${hi}</p><p>${line}</p>`);
-  const text = `${hi}\n\n${line}\n\n— ${BRAND}`;
+  const hi = (n) => (n ? `Hi ${n},` : 'Hi,');
+  const line = (w) => `A quick reminder about your ${label}${w ? ` on ${w}` : ' coming up soon'}. Have your latest statement handy so we can move fast on the numbers.`;
+  const html = shell('See you soon', `<p>${hi(name && esc(name))}</p><p>${line(whenText && esc(whenText))}</p>`);
+  const text = `${hi(name)}\n\n${line(whenText)}\n\n— ${BRAND}`;
   return { subject: `Reminder: your ${BRAND} ${label} is coming up`, html, text };
 }
 
 export function feedbackEmail({ name, product }) {
-  const hi = name ? `Hi ${name},` : 'Hi,';
-  const line = `We'd love to hear how your negotiation${product ? ` on your ${product}` : ''} went — and how much you ended up saving. Just reply to this email; it helps us sharpen the benchmarks for everyone.`;
-  const html = shell('How did it go?', `<p>${hi}</p><p>${line}</p>`);
-  const text = `${hi}\n\n${line}\n\n— ${BRAND}`;
+  const hi = (n) => (n ? `Hi ${n},` : 'Hi,');
+  const line = (p) => `We'd love to hear how your negotiation${p ? ` on your ${p}` : ''} went — and how much you ended up saving. Just reply to this email; it helps us sharpen the benchmarks for everyone.`;
+  const html = shell('How did it go?', `<p>${hi(name && esc(name))}</p><p>${line(product && esc(product))}</p>`);
+  const text = `${hi(name)}\n\n${line(product)}\n\n— ${BRAND}`;
   return { subject: 'How did it go? Tell us what you saved', html, text };
 }
 

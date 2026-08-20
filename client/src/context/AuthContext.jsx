@@ -20,6 +20,17 @@ export function AuthProvider({ children }) {
       setSession(s ?? null);
       // Fired when the browser opens a Supabase reset-password link.
       if (event === 'PASSWORD_RECOVERY') setRecovery(true);
+      // Back from an OAuth redirect: restore the hash route the user signed in
+      // from (e.g. #dashboard) — the provider round-trip lands on the bare origin.
+      if (event === 'SIGNED_IN') {
+        try {
+          const h = sessionStorage.getItem('bb_return_hash');
+          if (h) {
+            sessionStorage.removeItem('bb_return_hash');
+            if (window.location.hash !== h) window.location.hash = h;
+          }
+        } catch { /* ignore */ }
+      }
     });
     return () => sub.subscription.unsubscribe();
   }, []);
@@ -52,10 +63,35 @@ export function AuthProvider({ children }) {
   );
 
   const signInWithProvider = useCallback(
-    (provider) =>
-      supabase.auth.signInWithOAuth({
+    (provider) => {
+      // OAuth reloads the page at the bare origin, dropping the hash route (e.g.
+      // the #dashboard gate the user was signing in from). Stash it; the auth
+      // listener below restores it after SIGNED_IN.
+      try {
+        const h = window.location.hash;
+        if (h && !h.includes('access_token')) sessionStorage.setItem('bb_return_hash', h);
+      } catch { /* ignore */ }
+      return supabase.auth.signInWithOAuth({
         provider,
         options: { redirectTo },
+      });
+    },
+    [redirectTo]
+  );
+
+  // Passwordless: create the account (if it doesn't exist yet) from just an email
+  // + name and send a magic sign-in link. Used by the reveal flow so a first-time
+  // user never hits a sign-in screen — they enter name + email, pay, and this
+  // email becomes their login. No password, and (crucially) no service-role key.
+  const signInWithOtp = useCallback(
+    (email, profile = {}) =>
+      supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo: redirectTo,
+          data: { full_name: profile.full_name },
+        },
       }),
     [redirectTo]
   );
@@ -85,6 +121,7 @@ export function AuthProvider({ children }) {
       recovery,
       signInWithEmail,
       signUpWithEmail,
+      signInWithOtp,
       signInWithGoogle: () => signInWithProvider('google'),
       signInWithApple: () => signInWithProvider('apple'),
       resetPassword,
@@ -92,7 +129,7 @@ export function AuthProvider({ children }) {
       clearRecovery,
       signOut,
     }),
-    [loading, session, recovery, signInWithEmail, signUpWithEmail, signInWithProvider, resetPassword, updatePassword, clearRecovery, signOut]
+    [loading, session, recovery, signInWithEmail, signUpWithEmail, signInWithOtp, signInWithProvider, resetPassword, updatePassword, clearRecovery, signOut]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

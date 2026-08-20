@@ -106,7 +106,7 @@ function Field({ field, value, onChange, ccyOptions, bankOptions, required, inva
   );
 }
 
-export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, compact = false, selection = null, onRequireAuth }) {
+export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, compact = false, selection = null, onRequireAuth, onMarketChange }) {
   const { user } = useAuth();
   const [ref, setRef] = useState(null);
   const [error, setError] = useState(null);
@@ -118,6 +118,8 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
   const [loading, setLoading] = useState(false);
   const [saveState, setSaveState] = useState('idle'); // idle | saving | saved | error
   const [savedId, setSavedId] = useState(null); // id of this result's saved-benchmark row (once saved)
+  const [leadName, setLeadName] = useState(''); // name captured inline for the reveal → becomes their account
+  const [leadEmail, setLeadEmail] = useState(''); // email captured inline for the reveal → becomes their login
   const [banks, setBanks] = useState([]); // provider directory for the chosen country
   const [back, setBack] = useState(false); // true after "Recalculate" → animate the form back in
   const [invalid, setInvalid] = useState({}); // { fieldKey: true } for blank required fields
@@ -126,6 +128,13 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
   useEffect(() => {
     getReference().then(setRef).catch(() => setError('Could not load reference data.'));
   }, []);
+
+  // Pre-fill the reveal's name/email from the signed-in user (still editable).
+  useEffect(() => {
+    if (user?.email) setLeadEmail((e) => e || user.email);
+    const n = user?.user_metadata?.full_name;
+    if (n) setLeadName((x) => x || n);
+  }, [user]);
 
   // Load the provider directory for the selected market (falls back to the SG
   // logo list if the banks table isn't seeded).
@@ -179,6 +188,7 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
 
   function changeCountry(code) {
     setCountry(code);
+    onMarketChange?.(code); // keep the partner-logo marquee in sync with the market
     if (!product) return;
     const nextLocal = countries.find((c) => c.code === code)?.currency || 'SGD';
     const opts = ccyList(product, nextLocal, allCcys);
@@ -221,7 +231,9 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
 
   async function saveCurrent() {
     if (!result || !product) return;
-    if (!user) { onRequireAuth?.(); return; }
+    // Not signed in: stash the row so an OAuth / email-confirm reload still
+    // lands this benchmark in their dashboard instead of losing the result.
+    if (!user) { onRequireAuth?.({ kind: 'save', saveRow: currentSaveRow() }); return; }
     setSaveState('saving');
     try {
       const row = await saveBenchmark(currentSaveRow());
@@ -236,14 +248,29 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
   // it can persist this benchmark (as 'revealed') to the dashboard — reusing the
   // existing saved row if the user already hit "Save".
   function revealCurrent() {
-    if (!result || !product) return;
-    onReveal?.({
+    if (!result || !product) return undefined;
+    return onReveal?.({
       ...result,
       currency: result.currency || localCcy,
       segment,
       benchmarkId: savedId || undefined,
       saveRow: currentSaveRow(),
+      email: leadEmail.trim(),   // billed + becomes their account/login
+      name: leadName.trim(),
     });
+  }
+
+  // "Ahead of the market" cross-sell: there's no better bank to reveal, so instead
+  // of charging for a useless reveal, jump to the next product in this segment —
+  // where the user may actually be overpaying and the reveal has real value.
+  // Falls back to re-showing the form for the same product.
+  function crossSellNext() {
+    const list = segmentProducts;
+    const idx = list.findIndex((p) => p.id === productId);
+    const next = list.length > 1 ? list[(idx + 1) % list.length] : null;
+    if (next && next.id !== productId) selectProduct(next.id);
+    else setResult(null);
+    setBack(true);
   }
 
   async function compute(e) {
@@ -293,12 +320,12 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
           !result && (
             <div className="calc-card__head">
               <h2 className="calc-card__title">Calculate Your Free Comparison</h2>
-              <p className="calc-card__sub">Live rates · no sign-up · no data stored</p>
+              <p className="calc-card__sub">Live rates · no sign-up · no personal data stored</p>
             </div>
           )
         ) : (
           <>
-            <span className="eyebrow calc-sec__eyebrow">Free Benchmark · No sign-up · No data stored</span>
+            <span className="eyebrow calc-sec__eyebrow">Free Benchmark · No sign-up · No personal data stored</span>
             <h2 className="section-title">Start Your Free Comparison Now</h2>
             <p className="section-sub">
               Pick a market and product, enter your details — it benchmarks against live data instantly.
@@ -363,6 +390,8 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
               {!result ? <Placeholder /> : (
                 <Result result={result} product={product} compact={compact} localCcy={localCcy}
                   onReveal={revealCurrent}
+                  onCrossSell={crossSellNext} canCrossSell={segmentProducts.length > 1}
+                  leadName={leadName} leadEmail={leadEmail} onLeadName={setLeadName} onLeadEmail={setLeadEmail}
                   onDetailedFeedback={() => onDetailedFeedback({ ...result, currency: result.currency || localCcy, segment })}
                   onBack={() => { setResult(null); setBack(true); }}
                   isAuthed={!!user} saveState={saveState} onSave={saveCurrent} />
@@ -382,7 +411,26 @@ function standingText(result) {
   return `better than ${result.percentileBeaten}% of the ${result.poolSize} providers we benchmark`;
 }
 
-function Result({ result, product, compact, localCcy, onReveal, onDetailedFeedback, onBack, isAuthed, saveState, onSave }) {
+function Result({ result, product, compact, localCcy, onReveal, onCrossSell, canCrossSell, leadName, leadEmail, onLeadName, onLeadEmail, onDetailedFeedback, onBack, isAuthed, saveState, onSave }) {
+  const [leadErr, setLeadErr] = useState('');
+  const [revealBusy, setRevealBusy] = useState(false);
+  const nameOk = (leadName || '').trim().length >= 2;
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((leadEmail || '').trim());
+  // Validate the inline name/email before we send them to Stripe (this email
+  // becomes their account, so we don't want a blank or malformed one).
+  async function handleReveal() {
+    if (!nameOk) { setLeadErr('Please enter your full name.'); return; }
+    if (!emailOk) { setLeadErr('Please enter a valid email address.'); return; }
+    setLeadErr('');
+    setRevealBusy(true);
+    try {
+      await onReveal(); // redirects to Stripe on success (or opens the demo reveal)
+    } catch {
+      setLeadErr('We couldn’t start the secure checkout. Please check your connection and try again.');
+    } finally {
+      setRevealBusy(false);
+    }
+  }
   const ccy = result.currency || localCcy || 'SGD';
   // Localized reveal price (~S$1 in the market currency) for the CTA label.
   const [revealPrice, setRevealPrice] = useState(null);
@@ -445,7 +493,7 @@ function Result({ result, product, compact, localCcy, onReveal, onDetailedFeedba
             {higher
               ? "You're already earning more than the market — "
               : "You're already paying less than the market — "}
-            there's little to nothing to save by switching. Nicely done.
+            little to nothing to save here. But banks often claw it back elsewhere — check your other products below.
           </p>
         </div>
       ) : (
@@ -502,10 +550,39 @@ function Result({ result, product, compact, localCcy, onReveal, onDetailedFeedba
         </div>
       )}
 
-      <button className="btn btn--block res__detail" onClick={onReveal}>
-        {ahead ? `Reveal the Best Available — ${revealLabel} →` : `Reveal the Best Bank — ${revealLabel} →`}
-      </button>
-      <p className="res__reveal-note">🔒 {revealLabel} charged securely · full refund if you’re not satisfied.</p>
+      {ahead ? (
+        /* No better bank to reveal — don't charge for it. Pivot to another product,
+           where they may actually be overpaying (and the reveal earns its fee). */
+        <button className="btn btn--block res__detail" onClick={onCrossSell}>
+          {canCrossSell ? 'Check My Other Products — Free →' : 'Run Another Free Benchmark →'}
+        </button>
+      ) : (
+        <>
+          <div className="res__lead">
+            <label className="res__lead-field">
+              <span>Full name</span>
+              <input
+                type="text" autoComplete="name" placeholder="e.g. Priya Sharma"
+                value={leadName || ''}
+                onChange={(e) => { onLeadName(e.target.value); if (leadErr) setLeadErr(''); }}
+              />
+            </label>
+            <label className="res__lead-field">
+              <span>Email</span>
+              <input
+                type="email" autoComplete="email" inputMode="email" placeholder="you@email.com"
+                value={leadEmail || ''}
+                onChange={(e) => { onLeadEmail(e.target.value); if (leadErr) setLeadErr(''); }}
+              />
+            </label>
+          </div>
+          <button className="btn btn--block res__detail" onClick={handleReveal} disabled={revealBusy}>
+            {revealBusy ? 'Opening secure checkout…' : `Reveal the Best Bank — ${revealLabel} →`}
+          </button>
+          {leadErr && <p className="res__lead-err">{leadErr}</p>}
+          <p className="res__reveal-note">🔒 {revealLabel} charged securely · full refund if you’re not satisfied. No password needed — your email becomes your secure login.</p>
+        </>
+      )}
 
       <button
         className="btn btn--ghost btn--block res__save"
@@ -518,7 +595,7 @@ function Result({ result, product, compact, localCcy, onReveal, onDetailedFeedba
       {!compact && (
         <small className="res__detail-note">
           {ahead
-            ? "Confirm you're optimally placed — and check your other products for savings."
+            ? "You're best-in-class here — most banks claw it back on FX, remittances or loans. Checking your other products is free; save this win to track it."
             : 'Reveal your best-match bank + a shareable certificate, then negotiate — yourself (free), with a coach, or an expert.'}
         </small>
       )}

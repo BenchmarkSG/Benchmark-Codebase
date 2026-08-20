@@ -47,7 +47,9 @@ export default defineConfig({
           },
           {
             // Rate/reference API — prefer fresh data, fall back to cache offline.
-            urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
+            // Payment/session state must NEVER be served stale (a cached "paid"
+            // verdict could unlock content offline), so /api/checkout/* is excluded.
+            urlPattern: ({ url }) => url.pathname.startsWith('/api/') && !url.pathname.startsWith('/api/checkout'),
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api',

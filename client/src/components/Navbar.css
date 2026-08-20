@@ -23,7 +23,6 @@
   text-overflow: ellipsis;
 }
 .nav__brand-accent { color: var(--blue-600); }
-.nav__tld { color: var(--muted); font-weight: 700; }
 
 .nav__links {
   display: flex;

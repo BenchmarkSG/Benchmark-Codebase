@@ -34,7 +34,15 @@ export default function DashboardLayout({ title, eyebrow, tabs, activeTab, onTab
         </div>
       </header>
 
-      {!user ? (
+      {!user && loading ? (
+        /* Session still resolving — don't flash the sign-in gate at signed-in users. */
+        <div className="dash__gate">
+          <div className="dash__gate-card">
+            <div className="dash__gate-icon">⏳</div>
+            <h1>Loading your dashboard…</h1>
+          </div>
+        </div>
+      ) : !user ? (
         <div className="dash__gate">
           <div className="dash__gate-card">
             <div className="dash__gate-icon">🔒</div>
@@ -42,7 +50,7 @@ export default function DashboardLayout({ title, eyebrow, tabs, activeTab, onTab
             <p>
               {configured
                 ? 'Your saved benchmarks, savings and next steps live here.'
-                : 'Sign-in isn’t configured yet — add your Supabase keys to enable dashboards.'}
+                : 'Sign-in is temporarily unavailable. Please try again later.'}
             </p>
             {configured && !loading && (
               <button className="btn btn--primary" onClick={() => setAuthOpen(true)}>Sign in</button>

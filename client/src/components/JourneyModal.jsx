@@ -3,6 +3,7 @@ import './JourneyModal.css';
 import { formatMoney, getReference, createCheckout, getCheckoutSession } from '../api.js';
 import { safeHttpUrl, isStripeCheckoutUrl } from '../lib/safeUrl.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import { supabase, isSupabaseConfigured } from '../lib/supabase.js';
 import { listAdvisorDirectory, createLead, updateBenchmark } from '../lib/dashboardApi.js';
 import Certificate from './Certificate.jsx';
 import { buildCertificateImage } from '../lib/certificateImage.js';
@@ -27,14 +28,14 @@ const TIERS = [
     cta: 'Draft My Email',
   },
   {
-    id: 'call', price: '$99', accent: 'blue',
-    title: 'Reveal the Best Bank & Price and help me negotiate with my bank',
+    id: 'call', price: 'S$99', accent: 'blue',
+    title: 'Help me negotiate with my bank',
     desc: 'A FeeOptima specialist reviews your numbers and coaches you through the call. Fees fully refundable if no savings.',
     cta: 'Book a Call',
   },
   {
-    id: 'expert', price: '$199', accent: 'violet',
-    title: 'Reveal the Best Bank & Price and I need an expert (ex-banker) to negotiate on my behalf',
+    id: 'expert', price: 'S$199', accent: 'violet',
+    title: 'I need an expert (ex-banker) to negotiate on my behalf',
     desc: 'A specialist ex-banker prepares and leads the negotiation with your bank for you. Fee fully refundable if no savings.',
     cta: 'Book an Expert',
   },
@@ -155,7 +156,9 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
   const ahead = context?.status === 'ahead';
   const standing = context?.beatsAll
     ? `all ${context?.poolSize} providers we benchmark`
-    : `${context?.percentileBeaten}% of the providers we benchmark`;
+    : context?.percentileBeaten != null
+      ? `${context.percentileBeaten}% of the providers we benchmark`
+      : 'the market'; // dashboard-saved rows don't carry the percentile fields
   const bank = context?.bestBank || null;
   const productLabel = context?.product || 'banking product';
 
@@ -170,20 +173,34 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
     return pct > 0 ? Math.round(pct * 100) : null;
   })();
 
+  // The signed-in user, resolved directly from Supabase when the React context
+  // hasn't caught up yet. On a Stripe return this modal's effects run before
+  // AuthContext's async getSession() resolves, so the closed-over `user` can be
+  // null even though a session exists — which used to silently drop the booking
+  // and reveal-lead writes for paying customers.
+  const authUser = async () => {
+    if (user) return user;
+    if (!isSupabaseConfigured) return null;
+    try { const { data } = await supabase.auth.getUser(); return data?.user ?? null; }
+    catch { return null; }
+  };
+
   // Persist a confirmed paid call to the user's dashboard. Idempotent per Stripe
   // session so re-renders don't double-insert. advisor_id stays null — a coaching
   // call isn't tied to a specific advisor.
-  const recordCallBooking = (sessionId, session) => {
-    if (!user || bookedRef.current === sessionId) return;
+  const recordCallBooking = async (sessionId) => {
+    if (bookedRef.current === sessionId) return;
     bookedRef.current = sessionId;
+    const u = await authUser();
+    if (!u) { bookedRef.current = null; return; }
     createLead({
       source: 'call',
       segment: context?.segment || 'individual',
       product_label: context?.product || null,
       annual_saving: context?.annualSaving ?? null,
-      full_name: user.user_metadata?.full_name || null,
-      email: user.email || session?.email || null,
-      phone: user.user_metadata?.phone || null,
+      full_name: u.user_metadata?.full_name || null,
+      email: u.email || null,
+      phone: u.user_metadata?.phone || null,
       booked: true,
     }).catch(() => { bookedRef.current = null; }); // allow a retry if the insert failed
   };
@@ -199,15 +216,19 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
     if (unlockRef.current === sig) return;
     unlockRef.current = sig;
     if (bid) updateBenchmark(bid, { stage }).catch(() => {});
-    if (tier === 'reveal' && user) {
-      createLead({
-        source: 'reveal',
-        segment: context?.segment || 'individual',
-        product_label: context?.product || null,
-        annual_saving: context?.annualSaving ?? null,
-        full_name: user.user_metadata?.full_name || null,
-        email: user.email || null,
-        booked: true,
+    if (tier === 'reveal') {
+      // Resolve the user directly — the React `user` can lag on a Stripe return.
+      authUser().then((u) => {
+        if (!u) return;
+        return createLead({
+          source: 'reveal',
+          segment: context?.segment || 'individual',
+          product_label: context?.product || null,
+          annual_saving: context?.annualSaving ?? null,
+          full_name: u.user_metadata?.full_name || null,
+          email: u.email || null,
+          booked: true,
+        });
       }).catch(() => {});
     }
   };
@@ -307,7 +328,7 @@ Kind regards,
             return;
           }
           // Payment confirmed — log the paid call + unlock the source benchmark.
-          if (resume.tier === 'call') recordCallBooking(resume.sessionId, s);
+          if (resume.tier === 'call') recordCallBooking(resume.sessionId);
           applyUnlock(resume.tier);
         });
       }
@@ -380,9 +401,16 @@ Kind regards,
       if (!isStripeCheckoutUrl(url)) throw new Error('Unexpected checkout URL');
       window.location.assign(url);
     } catch {
-      // Stripe not configured / failed → fall back to demo scheduling.
       sessionStorage.removeItem('bb_journey');
-      setPaidTier(tier); setBusy(false);
+      setBusy(false);
+      // With Stripe LIVE, a failed checkout call must never fall through to a
+      // free unlock — that would give the paid product away on a network blip.
+      if (paymentsEnabled) {
+        setPayError('We couldn’t start the secure checkout. Please check your connection and try again.');
+        return;
+      }
+      // Stripe not configured (demo build) → fall back to demo scheduling.
+      setPaidTier(tier);
       applyUnlock(tier); // demo mode has no redirect — mark the benchmark now
     }
   };
@@ -475,6 +503,13 @@ Kind regards,
             The bank is already unlocked here (the ~$1 reveal was paid first). */}
         {view === 'options' && (
           <>
+            {!context && (
+              <div className="jny-note jny-note--warn">
+                Your payment is confirmed, but this tab couldn’t restore your benchmark details
+                (it looks like the session was opened fresh). Find your revealed bank in{' '}
+                <a href="#dashboard">your dashboard</a> — or check your inbox for your sign-in link.
+              </div>
+            )}
             <Certificate segment={segment} product={context?.product} savingPct={savingPct} />
             <h4 className="jny-sectlabel">Your bank is unlocked — how would you like to act on it?</h4>
             <div className="jny-tiers">
@@ -534,7 +569,7 @@ Kind regards,
             {paymentsEnabled && paidTier !== 'call' ? (
               <>
                 <p className="jny-sub__sub">
-                  <span className="jny-pill">$99</span> A FeeOptima specialist reviews your numbers and coaches you through the negotiation.
+                  <span className="jny-pill">S$99</span> A FeeOptima specialist reviews your numbers and coaches you through the negotiation.
                 </p>
                 {!user && (
                   <div className="jny-note jny-note--warn">
@@ -542,14 +577,14 @@ Kind regards,
                   </div>
                 )}
                 <button className="btn btn--primary jny-pay" disabled={busy} onClick={() => pay('call')}>
-                  {!user ? 'Sign in to book your call →' : busy ? 'Redirecting to secure checkout…' : 'Pay $99 & pick a time →'}
+                  {!user ? 'Sign in to book your call →' : busy ? 'Redirecting to secure checkout…' : 'Pay S$99 & pick a time →'}
                 </button>
                 <p className="jny-note">🔒 Secure payment via Stripe. You'll choose your slot right after.</p>
               </>
             ) : (
               <>
                 {paidTier === 'call' && <div className="jny-note jny-note--ok">✓ Payment received — pick a time below.</div>}
-                <p className="jny-sub__sub"><span className="jny-pill">$99</span> A FeeOptima specialist coaches you through the negotiation.</p>
+                <p className="jny-sub__sub"><span className="jny-pill">S$99</span> A FeeOptima specialist coaches you through the negotiation.</p>
                 <Scheduler url={CALENDLY_URL} prefill={bookingPrefill} note="You and the specialist both receive the calendar invite from Calendly." />
               </>
             )}
@@ -566,7 +601,7 @@ Kind regards,
             {!expert ? (
               <>
                 <h4 className="jny-sub__title">Find an expert · select one</h4>
-                <p className="jny-sub__sub"><span className="jny-pill">$199</span> An expert prepares and leads the negotiation for you.</p>
+                <p className="jny-sub__sub"><span className="jny-pill">S$199</span> An expert prepares and leads the negotiation for you.</p>
                 <div className="jny-experts">
                   {experts.map((x) => (
                     <div className="jny-expert" key={x.id}>
@@ -592,8 +627,14 @@ Kind regards,
               </>
             ) : (
               <>
-                <h4 className="jny-sub__title">Book with {expert.name}</h4>
+                <h4 className="jny-sub__title">{expert.real ? `Book with ${expert.name}` : 'Get matched with an expert'}</h4>
                 <p className="jny-sub__sub">{expert.role}{expert.company ? ` · ${expert.company}` : ''}{expert.years ? ` · ${expert.years} yrs experience` : ''}</p>
+                {!expert.real && (
+                  <div className="jny-note">
+                    {expert.name} is an example profile. You'll be matched with a verified
+                    specialist with this expertise — never charged for a specific person you haven't confirmed.
+                  </div>
+                )}
                 {payError && <div className="jny-note jny-note--warn">{payError}</div>}
 
                 {expert.real && !user && (
@@ -610,16 +651,16 @@ Kind regards,
 
                 {paymentsEnabled && paidTier !== 'expert' ? (
                   <>
-                    <p className="jny-sub__sub"><span className="jny-pill">$199</span> {expert.name.split(' ')[0]} prepares and leads the negotiation. Pay to confirm and schedule.</p>
-                    <button className="btn btn--primary jny-pay" disabled={busy} onClick={() => pay('expert', expert)}>
-                      {!user ? 'Sign in to book →' : busy ? 'Redirecting to secure checkout…' : `Pay $199 & book ${expert.name.split(' ')[0]} →`}
+                    <p className="jny-sub__sub"><span className="jny-pill">S$199</span> {expert.real ? `${expert.name.split(' ')[0]} prepares and leads the negotiation. Pay to confirm and schedule.` : 'Your matched expert prepares and leads the negotiation. Fully refundable if no savings.'}</p>
+                    <button className="btn btn--primary jny-pay" disabled={busy} onClick={() => pay('expert', expert.real ? expert : null)}>
+                      {!user ? 'Sign in to book →' : busy ? 'Redirecting to secure checkout…' : expert.real ? `Pay S$199 & book ${expert.name.split(' ')[0]} →` : 'Pay S$199 & get matched →'}
                     </button>
                     <p className="jny-note">🔒 Secure payment via Stripe. You'll choose your slot right after.</p>
                   </>
                 ) : (
                   <>
                     {paidTier === 'expert' && <div className="jny-note jny-note--ok">✓ Payment received — pick a time below.</div>}
-                    <Scheduler url={expert.calendly_url || CALENDLY_URL} prefill={bookingPrefill} note={`${expert.name} and you both receive the calendar invite from Calendly.`} />
+                    <Scheduler url={(expert.real && expert.calendly_url) || CALENDLY_URL} prefill={bookingPrefill} note={expert.real ? `${expert.name} and you both receive the calendar invite from Calendly.` : 'Your matched expert and you both receive the calendar invite from Calendly.'} />
                   </>
                 )}
               </>

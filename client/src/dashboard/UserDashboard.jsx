@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import './userDashboard.css';
 import DashboardLayout from './DashboardLayout.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
-import { formatMoney, getReference, createCheckout } from '../api.js';
+import { formatMoney, getReference, createCheckout, getRevealPrice } from '../api.js';
 import { listBenchmarks, updateBenchmark, deleteBenchmark, listMyLeads } from '../lib/dashboardApi.js';
 import { isStripeCheckoutUrl } from '../lib/safeUrl.js';
 import { useConfirm } from '../components/ConfirmProvider.jsx';
@@ -23,6 +23,25 @@ const TIER_META = {
   negotiated: { icon: '✅', label: 'Negotiated',      view: null,      tier: null,     manage: null },
 };
 const isUnlocked = (r) => !!r.stage && r.stage !== 'new';
+
+// Localized ~S$1 reveal price label ("S$1", "₹75", …), cached per currency so a
+// dashboard of many rows fetches each market's price once.
+const priceCache = {};
+function RevealPriceLabel({ currency }) {
+  const ccy = (currency || 'SGD').toUpperCase();
+  const [label, setLabel] = useState(priceCache[ccy] || null);
+  useEffect(() => {
+    if (priceCache[ccy]) { setLabel(priceCache[ccy]); return; }
+    let on = true;
+    getRevealPrice(ccy).then((p) => {
+      const l = p ? formatMoney(p.major, p.currency?.toUpperCase() || ccy) : formatMoney(1, 'SGD');
+      priceCache[ccy] = l;
+      if (on) setLabel(l);
+    });
+    return () => { on = false; };
+  }, [ccy]);
+  return label || '~S$1';
+}
 
 const LOAN_IDS = new Set(['housing_loan', 'personal_loan', 'vehicle_loan']);
 const FX_IDS = new Set(['cross_border']);
@@ -135,7 +154,7 @@ export default function UserDashboard() {
   });
   const openJourney = (r, resume) => setJourney({ ctx: contextFromBenchmark(r), resume });
   const openTier = (r, view) => openJourney(r, { afterAuth: true, view });               // buy a tier
-  const openManage = (r) => { const tv = TIER_META[r.stage]; openJourney(r, { afterAuth: true, view: tv.view, unlockedTier: tv.tier }); };
+  const openManage = (r) => { const tv = TIER_META[r.stage] || {}; openJourney(r, { afterAuth: true, view: tv.view || 'options', unlockedTier: tv.tier || null }); };
   const openOptions = (r) => openJourney(r, { afterAuth: true, view: 'options' });        // compare / upgrade
   const closeJourney = () => { setJourney(null); load(); };
 
@@ -152,8 +171,15 @@ export default function UserDashboard() {
       });
       if (!isStripeCheckoutUrl(url)) throw new Error('Unexpected checkout URL');
       window.location.assign(url);
-    } catch {
+    } catch (err) {
       sessionStorage.removeItem('bb_journey');
+      // Only unlock for free when Stripe genuinely isn't configured — a network
+      // blip must not give the paid reveal away.
+      if (!/not configured/i.test(err?.message || '')) {
+        setFlash('We couldn’t start the secure checkout — please try again.');
+        setTimeout(() => setFlash(''), 3500);
+        return;
+      }
       setStage(r, 'revealed'); // demo: unlock locally + persist
       openJourney({ ...r, stage: 'revealed' }, { tier: 'reveal', demo: true });
     }
@@ -327,15 +353,20 @@ export default function UserDashboard() {
                 </label>
               ) : isUnlocked(r) ? (
                 <div className="ubm__manage">
-                  <button className="ubm__act ubm__act--primary" onClick={() => openManage(r)}>{TIER_META[r.stage].manage} →</button>
+                  <button className="ubm__act ubm__act--primary" onClick={() => openManage(r)}>{TIER_META[r.stage]?.manage || 'View'} →</button>
                   <button className="ubm__act" onClick={() => openOptions(r)}>Upgrade options</button>
                   <button className="ubm__act ubm__act--done" onClick={() => setStage(r, 'negotiated')}>Mark as negotiated</button>
+                </div>
+              ) : r.result_status === 'ahead' ? (
+                /* Already beating the market — there is no better bank to sell them. */
+                <div className="ubm__options">
+                  <span className="ubm__options-label">🎉 You're ahead of the market on this one — nothing to switch to. Benchmark your other products for savings.</span>
                 </div>
               ) : (
                 <div className="ubm__options">
                   <span className="ubm__options-label">Reveal your best-match bank to act on it:</span>
                   <button className="ubm__act ubm__act--primary ubm__reveal" onClick={() => revealBank(r)}>
-                    🔓 Reveal the Best Bank — $1 →
+                    🔓 Reveal the Best Bank — <RevealPriceLabel currency={r.currency} /> →
                   </button>
                   <span className="ubm__options-hint">Then negotiate yourself (free), with a coach, or an expert · full refund if not satisfied.</span>
                 </div>

@@ -10,7 +10,8 @@ import { ConfirmProvider } from './components/ConfirmProvider.jsx';
    render the legal pages, everything else the marketing site. Hash routing needs
    no server/Vercel rewrite config. */
 function useHashRoute() {
-  const read = () => window.location.hash.replace(/^#\/?/, '');
+  // Strip the leading '#'/'#/' and any trailing '/' so '#dashboard/' still routes.
+  const read = () => window.location.hash.replace(/^#\/?/, '').replace(/\/+$/, '');
   const [hash, setHash] = useState(read);
   useEffect(() => {
     const on = () => setHash(read());

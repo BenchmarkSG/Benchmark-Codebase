@@ -44,7 +44,8 @@ export function Products({ onCompare }) {
   );
 }
 
-/* -------- Real savings our users are seeing -------- */
+/* -------- Savings scenarios (illustrative — swap in real, consented case
+   studies as they land) -------- */
 const SAVINGS = [
   {
     tint: 'blue', icon: '🚢', tag: 'Shipping / Logistics SME',
@@ -72,7 +73,8 @@ export function RealSavings() {
   return (
     <section className="section section--blue savings" id="savings">
       <div className="container">
-        <h2 className="section-title">Real Savings Our Users Are Seeing</h2>
+        <h2 className="section-title">The Savings on the Table</h2>
+        <p className="section-sub savings__sub">Illustrative scenarios based on the gaps our benchmarks routinely uncover.</p>
       </div>
 
       <div className="marquee savings__marquee" aria-label="Real savings carousel">
@@ -94,7 +96,7 @@ export function RealSavings() {
         </div>
       </div>
 
-      <p className="savings__foot container">🛡️ Anonymous real user data + expert benchmarks.</p>
+      <p className="savings__foot container">🛡️ Built on anonymised market data + expert benchmarks. Examples are illustrative.</p>
     </section>
   );
 }
@@ -233,7 +235,8 @@ const Stars = () => (
 export function Testimonials() {
   return (
     <div className="tst">
-      <h2 className="section-title tst__title">Trusted by Businesses &amp; Professionals</h2>
+      <h2 className="section-title tst__title">Built for Businesses &amp; Professionals</h2>
+      <p className="section-sub tst__sub">Illustrative scenarios showing how people use their benchmark — real reviews will appear here as they come in.</p>
       <div className="tst__list">
         {TESTIMONIALS.map((t, i) => (
           <article className="tst__card" key={t.quote}>
@@ -273,10 +276,6 @@ export function Founding({ onBecomeMember }) {
           </div>
         ))}
       </div>
-      <div className="founding__bar">
-        <div className="founding__bar-label">Limited advisor spots remaining</div>
-        <div className="founding__bar-track"><div className="founding__bar-fill" /></div>
-      </div>
       <button className="btn btn--red btn--block founding__cta" onClick={onBecomeMember}>
         Claim Your Founding Advisor Spot
       </button>
@@ -288,15 +287,15 @@ export function Founding({ onBecomeMember }) {
 const FAQS = [
   {
     q: 'Is it really free?',
-    a: 'Yes — benchmarking your rates, fees and FX margins is completely free with no sign-up. You only ever pay a share of the savings if you choose our negotiator to renegotiate on your behalf. No savings, no fee.',
+    a: 'Benchmarking your rates, fees and FX margins is completely free with no sign-up. Revealing your best-match bank costs about S$1 (charged in your local currency) — and drafting your negotiation email is then included. If you want hands-on help, a coaching call is S$99 and an expert-led negotiation is S$199, both fully refundable if we don’t find you savings.',
   },
   {
     q: 'Do you store my bank statements or personal data?',
     a: 'No. We don’t keep personal or account-identifying data. When you paste or upload transaction data we process it to benchmark and keep only anonymised metrics (fees, margins, volumes). Please mask beneficiary names and references before sharing.',
   },
   {
-    q: 'How does the negotiator work?',
-    a: 'Our Negotiation Concierge contacts your bank armed with your specific benchmarking data. It’s a success-fee model with zero upfront cost — you only pay a percentage of the first-year savings we actually deliver.',
+    q: 'How does the expert negotiation work?',
+    a: 'An ex-banker contacts your bank armed with your specific benchmarking data and negotiates on your behalf. The S$199 fee is fully refundable if no savings are delivered — so there’s no risk in trying.',
   },
 ];
 
@@ -329,19 +328,18 @@ export function FAQ() {
 }
 
 /* -------- Final CTA banner -------- */
-export function FinalCTA({ onGetStarted, onConnect }) {
+export function FinalCTA({ onGetStarted }) {
   return (
     <section className="finalcta">
       <div className="container finalcta__inner">
         <h2 className="finalcta__title">Don't Let Your Bank Keep Overcharging</h2>
         <p className="finalcta__sub">Compare free today and discover how much you could be saving.</p>
         <p className="finalcta__note">
-          And you don't have to negotiate alone — our Negotiation Concierge contacts your bank
-          on your behalf, armed with your specific benchmarking data. You only pay if we deliver savings.
+          And you don't have to negotiate alone — an ex-banker can contact your bank on your
+          behalf, armed with your specific benchmarking data. Fully refundable if we don't find you savings.
         </p>
         <div className="finalcta__actions">
           <button className="btn finalcta__btn" onClick={onGetStarted}>{CTA_PRIMARY} →</button>
-          <button className="btn finalcta__btn-alt" onClick={onConnect}>Book a Call →</button>
         </div>
       </div>
     </section>
@@ -349,30 +347,10 @@ export function FinalCTA({ onGetStarted, onConnect }) {
 }
 
 /* -------- Footer -------- */
-// Social profiles. Swap the `href` values for our real profile URLs when ready
-// (they currently point at each platform's homepage).
-const SOCIALS = [
-  {
-    label: 'Facebook', href: 'https://www.facebook.com',
-    icon: <path d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0 0 22 12Z" />,
-  },
-  {
-    label: 'Instagram', href: 'https://www.instagram.com',
-    icon: <><rect x="2.5" y="2.5" width="19" height="19" rx="5.5" fill="none" stroke="currentColor" strokeWidth="1.8" /><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" strokeWidth="1.8" /><circle cx="17.4" cy="6.6" r="1.3" /></>,
-  },
-  {
-    label: 'Twitter', href: 'https://twitter.com',
-    icon: <path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.22-6.82-5.96 6.82H1.66l7.73-8.84L1.24 2.25H8.07l4.71 6.23 5.46-6.23Zm-1.16 17.52h1.83L7.01 4.13H5.05l12.03 15.64Z" />,
-  },
-  {
-    label: 'LinkedIn', href: 'https://www.linkedin.com',
-    icon: <path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28ZM5.34 7.43a2.07 2.07 0 1 1 0-4.14 2.07 2.07 0 0 1 0 4.14ZM7.12 20.45H3.55V9h3.57v11.45ZM22.22 0H1.77C.79 0 0 .77 0 1.72v20.55C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.72C24 .77 23.2 0 22.22 0Z" />,
-  },
-  {
-    label: 'TikTok', href: 'https://www.tiktok.com',
-    icon: <path d="M16.6 5.82a4.28 4.28 0 0 1-1.06-2.82h-3.3v13.05a2.59 2.59 0 0 1-2.59 2.5 2.59 2.59 0 1 1 .77-5.06V9.9a5.9 5.9 0 1 0 5.11 5.84V9.01a7.55 7.55 0 0 0 4.41 1.41V7.13a4.28 4.28 0 0 1-3.34-1.31Z" />,
-  },
-];
+// Social profiles. Add entries with our REAL profile URLs when the accounts
+// exist — icons for platforms we're not on yet must not ship (placeholder links
+// to platform homepages read as broken). Shape: { label, href, icon }.
+const SOCIALS = [];
 
 export function Footer() {
   return (
@@ -381,14 +359,16 @@ export function Footer() {
         <div>
           <div className="footer__brand"><span>Fee</span>Optima</div>
           <p>Independent bank benchmarking for individuals, SMEs and corporates across Singapore & SEA.</p>
-          <div className="footer__social" aria-label="Follow us">
-            {SOCIALS.map((s) => (
-              <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer"
-                 aria-label={s.label} title={s.label}>
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">{s.icon}</svg>
-              </a>
-            ))}
-          </div>
+          {SOCIALS.length > 0 && (
+            <div className="footer__social" aria-label="Follow us">
+              {SOCIALS.map((s) => (
+                <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer"
+                   aria-label={s.label} title={s.label}>
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">{s.icon}</svg>
+                </a>
+              ))}
+            </div>
+          )}
         </div>
         <div>
           <h4>Product</h4>
@@ -396,7 +376,7 @@ export function Footer() {
         </div>
         <div>
           <h4>Company</h4>
-          <a href="#top">About</a><a href="#partners">Partners</a><a href="#top">Careers</a>
+          <a href="#partners">Banks we track</a><a href="#faq">FAQ</a>
         </div>
         <div>
           <h4>Legal</h4>
@@ -418,7 +398,7 @@ export function Footer() {
       </p>
 
       <div className="container footer__bottom">
-        <span>© {new Date().getFullYear()} FeeOptima — Prototype. Figures are illustrative.</span>
+        <span>© {new Date().getFullYear()} FeeOptima. Figures are illustrative.</span>
         <span className="footer__tagline">Don't let your bank keep the difference.</span>
       </div>
     </footer>

@@ -11,10 +11,17 @@ import * as fxModule from './fx.js';
 import * as payments from './payments.js';
 import * as email from './email.js';
 
-// Session ids we've already emailed a confirmation for — best-effort in-process
-// dedupe so the client re-verifying a session doesn't re-send (a stub; a durable
-// store / idempotency key would replace this in production).
+// Session ids we've already emailed a confirmation for. Fast-path per-process
+// guard only — the durable flag lives on the Stripe session itself
+// (metadata.email_sent, see payments.markEmailSent), so serverless cold starts
+// don't re-send.
 const emailedSessions = new Set();
+
+// Free-text fields the client sends along to Stripe metadata (and from there
+// into transactional emails). Clamp + strip HTML-significant chars so a payer
+// can't smuggle markup into an official email.
+const cleanMeta = (v, max = 80) =>
+  String(v ?? '').replace(/[<>"'&]/g, '').slice(0, max).trim() || '';
 
 // Wrap an async handler so rejected promises become clean 5xx responses.
 // The raw error is logged server-side only; the client gets a generic message
@@ -44,6 +51,11 @@ const SG_FALLBACK = { code: 'SG', name: 'Singapore', currency: 'SGD', currency_s
  * fixtures instead of live Supabase / network calls.
  */
 export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
+  // Checkout needs a trusted redirect base: without PUBLIC_BASE_URL (or an
+  // allow-listed Origin) every /api/checkout call fails closed with a 502.
+  if (process.env.NODE_ENV === 'production' && payments.isPaymentsConfigured && !publicBase && !configuredOrigins.length) {
+    console.warn('[boot] PUBLIC_BASE_URL / ALLOWED_ORIGINS not set — checkout will fail. Set them in the deployment env.');
+  }
   const app = express();
   // Behind Vercel's (single-hop) proxy: derive req.ip from X-Forwarded-For so
   // rate limiting keys off the real client and HTTPS is detected correctly.
@@ -89,7 +101,10 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
     // success/cancel base otherwise comes from server-set PUBLIC_BASE_URL.
     const reqOrigin = req.headers.origin || '';
     const origin = reqOrigin && isOriginAllowed(reqOrigin) ? reqOrigin : '';
-    res.json(await payments.createCheckout({ tier, origin, email, advisorId, product, segment, currency }));
+    res.json(await payments.createCheckout({
+      tier, origin, email, currency,
+      advisorId: cleanMeta(advisorId, 40), product: cleanMeta(product), segment: cleanMeta(segment, 20),
+    }));
   }));
 
   // Localized ~S$1 reveal price for display. Needs only FX (not Stripe), so it
@@ -103,16 +118,21 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
     if (!req.query.id) return res.status(400).json({ error: 'Missing session id' });
     const id = String(req.query.id);
     const result = await payments.retrieveCheckout(id);
-    // On the first verified-paid read, fire the purchase confirmation email
-    // (fire-and-forget; never blocks or fails the response).
-    if (result?.paid && result.email && !emailedSessions.has(id)) {
+    // On the first verified-paid read, fire the purchase confirmation email.
+    // Dedupe durably via metadata.email_sent on the Stripe session (survives
+    // serverless cold starts); the Set is just a same-instance fast path.
+    if (result?.paid && result.email && !result.emailSent && !emailedSessions.has(id)) {
       emailedSessions.add(id);
       email.sendConfirmation({
         to: result.email, tier: result.tier, product: result.product,
         amountTotal: result.amountTotal, currency: result.currency,
-      }).catch(() => {});
+      }).then((r) => { if (r?.ok) return payments.markEmailSent(id); })
+        .catch(() => {});
     }
-    res.json(result);
+    // Never echo the payer's email back — anyone holding the session id (it
+    // travels in the success-URL query string) could otherwise read it.
+    const { email: _omit, ...pub } = result || {};
+    res.json(pub);
   }));
 
   // Internal trigger for the REMINDER (before a session) and FEEDBACK (after)
@@ -170,17 +190,6 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
     if (!data) return res.status(503).json({ error: 'Rates DB not configured or no matching data.' });
     res.json(data);
   }));
-
-  // Reveal endpoint — gated in the real product behind lead capture / plan.
-  app.post('/api/reveal', strictLimiter, (req, res) => {
-    const { email } = req.body || {};
-    const ok = typeof email === 'string' && /.+@.+\..+/.test(email);
-    if (!ok) return res.status(400).json({ error: 'A valid email is required to request a reveal.' });
-    res.json({
-      status: 'received',
-      message: 'Request received. In production a specialist would contact you to reveal providers and discuss savings.',
-    });
-  });
 
   // Terminal error handler — catches malformed-JSON parse errors and anything
   // thrown by sync routes. Logs server-side; never returns a stack trace.

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import './PartnerBanks.css';
-import { BANK_LOGOS } from './BankLogos.jsx';
+import { logosForMarket } from './BankLogos.jsx';
 
 /* Renders the local logo image, falling back to the SVG wordmark on load error. */
 function BankLogo({ bank }) {
@@ -17,17 +17,19 @@ function BankLogo({ bank }) {
   );
 }
 
-/* Single-row logo marquee, embedded inside the "Trusted by…" section. */
-export default function PartnerBanks() {
-  // Duplicate the list so the single row loops seamlessly.
-  const loop = [...BANK_LOGOS, ...BANK_LOGOS];
+/* Single-row logo marquee — reflects the market picked in the calculator.
+   Duplicate the list so the single row loops seamlessly. */
+export default function PartnerBanks({ market = 'SG' }) {
+  const logos = logosForMarket(market);
+  const loop = [...logos, ...logos];
 
   return (
     <section className="partners" id="partners">
       <p className="partners__label">Banks &amp; Companies We Track</p>
 
-      <div className="marquee" aria-label="Partner banks carousel">
-        <div className="marquee__track">
+      <div className="marquee" aria-label="Banks we track carousel">
+        {/* key restarts the loop cleanly when the market (and list length) changes */}
+        <div className="marquee__track" key={market}>
           {loop.map((b, i) => (
             <div className="marquee__item" key={`${b.name}-${i}`} title={b.name}>
               <BankLogo bank={b} />

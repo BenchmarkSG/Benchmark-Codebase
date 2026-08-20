@@ -6,9 +6,10 @@ import { INCOME_BRACKETS } from '../lib/profileFields.js';
 import { useModalA11y } from '../hooks/useModalA11y.js';
 import { friendlyError } from '../lib/friendlyError.js';
 import { firstInvalidField, validationMessage } from '../lib/validateForm.js';
+import { clearAfterAuth } from '../lib/afterAuth.js';
 
 export default function AuthModal({ open, onClose }) {
-  const { configured, signInWithEmail, signUpWithEmail, signInWithGoogle, resetPassword } = useAuth();
+  const { configured, user, signInWithEmail, signUpWithEmail, signInWithGoogle, resetPassword } = useAuth();
   const [mode, setMode] = useState('signin'); // 'signin' | 'signup' | 'reset'
   const [form, setForm] = useState({ name: '', email: '', phone: '', income: '', password: '', confirm: '' });
   const [busy, setBusy] = useState(false);
@@ -17,8 +18,19 @@ export default function AuthModal({ open, onClose }) {
   const [showPw, setShowPw] = useState(false);
   const cardRef = useRef(null);
   const formRef = useRef(null);
+  // True once a signup-confirmation / OAuth redirect flow has started — the
+  // stored after-auth intent must survive the coming page reload in that case.
+  const emailFlowRef = useRef(false);
 
-  useModalA11y(open, cardRef, onClose);
+  // Dismissed without signing in and without starting an email/OAuth flow →
+  // drop any pending after-auth intent, so an unrelated sign-in later (navbar,
+  // another tab) can't abruptly reopen a journey/payment screen.
+  const handleClose = () => {
+    if (!user && !emailFlowRef.current) clearAfterAuth();
+    onClose();
+  };
+
+  useModalA11y(open, cardRef, handleClose);
 
   if (!open) return null;
 
@@ -38,7 +50,7 @@ export default function AuthModal({ open, onClose }) {
     e.preventDefault();
     setError('');
     setNotice('');
-    if (!configured) return setError('Authentication is not configured yet. Add your Supabase keys to enable sign in.');
+    if (!configured) return setError('Sign-in is temporarily unavailable. Please try again later.');
 
     const bad = firstInvalidField(formRef.current);
     if (bad) { setError(validationMessage(bad)); bad.focus(); return; }
@@ -59,6 +71,7 @@ export default function AuthModal({ open, onClose }) {
           monthly_income: form.income,
         });
         if (error) throw error;
+        emailFlowRef.current = true; // confirm-email reload must keep the intent
         // Clear the flow and drop the user on sign-in with a clear next step, so
         // they can't accidentally resubmit into an "already registered" error.
         setMode('signin');
@@ -78,14 +91,16 @@ export default function AuthModal({ open, onClose }) {
 
   const handleProvider = async (fn) => {
     setError('');
-    if (!configured) return setError('Authentication is not configured yet. Add your Supabase keys to enable sign in.');
+    if (!configured) return setError('Sign-in is temporarily unavailable. Please try again later.');
     setBusy(true);
     setNotice('Redirecting to Google…');
+    emailFlowRef.current = true; // OAuth reloads the page — keep the intent
     try {
       const { error } = await fn();
       if (error) throw error;
       // On success the browser is redirected to the provider, then back.
     } catch (err) {
+      emailFlowRef.current = false;
       setNotice('');
       setError(friendlyError(err, 'Could not start sign in. Please try again.'));
       setBusy(false);
@@ -102,16 +117,16 @@ export default function AuthModal({ open, onClose }) {
 
   return (
     <div className="auth" role="dialog" aria-modal="true" aria-label={title}>
-      <div className="auth__overlay" onClick={onClose} />
+      <div className="auth__overlay" onClick={handleClose} />
       <div className="auth__card" ref={cardRef}>
-        <button className="auth__close" onClick={onClose} aria-label="Close">×</button>
+        <button className="auth__close" onClick={handleClose} aria-label="Close">×</button>
 
         <div className="auth__brand"><span>Fee</span>Optima</div>
         <h2 className="auth__title">{title}</h2>
         <p className="auth__sub">{sub}</p>
 
         {!configured && (
-          <div className="auth__banner">Auth isn’t configured yet — add your Supabase keys (see AUTH_SETUP.md).</div>
+          <div className="auth__banner">Sign-in is temporarily unavailable. Please try again later.</div>
         )}
 
         {mode !== 'reset' && (

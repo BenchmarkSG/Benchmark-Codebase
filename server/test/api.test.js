@@ -88,9 +88,8 @@ test('POST /api/questionnaire/score -> maturity score', async () => {
   assert.equal(j.band, 'Advanced');
 });
 
-test('POST /api/reveal -> valid / invalid email', async () => {
-  assert.equal((await post('/api/reveal', { email: 'sme@example.com' })).status, 200);
-  assert.equal((await post('/api/reveal', { email: 'nope' })).status, 400);
+test('POST /api/reveal -> removed (reveal now goes through checkout)', async () => {
+  assert.equal((await post('/api/reveal', { email: 'sme@example.com' })).status, 404);
 });
 
 test('POST /api/benchmark -> 503 when rates DB unconfigured', async () => {

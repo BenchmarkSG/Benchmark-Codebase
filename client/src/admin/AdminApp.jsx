@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase.js';
 import EditableTable from './EditableTable.jsx';
 import { INCOME_LABELS } from '../lib/profileFields.js';
 import { SERVES_LABELS } from '../lib/advisorFields.js';
-import { ADMIN_EMAIL } from '../lib/roles.js';
+import { isAdminEmail } from '../lib/roles.js';
 import { useConfirm } from '../components/ConfirmProvider.jsx';
 import { formatDate } from '../lib/formatDate.js';
 import { friendlyError } from '../lib/friendlyError.js';
@@ -473,7 +473,7 @@ export default function AdminApp() {
   }
   if (loading) return <div className="adm-center">Loading…</div>;
   if (!user) return <LoginGate />;
-  if (user.email !== ADMIN_EMAIL) {
+  if (!isAdminEmail(user)) { // case-insensitive — matches the navbar's check
     return (
       <div className="adm-center">
         <p><strong>{user.email}</strong> is not an admin account.</p>

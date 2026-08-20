@@ -16,8 +16,8 @@ const SLIDES = [
     ),
     lead: (
       <>
-        We compare and uncover the hidden FX markups, loan margins, interest rates on deposits that Banks never advertise.{' '}
-        <span className="hero__underline">See exactly how much you overpay</span> — in 30 secs. No login required
+        We compare and uncover the hidden FX markups, loan margins and deposit rates that banks never advertise.{' '}
+        <span className="hero__underline">See exactly how much you overpay</span> — in 30 secs. No login required.
       </>
     ),
   },
@@ -26,7 +26,7 @@ const SLIDES = [
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-export default function Hero({ onDetailedFeedback, onReveal, onStart, calcSelection, onRequireAuth }) {
+export default function Hero({ onDetailedFeedback, onReveal, onStart, calcSelection, onRequireAuth, onMarketChange }) {
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(prefersReducedMotion); // don't auto-rotate for reduced-motion users
   const hovering = useRef(false);
@@ -90,7 +90,7 @@ export default function Hero({ onDetailedFeedback, onReveal, onStart, calcSelect
           </button>
 
           <ul className="hero__trust">
-            <li>🛡️ Trusted by SMEs &amp; professionals</li>
+            <li>🛡️ Built by ex-JPM, Citi &amp; SCB bankers</li>
             <li>🔒 Anonymous &amp; Secure</li>
             <li>🔄 Data updated daily</li>
           </ul>
@@ -98,7 +98,7 @@ export default function Hero({ onDetailedFeedback, onReveal, onStart, calcSelect
 
         {/* Right column — free benchmark calculator */}
         <div className="hero__media">
-          <BenchmarkCalculator compact onDetailedFeedback={onDetailedFeedback} onReveal={onReveal} selection={calcSelection} onRequireAuth={onRequireAuth} />
+          <BenchmarkCalculator compact onDetailedFeedback={onDetailedFeedback} onReveal={onReveal} selection={calcSelection} onRequireAuth={onRequireAuth} onMarketChange={onMarketChange} />
         </div>
       </div>
     </section>

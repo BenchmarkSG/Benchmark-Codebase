@@ -29,7 +29,11 @@ const TIERS = {
 export const getTier = (t) => TIERS[t] || null;
 
 // Stripe "zero-decimal" currencies take amounts in whole units, not cents.
-const ZERO_DECIMAL = new Set(['bif', 'clp', 'djf', 'gnf', 'jpy', 'kmf', 'krw', 'mga', 'pyg', 'rwf', 'ugx', 'vnd', 'vuv', 'xaf', 'xof', 'xpf']);
+// Exported so email.js formats amounts with the same rules (no drift).
+export const ZERO_DECIMAL = new Set(['bif', 'clp', 'djf', 'gnf', 'jpy', 'kmf', 'krw', 'mga', 'pyg', 'rwf', 'ugx', 'vnd', 'vuv', 'xaf', 'xof', 'xpf']);
+// Three-decimal currencies need special minor-unit handling we don't implement;
+// treating them as two-decimal would underprice 10x, so we fall back to SGD.
+const THREE_DECIMAL = new Set(['bhd', 'jod', 'kwd', 'omr', 'tnd']);
 
 // ~S$1 converted into the user's market currency using live mid-market FX
 // (cached in fx.js). Returns { currency, amount (Stripe minor units), major }.
@@ -39,7 +43,7 @@ export async function revealAmountFor(currency) {
   const cur = String(currency || 'SGD').toUpperCase();
   const sgdMajor = REVEAL_SGD_CENTS / 100;
   const fallback = { currency: 'sgd', amount: REVEAL_SGD_CENTS, major: sgdMajor };
-  if (cur === 'SGD' || !/^[A-Z]{3}$/.test(cur)) return fallback;
+  if (cur === 'SGD' || !/^[A-Z]{3}$/.test(cur) || THREE_DECIMAL.has(cur.toLowerCase())) return fallback;
   const rate = await getMidRate('SGD', cur); // local units per 1 SGD
   if (!rate) return fallback;
   const localMajor = sgdMajor * rate;
@@ -109,5 +113,13 @@ export async function retrieveCheckout(id) {
     amountTotal: session.amount_total,
     currency: session.currency,
     email: session.customer_details?.email || session.customer_email || null,
+    emailSent: session.metadata?.email_sent === '1',
   };
+}
+
+// Durable "confirmation email sent" flag, stored on the Stripe session itself so
+// the dedupe survives serverless cold starts (an in-memory Set does not).
+export async function markEmailSent(id) {
+  const s = await stripe();
+  await s.checkout.sessions.update(id, { metadata: { email_sent: '1' } });
 }

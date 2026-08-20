@@ -155,10 +155,6 @@
 .founding__item span { font-size: 20px; }
 .founding__item strong { color: var(--navy-900); }
 .founding__item div { font-size: 14px; color: var(--muted); }
-.founding__bar { margin-top: 28px; text-align: left; }
-.founding__bar-label { font-weight: 800; color: var(--red-600); font-size: 22px; }
-.founding__bar-track { margin-top: 8px; height: 10px; border-radius: 6px; background: #f6d3d5; overflow: hidden; }
-.founding__bar-fill { height: 100%; width: 8%; background: linear-gradient(90deg, var(--red-500), var(--red-600)); }
 .founding__cta { margin-top: 22px; background: var(--red-600); box-shadow: 0 8px 20px rgba(216,30,41,0.28); }
 .founding__cta:hover { background: #b91820; }
 

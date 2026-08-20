@@ -9,7 +9,7 @@ const LINKS = [
   ['#how', 'How it works'],
   ['#products', 'Products'],
   ['#savings', 'Real savings'],
-  ['#partners', 'Partners'],
+  ['#partners', 'Banks we track'],
 ];
 
 const ProfileIcon = () => (
@@ -82,7 +82,6 @@ export default function Navbar({ onGetStarted, onSignIn }) {
       <div className="container nav__inner">
         <a className="nav__brand" href="#top" onClick={close}>
           <span className="nav__brand-accent">Fee</span>Optima
-          <span className="nav__tld">.sg</span>
         </a>
         <nav className="nav__links">
           {LINKS.map(([href, label]) => <a key={href} href={href}>{label}</a>)}

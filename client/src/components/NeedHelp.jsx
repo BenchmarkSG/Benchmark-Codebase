@@ -1,10 +1,10 @@
 import './NeedHelp.css';
 
 // Customer-service WhatsApp number in international format, DIGITS ONLY (no "+",
-// spaces or dashes) — e.g. 6591234567 for a Singapore line. Set it in the client
-// env as VITE_WHATSAPP_NUMBER; the constant below is only a fallback placeholder.
-const DEFAULT_NUMBER = '6591234567';
-const NUMBER = (import.meta.env.VITE_WHATSAPP_NUMBER || DEFAULT_NUMBER).replace(/[^\d]/g, '');
+// spaces or dashes) — e.g. 65XXXXXXXX for a Singapore line. Set it in the client
+// env as VITE_WHATSAPP_NUMBER. NO fallback: without a real number the widget
+// doesn't render (a placeholder would send customers to a stranger's phone).
+const NUMBER = (import.meta.env.VITE_WHATSAPP_NUMBER || '').replace(/[^\d]/g, '');
 
 // Pre-filled first message (text only — this opens a WhatsApp chat, never a call).
 const MESSAGE =
@@ -19,8 +19,10 @@ const WhatsAppIcon = () => (
   </svg>
 );
 
-/** Floating "Need Help?" widget that opens a WhatsApp text chat with support. */
+/** Floating "Need Help?" widget that opens a WhatsApp text chat with support.
+    Renders nothing until VITE_WHATSAPP_NUMBER is configured. */
 export default function NeedHelp() {
+  if (!NUMBER) return null;
   return (
     <a
       className="needhelp"

@@ -446,7 +446,25 @@
   border-radius: 10px;
   padding: 11px 12px;
 }
-.res__detail { margin-top: 16px; }
+/* Inline name + email captured before the reveal — this email becomes the
+   user's account/login (no separate sign-in screen). */
+.res__lead { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+.res__lead-field { display: flex; flex-direction: column; gap: 5px; text-align: left; }
+.res__lead-field > span { font-size: 12px; font-weight: 700; color: var(--navy-800, #12294d); }
+.res__lead-field input {
+  width: 100%; padding: 11px 12px; border: 1.5px solid #d7deea; border-radius: 12px;
+  font-size: 14px; font-weight: 600; color: var(--navy-800, #12294d); background: #fff;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.res__lead-field input::placeholder { color: #9aa6b8; font-weight: 500; }
+.res__lead-field input:focus {
+  outline: none; border-color: var(--blue-600, #1d63c4);
+  box-shadow: 0 0 0 3px rgba(29, 99, 196, 0.14);
+}
+.res__lead-err { text-align: center; margin-top: 8px; color: #c0392b; font-size: 12.5px; font-weight: 700; }
+@media (max-width: 420px) { .res__lead { grid-template-columns: 1fr; } }
+
+.res__detail { margin-top: 14px; }
 .res__reveal-note { text-align: center; margin-top: 8px; color: var(--muted); font-size: 12px; font-weight: 600; }
 .res__save { margin-top: 10px; }
 .res__detail-note { display: block; text-align: center; margin-top: 8px; color: var(--muted); font-size: 11.5px; }
