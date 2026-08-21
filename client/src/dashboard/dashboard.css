@@ -111,3 +111,7 @@
   .dash__cards-2 { grid-template-columns: 1fr; }
   .dash__who { display: none; }
 }
+
+/* Profile picture in the top bar — the uploaded photo, or the default SVG
+   avatar when none is set. Both fill the same circle. */
+.dash__avatar--img { object-fit: cover; padding: 0; background: none; }

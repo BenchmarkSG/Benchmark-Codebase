@@ -8,6 +8,7 @@ import { isStripeCheckoutUrl } from '../lib/safeUrl.js';
 import { useConfirm } from '../components/ConfirmProvider.jsx';
 import { formatDate } from '../lib/formatDate.js';
 import JourneyModal from '../components/JourneyModal.jsx';
+import AccountSettings from './AccountSettings.jsx';
 
 // A rate value with its unit (defaults to %), so "3.5" never renders unit-less.
 const rate = (v, unit) => (v == null || v === '' ? '—' : `${v}${unit ? ` ${unit}` : '%'}`);
@@ -43,6 +44,17 @@ function RevealPriceLabel({ currency }) {
   return label || '~S$1';
 }
 
+// Dashboard tabs, kept in the URL hash (#dashboard/account) so refresh, deep
+// links and the Back button all work.
+const USER_TABS = [
+  { key: 'benchmarks', label: 'My benchmarks' },
+  { key: 'account', label: 'Account settings' },
+];
+const readUserTab = () => {
+  const seg = window.location.hash.replace(/^#\/?/, '').replace(/\/+$/, '').split('/')[1] || 'benchmarks';
+  return USER_TABS.some((t) => t.key === seg) ? seg : 'benchmarks';
+};
+
 const LOAN_IDS = new Set(['housing_loan', 'personal_loan', 'vehicle_loan']);
 const FX_IDS = new Set(['cross_border']);
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
@@ -56,6 +68,15 @@ export default function UserDashboard() {
   const [products, setProducts] = useState([]);
   const [myLeads, setMyLeads] = useState([]); // paid calls + expert requests + reveals
   const [journey, setJourney] = useState(null); // { ctx, resume } — options/manage flow
+  const [tab, setTab] = useState(readUserTab);
+
+  // Keep the tab in sync with Back/Forward navigation.
+  useEffect(() => {
+    const on = () => setTab(readUserTab());
+    window.addEventListener('hashchange', on);
+    window.addEventListener('popstate', on);
+    return () => { window.removeEventListener('hashchange', on); window.removeEventListener('popstate', on); };
+  }, []);
 
   const failFlash = () => { setFlash('Couldn’t save that change — please try again.'); setTimeout(() => setFlash(''), 3500); };
 
@@ -188,8 +209,24 @@ export default function UserDashboard() {
   const firstName = user?.user_metadata?.full_name ? user.user_metadata.full_name.split(' ')[0] : '';
   const hasData = active.length > 0;
 
+  const goTab = (key) => {
+    setTab(key);
+    const next = key === 'benchmarks' ? '#dashboard' : `#dashboard/${key}`;
+    if (window.location.hash !== next) window.history.pushState(null, '', next);
+  };
+
   return (
-    <DashboardLayout eyebrow="Your dashboard" title={`Welcome back${firstName ? `, ${firstName}` : ''}!`}>
+    <DashboardLayout
+      eyebrow="Your dashboard"
+      title={`Welcome back${firstName ? `, ${firstName}` : ''}!`}
+      tabs={USER_TABS}
+      activeTab={tab}
+      onTab={goTab}
+    >
+      {tab === 'account' ? (
+        <AccountSettings role="user" />
+      ) : (
+      <>
       <p className="dash__subtitle">Let’s optimise your banking costs.</p>
 
       {flash && <div className="dash__flash" role="status">{flash}</div>}
@@ -431,6 +468,9 @@ export default function UserDashboard() {
             ))}
           </div>
         </>
+      )}
+
+      </>
       )}
 
       {/* Tier flow (options / purchase / manage) — runs on the dashboard itself. */}

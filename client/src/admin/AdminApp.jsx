@@ -6,6 +6,7 @@ import EditableTable from './EditableTable.jsx';
 import { INCOME_LABELS } from '../lib/profileFields.js';
 import { SERVES_LABELS } from '../lib/advisorFields.js';
 import { isAdminEmail } from '../lib/roles.js';
+import AccountSettings from '../dashboard/AccountSettings.jsx';
 import { useConfirm } from '../components/ConfirmProvider.jsx';
 import { formatDate } from '../lib/formatDate.js';
 import { friendlyError } from '../lib/friendlyError.js';
@@ -142,6 +143,10 @@ const SECTIONS = [
       { key: 'currency_symbol', label: 'Symbol', type: 'text', editable: true },
       { key: 'display_order', label: 'Order', type: 'number', step: 1, editable: true },
     ],
+  },
+  {
+    // Custom view — the signed-in admin's own account (password, photo, contact).
+    key: 'account', title: 'My account', custom: 'account',
   },
 ];
 
@@ -457,9 +462,11 @@ function Editor({ onSignOut, email }) {
             </label>
           )}
         </div>
-        {active.custom === 'proposals'
-          ? <RateProposals key={`proposals:${country}`} country={country} />
-          : <Section key={`${sectionKey}:${country}`} config={active} country={country} />}
+        {active.custom === 'account'
+          ? <AccountSettings role="admin" />
+          : active.custom === 'proposals'
+            ? <RateProposals key={`proposals:${country}`} country={country} />
+            : <Section key={`${sectionKey}:${country}`} config={active} country={country} />}
       </div>
     </div>
   );

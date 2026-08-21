@@ -2,12 +2,7 @@ import { useState } from 'react';
 import './dashboard.css';
 import { useAuth } from '../context/AuthContext.jsx';
 import AuthModal from '../components/AuthModal.jsx';
-
-function initials(user) {
-  const name = user?.user_metadata?.full_name || user?.email || '';
-  const parts = name.replace(/@.*/, '').split(/[.\s_-]+/).filter(Boolean);
-  return (parts[0]?.[0] || '?').toUpperCase() + (parts[1]?.[0] || '').toUpperCase();
-}
+import { Avatar } from '../components/DefaultAvatar.jsx';
 
 /* Shared chrome + auth gate for both dashboards. Renders children only when a
    user is signed in; otherwise shows a sign-in prompt (reusing AuthModal). */
@@ -23,7 +18,7 @@ export default function DashboardLayout({ title, eyebrow, tabs, activeTab, onTab
           <div className="dash__top-right">
             {user ? (
               <>
-                <span className="dash__avatar" aria-hidden="true">{initials(user)}</span>
+                <Avatar url={user.user_metadata?.avatar_url} className="dash__avatar dash__avatar--img" />
                 <span className="dash__who">{user.user_metadata?.full_name || user.email}</span>
                 <button className="dash__signout" onClick={signOut}>Sign out</button>
               </>

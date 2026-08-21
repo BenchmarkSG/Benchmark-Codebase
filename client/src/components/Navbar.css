@@ -105,8 +105,12 @@
   font-size: 13px; font-weight: 800;
   cursor: pointer;
   display: grid; place-items: center;
+  overflow: hidden;      /* clip the photo / default avatar to the circle */
+  padding: 0;
 }
 .nav__avatar:hover { background: var(--blue-700); }
+/* A ring on hover reads as interactive now the button is filled by an image. */
+.nav__avatar:hover .nav__avatar-img { box-shadow: inset 0 0 0 2px var(--blue-700); }
 .nav__menu {
   position: absolute;
   top: calc(100% + 10px);
@@ -158,3 +162,7 @@
   .nav__inner { gap: 8px; }
   .nav__brand { font-size: 16.5px; }
 }
+
+/* Profile picture inside the account-menu button — uploaded photo or the
+   default SVG avatar. */
+.nav__avatar-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }

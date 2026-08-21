@@ -123,3 +123,91 @@ export async function updateMyAdvisor(id, patch) {
   if (error) throw error;
   return data;
 }
+
+// ---- Account / profile self-service ----------------------------------------
+// Everything here is RLS-scoped to the signed-in user's own row (see
+// supabase/account_settings.sql).
+
+export async function getMyProfile() {
+  ensure();
+  const user = await currentUser();
+  if (!user) return null;
+  const { data, error } = await supabase
+    .from('user_profiles').select('*').eq('id', user.id).maybeSingle();
+  if (error) throw error;
+  // No row yet (pre-trigger signups) — fall back to what auth already knows.
+  return data || {
+    id: user.id, email: user.email,
+    full_name: user.user_metadata?.full_name || '',
+    phone: user.user_metadata?.phone || '',
+  };
+}
+
+// upsert so this works whether or not the on_auth_user_created trigger ran.
+export async function updateMyProfile(patch) {
+  ensure();
+  const user = await currentUser();
+  if (!user) throw new Error('Please sign in to update your profile.');
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .upsert({ id: user.id, email: user.email, ...patch })
+    .select().single();
+  if (error) throw error;
+  return data;
+}
+
+// Upload an avatar into the caller's own folder (avatars/<uid>/…) and return its
+// public URL. Storage RLS rejects any path outside that folder.
+export async function uploadAvatar(file) {
+  ensure();
+  const user = await currentUser();
+  if (!user) throw new Error('Please sign in to upload a photo.');
+  const ext = (file.name?.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const path = `${user.id}/avatar-${Date.now()}.${ext || 'jpg'}`;
+  const { error } = await supabase.storage
+    .from('avatars').upload(path, file, { upsert: true, contentType: file.type });
+  if (error) throw error;
+  const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+  return data.publicUrl;
+}
+
+// Best-effort cleanup of the previous avatar file (never blocks the save).
+export async function removeAvatarFile(url) {
+  if (!isSupabaseConfigured || !url) return;
+  const marker = '/avatars/';
+  const i = url.indexOf(marker);
+  if (i === -1) return;
+  const path = decodeURIComponent(url.slice(i + marker.length).split('?')[0]);
+  try { await supabase.storage.from('avatars').remove([path]); } catch { /* ignore */ }
+}
+
+export async function requestAccountDeletion(reason) {
+  ensure();
+  const user = await currentUser();
+  if (!user) throw new Error('Please sign in first.');
+  const { data, error } = await supabase
+    .from('account_deletion_requests')
+    .insert({ user_id: user.id, email: user.email, reason: reason || null })
+    .select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function getMyDeletionRequest() {
+  ensure();
+  const user = await currentUser();
+  if (!user) return null;
+  const { data, error } = await supabase
+    .from('account_deletion_requests')
+    .select('*').eq('user_id', user.id).eq('status', 'pending')
+    .order('created_at', { ascending: false }).limit(1);
+  if (error) throw error;
+  return data?.[0] || null;
+}
+
+export async function cancelAccountDeletion(id) {
+  ensure();
+  const { error } = await supabase
+    .from('account_deletion_requests').update({ status: 'cancelled' }).eq('id', id);
+  if (error) throw error;
+}

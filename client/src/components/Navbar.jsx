@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useAdvisorRow } from '../hooks/useAdvisorRow.js';
 import { isAdminEmail } from '../lib/roles.js';
 import { CTA_PRIMARY } from '../lib/copy.js';
+import { Avatar } from './DefaultAvatar.jsx';
 
 const LINKS = [
   ['#how', 'How it works'],
@@ -18,12 +19,6 @@ const ProfileIcon = () => (
     <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" />
   </svg>
 );
-
-function initials(user) {
-  const name = user?.user_metadata?.full_name || user?.email || '';
-  const parts = name.replace(/@.*/, '').split(/[.\s_-]+/).filter(Boolean);
-  return (parts[0]?.[0] || '?').toUpperCase() + (parts[1]?.[0] || '').toUpperCase();
-}
 
 function UserMenu({ user, onSignOut }) {
   const [open, setOpen] = useState(false);
@@ -40,7 +35,7 @@ function UserMenu({ user, onSignOut }) {
   return (
     <div className="nav__user" ref={ref}>
       <button className="nav__avatar" onClick={() => setOpen((o) => !o)} aria-label="Account menu">
-        {initials(user)}
+        <Avatar url={user?.user_metadata?.avatar_url} className="nav__avatar-img" />
       </button>
       {open && (
         <div className="nav__menu">

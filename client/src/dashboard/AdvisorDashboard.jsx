@@ -9,10 +9,11 @@ import { listAssignedLeads, updateLead, updateMyAdvisor } from '../lib/dashboard
 import { safeHttpUrl } from '../lib/safeUrl.js';
 import { formatDate } from '../lib/formatDate.js';
 import { friendlyError } from '../lib/friendlyError.js';
+import AccountSettings from './AccountSettings.jsx';
 
 // Advisor workspace tabs — kept in the URL hash (#advisor/<tab>) so refresh and
 // the browser Back button work and tabs are deep-linkable.
-const TAB_KEYS = ['overview', 'clients', 'bookings', 'earnings', 'resources', 'profile'];
+const TAB_KEYS = ['overview', 'clients', 'bookings', 'earnings', 'resources', 'profile', 'account'];
 const readTabFromHash = () => {
   const seg = (window.location.hash.replace(/^#\/?/, '').split('/')[1] || 'overview');
   return TAB_KEYS.includes(seg) ? seg : 'overview';
@@ -154,7 +155,8 @@ function AdvisorWorkspace({ advisor, onProfileSaved }) {
     { key: 'bookings', label: 'Bookings', count: m.bookings.length },
     { key: 'earnings', label: 'Earnings' },
     { key: 'resources', label: 'Resources' },
-    { key: 'profile', label: 'Profile' },
+    { key: 'profile', label: 'Public profile' },
+    { key: 'account', label: 'Account settings' },
   ];
 
   return (
@@ -185,6 +187,14 @@ function AdvisorWorkspace({ advisor, onProfileSaved }) {
       {tab === 'earnings' && <Earnings m={m} />}
       {tab === 'resources' && <Resources />}
       {tab === 'profile' && <ProfileEditor advisor={advisor} onSaved={onProfileSaved} />}
+      {tab === 'account' && (
+        <AccountSettings
+          role="advisor"
+          onProfileSaved={onProfileSaved}
+          /* Mirror the account photo onto the public advisor card. */
+          syncAvatar={advisor?.id ? (url) => updateMyAdvisor(advisor.id, { photo_url: url }) : undefined}
+        />
+      )}
     </>
   );
 }
@@ -490,7 +500,7 @@ function ProfileEditor({ advisor, onSaved }) {
 
   return (
     <form className="aprof" onSubmit={save}>
-      <p className="aprof__note">This is how clients see you in the expert picker. Your name and email are fixed — contact support to change them.</p>
+      <p className="aprof__note">This is how clients see you in the expert picker. Your name, photo, mobile and password live in <strong>Account settings</strong>.</p>
       <div className="aprof__row">
         <label className="aprof__field"><span>Company / background</span>
           <input value={form.company} onChange={set('company')} placeholder="ex-DBS" /></label>

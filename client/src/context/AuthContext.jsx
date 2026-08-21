@@ -98,6 +98,34 @@ export function AuthProvider({ children }) {
 
   const signOut = useCallback(() => supabase.auth.signOut(), []);
 
+  // Sign out of every device/browser (revokes all refresh tokens). Offered in
+  // account settings after a password change or a suspected compromise.
+  const signOutEverywhere = useCallback(() => supabase.auth.signOut({ scope: 'global' }), []);
+
+  // Change the account email. Supabase sends a confirmation link to the NEW
+  // address (and, when "secure email change" is on, the old one too); the change
+  // only lands once confirmed.
+  const updateEmail = useCallback(
+    (email) => supabase.auth.updateUser({ email }, { emailRedirectTo: redirectTo }),
+    [redirectTo]
+  );
+
+  // Merge fields into user_metadata (keeps navbar name/avatar in sync with the
+  // profile row without a reload).
+  const updateUserMetadata = useCallback(
+    (data) => supabase.auth.updateUser({ data }),
+    []
+  );
+
+  // Verify the CURRENT password by re-signing in. Supabase's updateUser doesn't
+  // ask for it, so we check it ourselves before allowing a password change —
+  // otherwise a borrowed open session could silently take over the account.
+  const verifyPassword = useCallback(async (password) => {
+    const email = session?.user?.email;
+    if (!email) return { error: new Error('No signed-in account.') };
+    return supabase.auth.signInWithPassword({ email, password });
+  }, [session]);
+
   // Send a password-reset email; the link brings the user back to `redirectTo`.
   const resetPassword = useCallback(
     (email) => supabase.auth.resetPasswordForEmail(email, { redirectTo }),
@@ -126,10 +154,20 @@ export function AuthProvider({ children }) {
       signInWithApple: () => signInWithProvider('apple'),
       resetPassword,
       updatePassword,
+      updateEmail,
+      updateUserMetadata,
+      verifyPassword,
+      signOutEverywhere,
+      // True when the account can sign in with a password. OAuth-only users have
+      // no password yet, so settings offers "set a password" instead of "change".
+      hasPasswordIdentity: Boolean(
+        session?.user?.identities?.some((i) => i.provider === 'email')
+      ),
+      providers: (session?.user?.identities || []).map((i) => i.provider),
       clearRecovery,
       signOut,
     }),
-    [loading, session, recovery, signInWithEmail, signUpWithEmail, signInWithOtp, signInWithProvider, resetPassword, updatePassword, clearRecovery, signOut]
+    [loading, session, recovery, signInWithEmail, signUpWithEmail, signInWithOtp, signInWithProvider, resetPassword, updatePassword, updateEmail, updateUserMetadata, verifyPassword, signOutEverywhere, clearRecovery, signOut]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
