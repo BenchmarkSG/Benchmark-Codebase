@@ -42,11 +42,13 @@ export const getCheckoutSession = (id) =>
   fetch(`${BASE}/checkout/session?id=${encodeURIComponent(id)}`)
     .then((r) => (r.ok ? r.json() : null))
     .catch(() => null);
-// Localized ~S$1 reveal price for display (charge is recomputed server-side).
-export const getRevealPrice = (currency) =>
-  fetch(`${BASE}/checkout/reveal-price?currency=${encodeURIComponent(currency || 'SGD')}`)
+// Localized price for a tier, for display (the charge is recomputed server-side
+// at checkout, so these can never be used to pay less).
+export const getTierPrice = (tier, currency) =>
+  fetch(`${BASE}/checkout/price?tier=${encodeURIComponent(tier || 'reveal')}&currency=${encodeURIComponent(currency || 'SGD')}`)
     .then((r) => (r.ok ? r.json() : null))
     .catch(() => null);
+export const getRevealPrice = (currency) => getTierPrice('reveal', currency);
 
 // Bank directory for a country (id, name, category) — powers the provider picker.
 export const getBanks = (country) =>

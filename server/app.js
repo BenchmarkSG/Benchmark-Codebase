@@ -107,10 +107,17 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
     }));
   }));
 
-  // Localized ~S$1 reveal price for display. Needs only FX (not Stripe), so it
+  // Localized price for a tier, for DISPLAY only. Needs FX but not Stripe, so it
   // works in demo mode too; the actual charge is recomputed at checkout time.
+  app.get('/api/checkout/price', asyncRoute(async (req, res) => {
+    const tier = String(req.query.tier || 'reveal');
+    if (!payments.getTier(tier)) return res.status(400).json({ error: 'Unknown tier' });
+    res.json(await payments.amountFor(tier, String(req.query.currency || 'SGD')));
+  }));
+
+  // Back-compat for the reveal button's original endpoint.
   app.get('/api/checkout/reveal-price', asyncRoute(async (req, res) => {
-    res.json(await payments.revealAmountFor(String(req.query.currency || 'SGD')));
+    res.json(await payments.amountFor('reveal', String(req.query.currency || 'SGD')));
   }));
 
   app.get('/api/checkout/session', asyncRoute(async (req, res) => {

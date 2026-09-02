@@ -1,4 +1,5 @@
-// Stripe payments for the JourneyModal tiers (coaching call $99, expert $199).
+// Stripe payments for the JourneyModal tiers (coaching call S$99, expert S$199,
+// both FX-localized into the user's market currency).
 //
 // The Stripe SDK is loaded LAZILY and only when STRIPE_SECRET_KEY is set, so the
 // app and its tests run without the package or a key — routes just report
@@ -8,8 +9,8 @@
 //   STRIPE_SECRET_KEY          enables payments (sk_test_… / sk_live_…)
 //   STRIPE_CURRENCY            default 'sgd'
 //   STRIPE_PRICE_REVEAL_CENTS        default 100   (~S$1 reveal — FX-localized per market)
-//   STRIPE_PRICE_CALL_CENTS          default 9900  ($99 coaching call)
-//   STRIPE_PRICE_EXPERT_CENTS        default 19900 ($199 expert-led negotiation)
+//   STRIPE_PRICE_CALL_CENTS          default 9900  (S$99 coaching call — FX-localized)
+//   STRIPE_PRICE_EXPERT_CENTS        default 19900 (S$199 expert-led — FX-localized)
 //   PUBLIC_BASE_URL            success/cancel origin (falls back to request origin)
 
 import { getMidRate } from './fx.js';
@@ -35,19 +36,34 @@ export const ZERO_DECIMAL = new Set(['bif', 'clp', 'djf', 'gnf', 'jpy', 'kmf', '
 // treating them as two-decimal would underprice 10x, so we fall back to SGD.
 const THREE_DECIMAL = new Set(['bhd', 'jod', 'kwd', 'omr', 'tnd']);
 
-// ~S$1 converted into the user's market currency using live mid-market FX
-// (cached in fx.js). Returns { currency, amount (Stripe minor units), major }.
-// Falls back to S$1 if the currency is unknown or a rate is unavailable, so the
-// reveal never fails closed on an FX hiccup.
-export async function revealAmountFor(currency) {
+// A raw FX conversion gives prices like ₹6,247 — which reads as an accident.
+// Snap the paid service tiers to a deliberate-looking price point instead: round
+// to a step that scales with magnitude, then end mid-range prices on a 9.
+function nicePrice(raw) {
+  const step = raw < 100 ? 5 : raw < 1000 ? 10 : raw < 10_000 ? 100 : raw < 100_000 ? 500 : 5_000;
+  const rounded = Math.round(raw / step) * step;
+  return rounded >= 100 && rounded < 10_000 ? rounded - 1 : rounded;
+}
+
+// A tier's price in the user's market currency, from live mid-market FX (cached
+// in fx.js). Returns { currency, amount (Stripe minor units), major }.
+// Falls back to the SGD list price when the currency is unknown, unsupported or
+// a rate is unavailable, so checkout never fails closed on an FX hiccup.
+//
+// The ~S$1 reveal converts EXACTLY (it's a token amount, and "about a dollar" is
+// the promise); the S$99 / S$199 service tiers get the nice-price treatment.
+export async function amountFor(tier, currency) {
+  const t = getTier(tier);
+  if (!t) throw new Error('Unknown tier');
+  const sgdMajor = t.amount / 100;
+  const fallback = { currency: CURRENCY, amount: t.amount, major: sgdMajor };
   const cur = String(currency || 'SGD').toUpperCase();
-  const sgdMajor = REVEAL_SGD_CENTS / 100;
-  const fallback = { currency: 'sgd', amount: REVEAL_SGD_CENTS, major: sgdMajor };
-  if (cur === 'SGD' || !/^[A-Z]{3}$/.test(cur) || THREE_DECIMAL.has(cur.toLowerCase())) return fallback;
+  if (cur === 'SGD' || cur === CURRENCY.toUpperCase()
+      || !/^[A-Z]{3}$/.test(cur) || THREE_DECIMAL.has(cur.toLowerCase())) return fallback;
   const rate = await getMidRate('SGD', cur); // local units per 1 SGD
   if (!rate) return fallback;
-  const localMajor = sgdMajor * rate;
   const lc = cur.toLowerCase();
+  const localMajor = tier === 'reveal' ? sgdMajor * rate : nicePrice(sgdMajor * rate);
   if (ZERO_DECIMAL.has(lc)) {
     const amount = Math.max(1, Math.round(localMajor));
     return { currency: lc, amount, major: amount };
@@ -55,6 +71,9 @@ export async function revealAmountFor(currency) {
   const amount = Math.round(localMajor * 100);
   return { currency: lc, amount, major: amount / 100 };
 }
+
+// Back-compat alias — the reveal price is the same calculation.
+export const revealAmountFor = (currency) => amountFor('reveal', currency);
 
 let _stripe = null;
 async function stripe() {
@@ -76,16 +95,14 @@ const cleanBase = (origin) => {
 };
 
 // Create a hosted Checkout Session for a tier; returns { url, id }.
-// The reveal tier is priced server-side from the market currency (never trusts a
-// client-supplied amount); the fixed tiers use their configured SGD price.
+// Every tier is priced server-side from the market currency — a client-supplied
+// amount is never trusted, only the currency code it asks to be billed in.
 export async function createCheckout({ tier, origin, email, advisorId, product, segment, currency }) {
   const t = getTier(tier);
   if (!t) throw new Error('Unknown tier');
   const base = cleanBase(origin);
   const s = await stripe();
-  const price = tier === 'reveal'
-    ? await revealAmountFor(currency)
-    : { currency: CURRENCY, amount: t.amount };
+  const price = await amountFor(tier, currency);
   const session = await s.checkout.sessions.create({
     mode: 'payment',
     line_items: [{

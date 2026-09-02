@@ -7,6 +7,7 @@ import { INCOME_LABELS } from '../lib/profileFields.js';
 import { SERVES_LABELS } from '../lib/advisorFields.js';
 import { isAdminEmail } from '../lib/roles.js';
 import AccountSettings from '../dashboard/AccountSettings.jsx';
+import { Avatar } from '../components/DefaultAvatar.jsx';
 import { useConfirm } from '../components/ConfirmProvider.jsx';
 import { formatDate } from '../lib/formatDate.js';
 import { friendlyError } from '../lib/friendlyError.js';
@@ -144,11 +145,11 @@ const SECTIONS = [
       { key: 'display_order', label: 'Order', type: 'number', step: 1, editable: true },
     ],
   },
-  {
-    // Custom view — the signed-in admin's own account (password, photo, contact).
-    key: 'account', title: 'My account', custom: 'account',
-  },
 ];
+
+// The admin's own account (password, photo, contact details). Deliberately NOT a
+// data-table tab — it's reached from the header, where account settings belong.
+const ACCOUNT_SECTION = { key: 'account', title: 'My account', custom: 'account' };
 
 function LoginGate() {
   const { signInWithEmail } = useAuth();
@@ -419,11 +420,12 @@ function RateProposals({ country }) {
   );
 }
 
-function Editor({ onSignOut, email }) {
+function Editor({ onSignOut, email, user }) {
   const [sectionKey, setSectionKey] = useState(SECTIONS[0].key);
   const [country, setCountry] = useState('SG');
   const [countries, setCountries] = useState([{ code: 'SG', name: 'Singapore' }]);
-  const active = SECTIONS.find((s) => s.key === sectionKey);
+  const onAccount = sectionKey === ACCOUNT_SECTION.key;
+  const active = onAccount ? ACCOUNT_SECTION : SECTIONS.find((s) => s.key === sectionKey);
 
   useEffect(() => {
     supabase.from('countries').select('code, name').order('display_order').then(({ data }) => {
@@ -437,7 +439,14 @@ function Editor({ onSignOut, email }) {
         <div className="adm-header__brand"><span>Fee</span>Optima · Admin</div>
         <div className="adm-header__right">
           <a className="adm-header__home" href="#top">↗ View site</a>
-          <span className="adm-header__user">{email}</span>
+          <button
+            className={`adm-header__account ${onAccount ? 'is-active' : ''}`}
+            onClick={() => setSectionKey(ACCOUNT_SECTION.key)}
+            title="My account — photo, contact details, password"
+          >
+            <Avatar url={user?.user_metadata?.avatar_url} className="adm-header__avatar" />
+            <span className="adm-header__user">{email}</span>
+          </button>
           <button className="adm-btn adm-btn--ghost" onClick={onSignOut}>Sign out</button>
         </div>
       </header>
@@ -488,5 +497,5 @@ export default function AdminApp() {
       </div>
     );
   }
-  return <Editor onSignOut={signOut} email={user.email} />;
+  return <Editor onSignOut={signOut} email={user.email} user={user} />;
 }

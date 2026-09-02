@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './JourneyModal.css';
-import { formatMoney, getReference, createCheckout, getCheckoutSession } from '../api.js';
+import { formatMoney, getReference, createCheckout, getCheckoutSession, getTierPrice } from '../api.js';
 import { safeHttpUrl, isStripeCheckoutUrl } from '../lib/safeUrl.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { supabase, isSupabaseConfigured } from '../lib/supabase.js';
@@ -28,13 +28,13 @@ const TIERS = [
     cta: 'Draft My Email',
   },
   {
-    id: 'call', price: 'S$99', accent: 'blue',
+    id: 'call', price: 'S$99', accent: 'blue', // price shown is FX-localized at runtime
     title: 'Help me negotiate with my bank',
     desc: 'A FeeOptima specialist reviews your numbers and coaches you through the call. Fees fully refundable if no savings.',
     cta: 'Book a Call',
   },
   {
-    id: 'expert', price: 'S$199', accent: 'violet',
+    id: 'expert', price: 'S$199', accent: 'violet', // price shown is FX-localized at runtime
     title: 'I need an expert (ex-banker) to negotiate on my behalf',
     desc: 'A specialist ex-banker prepares and leads the negotiation with your bank for you. Fee fully refundable if no savings.',
     cta: 'Book an Expert',
@@ -140,6 +140,7 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
   const [advisors, setAdvisors] = useState([]);
   const [sentTo, setSentTo] = useState(null); // advisor id once a lead is created
   const [paymentsEnabled, setPaymentsEnabled] = useState(false);
+  const [prices, setPrices] = useState({}); // { call: 'S$99' | '₹6,199', expert: … }
   const [paidTier, setPaidTier] = useState(null); // 'call' | 'expert' once paid (or demo)
   const [busy, setBusy] = useState(false);
   const [payError, setPayError] = useState('');
@@ -344,6 +345,28 @@ Kind regards,
     listAdvisorDirectory().then(setAdvisors).catch(() => setAdvisors([]));
   }, [open]);
 
+  // The paid tiers are charged in the user's market currency, so show them that
+  // way too. Falls back to the SGD list price if FX is unavailable.
+  useEffect(() => {
+    if (!open) return undefined;
+    const ccy = context?.currency || 'SGD';
+    let on = true;
+    Promise.all(['call', 'expert'].map((t) => getTierPrice(t, ccy).then((p) => [t, p])))
+      .then((pairs) => {
+        if (!on) return;
+        const next = {};
+        for (const [t, p] of pairs) {
+          if (p) next[t] = formatMoney(p.major, (p.currency || ccy).toUpperCase());
+        }
+        setPrices(next);
+      })
+      .catch(() => {});
+    return () => { on = false; };
+  }, [open, context?.currency]);
+
+  // Localized label for a tier, with the hardcoded SGD price as the fallback.
+  const priceOf = (tier, fallback) => prices[tier] || fallback;
+
   // Real advisors if any are approved; otherwise the labelled demo set.
   const experts = advisors.length
     ? advisors.map((a) => ({
@@ -391,6 +414,7 @@ Kind regards,
       sessionStorage.setItem('bb_journey', JSON.stringify({ tier, expert: snap, context }));
       const { url } = await createCheckout({
         tier,
+        currency: context?.currency || 'SGD', // bill in the currency we showed
         advisorId: adv?.real ? adv.id : undefined,
         product: context?.product || null,
         segment: context?.segment || 'individual',
@@ -516,7 +540,7 @@ Kind regards,
               {TIERS.map((t, i) => (
                 <div className={`jny-tier jny-tier--${t.accent}`} key={t.id}>
                   <span className="jny-tier__badge">Option {i + 1}</span>
-                  <div className="jny-tier__price">{t.price}</div>
+                  <div className="jny-tier__price">{priceOf(t.id, t.price)}</div>
                   <div className="jny-tier__body">
                     <div className="jny-tier__title">{t.title}</div>
                     <div className="jny-tier__desc">{t.desc}</div>
@@ -569,7 +593,7 @@ Kind regards,
             {paymentsEnabled && paidTier !== 'call' ? (
               <>
                 <p className="jny-sub__sub">
-                  <span className="jny-pill">S$99</span> A FeeOptima specialist reviews your numbers and coaches you through the negotiation.
+                  <span className="jny-pill">{priceOf('call', 'S$99')}</span> A FeeOptima specialist reviews your numbers and coaches you through the negotiation.
                 </p>
                 {!user && (
                   <div className="jny-note jny-note--warn">
@@ -577,14 +601,14 @@ Kind regards,
                   </div>
                 )}
                 <button className="btn btn--primary jny-pay" disabled={busy} onClick={() => pay('call')}>
-                  {!user ? 'Sign in to book your call →' : busy ? 'Redirecting to secure checkout…' : 'Pay S$99 & pick a time →'}
+                  {!user ? 'Sign in to book your call →' : busy ? 'Redirecting to secure checkout…' : `Pay ${priceOf('call', 'S$99')} & pick a time →`}
                 </button>
                 <p className="jny-note">🔒 Secure payment via Stripe. You'll choose your slot right after.</p>
               </>
             ) : (
               <>
                 {paidTier === 'call' && <div className="jny-note jny-note--ok">✓ Payment received — pick a time below.</div>}
-                <p className="jny-sub__sub"><span className="jny-pill">S$99</span> A FeeOptima specialist coaches you through the negotiation.</p>
+                <p className="jny-sub__sub"><span className="jny-pill">{priceOf('call', 'S$99')}</span> A FeeOptima specialist coaches you through the negotiation.</p>
                 <Scheduler url={CALENDLY_URL} prefill={bookingPrefill} note="You and the specialist both receive the calendar invite from Calendly." />
               </>
             )}
@@ -601,7 +625,7 @@ Kind regards,
             {!expert ? (
               <>
                 <h4 className="jny-sub__title">Find an expert · select one</h4>
-                <p className="jny-sub__sub"><span className="jny-pill">S$199</span> An expert prepares and leads the negotiation for you.</p>
+                <p className="jny-sub__sub"><span className="jny-pill">{priceOf('expert', 'S$199')}</span> An expert prepares and leads the negotiation for you.</p>
                 <div className="jny-experts">
                   {experts.map((x) => (
                     <div className="jny-expert" key={x.id}>
@@ -651,9 +675,9 @@ Kind regards,
 
                 {paymentsEnabled && paidTier !== 'expert' ? (
                   <>
-                    <p className="jny-sub__sub"><span className="jny-pill">S$199</span> {expert.real ? `${expert.name.split(' ')[0]} prepares and leads the negotiation. Pay to confirm and schedule.` : 'Your matched expert prepares and leads the negotiation. Fully refundable if no savings.'}</p>
+                    <p className="jny-sub__sub"><span className="jny-pill">{priceOf('expert', 'S$199')}</span> {expert.real ? `${expert.name.split(' ')[0]} prepares and leads the negotiation. Pay to confirm and schedule.` : 'Your matched expert prepares and leads the negotiation. Fully refundable if no savings.'}</p>
                     <button className="btn btn--primary jny-pay" disabled={busy} onClick={() => pay('expert', expert.real ? expert : null)}>
-                      {!user ? 'Sign in to book →' : busy ? 'Redirecting to secure checkout…' : expert.real ? `Pay S$199 & book ${expert.name.split(' ')[0]} →` : 'Pay S$199 & get matched →'}
+                      {!user ? 'Sign in to book →' : busy ? 'Redirecting to secure checkout…' : expert.real ? `Pay ${priceOf('expert', 'S$199')} & book ${expert.name.split(' ')[0]} →` : `Pay ${priceOf('expert', 'S$199')} & get matched →`}
                     </button>
                     <p className="jny-note">🔒 Secure payment via Stripe. You'll choose your slot right after.</p>
                   </>

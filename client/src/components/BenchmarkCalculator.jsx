@@ -5,15 +5,13 @@ import { BANK_LOGOS } from './BankLogos.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { saveBenchmark } from '../lib/dashboardApi.js';
 
-const BANK_NAMES = BANK_LOGOS.map((b) => b.name);
+// A–Z by name so people can scan the picker for their own bank. `base`
+// sensitivity keeps case/accents from splitting otherwise-equal names, and
+// `numeric` orders any digits in a name naturally.
+const byName = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
+const sortByName = (list) => [...(list || [])].sort((a, b) => byName.compare(a.name || '', b.name || ''));
 
-// Order the provider directory by category for the picker (headers omitted).
-const BANK_CAT_ORDER = ['public', 'private', 'local', 'digital', 'fintech', 'foreign', 'european', 'japanese', 'indian'];
-function groupBanks(list) {
-  const map = new Map();
-  for (const b of list || []) { const k = b.category || 'other'; if (!map.has(k)) map.set(k, []); map.get(k).push(b); }
-  return [...map.entries()].sort((a, b) => BANK_CAT_ORDER.indexOf(a[0]) - BANK_CAT_ORDER.indexOf(b[0]));
-}
+const BANK_NAMES = BANK_LOGOS.map((b) => b.name).sort((a, b) => byName.compare(a, b));
 
 // SMEs and Corporates share the same product set, so they're one tab.
 const SEGMENT_TABS = [
@@ -55,11 +53,11 @@ function buildDefaults(product, ccyOptions) {
 
 function Field({ field, value, onChange, ccyOptions, bankOptions, required, invalid }) {
   const set = (e) => onChange(field.key, e.target.value);
+  // The whole form re-renders on every keystroke — don't re-sort each time.
+  const ordered = useMemo(() => sortByName(bankOptions), [bankOptions]);
 
   let control;
   if (field.type === 'bank') {
-    // Keep the category ordering, but render a flat list (no group headers).
-    const ordered = groupBanks(bankOptions).flatMap(([, list]) => list);
     control = (
       <select value={value} onChange={set}>
         <option value="">Select your bank…</option>
