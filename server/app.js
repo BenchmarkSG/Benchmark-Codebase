@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import {
-  PRODUCTS, QUESTIONNAIRES, getProduct,
+  PRODUCTS, QUESTIONNAIRES, getProduct, isProductInCountry,
   buildBenchmarkResult, crossBorderCostPct, scoreQuestionnaire,
 } from './benchmark.js';
 import * as ratesRepo from './ratesRepo.js';
@@ -89,6 +89,8 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
   // Reference data for the calculator: countries + product schemas + questionnaires.
   app.get('/api/reference', asyncRoute(async (_req, res) => {
     const countries = (await repo.getCountries()) ?? [SG_FALLBACK];
+    // Every product ships with its `onlyCountries` allowlist attached; the
+    // calculator filters on it once a market is picked.
     res.json({ countries, products: PRODUCTS, questionnaires: QUESTIONNAIRES, paymentsEnabled: payments.isPaymentsConfigured });
   }));
 
@@ -163,6 +165,12 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
     const { country = 'SG', product, currency, variant, yourRate, amount } = req.body || {};
     const meta = getProduct(product);
     if (!meta) return res.status(400).json({ error: 'Unknown product' });
+    // The client hides products that don't apply to the chosen market, but the
+    // API is the thing that has to hold: a hand-rolled POST must not be able to
+    // benchmark current-account credit interest against Indian banks.
+    if (!isProductInCountry(meta, country)) {
+      return res.status(400).json({ error: 'That product isn’t offered in this market.' });
+    }
 
     if (meta.family === 'crossborder') return handleCrossBorder(req, res, { repo, fx }, meta, country);
 

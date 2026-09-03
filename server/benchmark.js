@@ -33,6 +33,10 @@ const tenor = () => ({ key: 'tenor', label: 'Tenor (months)', type: 'tenor', rol
 const currency = (required = true) => ({ key: 'currency', label: 'Currency', type: 'currency', role: 'context', required });
 const rateBasis = () => ({ key: 'rate_basis', label: 'Rate type', type: 'enum', role: 'context', required: false, options: RATE_BASIS });
 const variant = (label, options) => ({ key: 'variant', label, type: 'enum', role: 'context', required: true, options });
+// A money metric rather than a rate. Keeps key 'rate' so it flows through the
+// same metricKey / yourRate plumbing; `metricMode: 'amount'` on the product is
+// what tells the maths and the UI to treat it as a sum, not a percentage.
+const feeAmount = (label, placeholder = 'e.g. 12000') => ({ key: 'rate', label, type: 'amount', role: 'metric', required: false, placeholder });
 
 // The two mirrored legs of a cross-border transfer. `direction` picks the leg.
 const crossBorderInputs = () => [
@@ -53,7 +57,14 @@ const crossBorderInputs = () => [
    metricKey:   which input carries the benchmarked number
    amountKey:   which input sizes the saving
    variantKey:  present when the product splits into stored sub-pools
-   annualiser:  multiplies a per-period rate to an annual figure               */
+   annualiser:  multiplies a per-period rate to an annual figure
+   metricMode:  'percent' (default) | 'amount' — is the compared number a rate,
+                or a sum of money already expressed per year?
+   onlyCountries: ALLOWLIST of markets where the product is lawful/meaningful.
+                An allowlist, not a denylist, because the reason a product is
+                restricted is usually regulatory: current-account credit interest
+                is prohibited outright in India, so a new market has to be shown
+                eligible before the product appears there, never assumed.       */
 export const PRODUCTS = [
   // ------- Individual -------
   {
@@ -94,11 +105,36 @@ export const PRODUCTS = [
   },
   // ------- SME / Corporate -------
   {
+    // Credit interest on balances — only offered where a regulator permits banks
+    // to pay it. India's RBI prohibits interest on current accounts outright, so
+    // every Indian bank is 0% and a "best rate" here would be unobtainable by
+    // law. Indian SMEs get `current_account_fees` below instead. Before adding a
+    // market to this list, confirm its central bank allows credit interest —
+    // several in the region do not.
     id: 'current_account', label: 'Current account', blurb: 'Credit interest & maintenance fees', category: 'account',
     segments: ['sme'], family: 'rate', rateType: 'yield', unit: '% p.a.',
+    onlyCountries: ['SG'],
     currencyMode: 'local', annualiser: 1, metricKey: 'rate', amountKey: 'amount',
     inputs: [bank('Your bank'), amount('Average daily balance'), rate('Credit interest / rebate (% p.a.)'), currency(false)],
     tip: 'Idle balances can earn interest or fee rebates that most SMEs never negotiate for.',
+  },
+  {
+    // The Indian equivalent. With interest off the table by regulation, what an
+    // SME can actually negotiate is cost: the minimum-balance requirement and
+    // the charges stacked on top of it. Benchmarked as an absolute annual sum
+    // (lower is better) rather than a rate, since none of it is a percentage.
+    id: 'current_account_fees', label: 'Current account (charges)', blurb: 'Account maintenance & transaction charges', category: 'account',
+    segments: ['sme'], family: 'rate', rateType: 'apr', unit: 'total charges per year',
+    onlyCountries: ['IN'],
+    metricMode: 'amount',
+    currencyMode: 'local', annualiser: 1, metricKey: 'rate', amountKey: 'amount',
+    inputs: [
+      bank('Your bank'),
+      amount('Average monthly balance you keep'),
+      feeAmount('Total charges you pay per year'),
+      currency(false),
+    ],
+    tip: 'Indian current accounts pay no interest — by RBI rule. What is negotiable is the minimum balance, the non-maintenance penalty, and cash-handling and NEFT/RTGS charges. Banks waive these for steady turnover far more often than SMEs ask.',
   },
   {
     id: 'overdraft', label: 'Overdraft facility', blurb: 'Working-capital line pricing', category: 'account',
@@ -162,6 +198,10 @@ export const QUESTIONNAIRES = [
 
 /* ---- Accessors ------------------------------------------------------------- */
 export const getProduct = (id) => PRODUCTS.find((p) => p.id === id) || null;
+// No `onlyCountries` means the product is universal. Products that carry one are
+// confined to it — see the catalog notes above for why this is an allowlist.
+export const isProductInCountry = (p, country) => !p?.onlyCountries || p.onlyCountries.includes(country);
+export const productsForCountry = (country) => PRODUCTS.filter((p) => isProductInCountry(p, country));
 export const getQuestionnaire = (id) => QUESTIONNAIRES.find((q) => q.id === id) || null;
 export const productDirection = (p) => (p?.rateType === 'yield' ? 'higher' : 'lower');
 
@@ -192,7 +232,7 @@ function pickBestBank(items, rateType) {
  * Benchmark a list of comparable values. rateType 'apr' (lower better) |
  * 'yield' (higher better). Returns null if there are no values.
  */
-export function benchmarkValues(values, { yourRate, amount = 0, annualiser = 1, rateType = 'apr' } = {}) {
+export function benchmarkValues(values, { yourRate, amount = 0, annualiser = 1, rateType = 'apr', metricMode = 'percent' } = {}) {
   const asc = (values || []).map(Number).filter(Number.isFinite).sort((a, b) => a - b);
   if (!asc.length) return null;
 
@@ -205,7 +245,12 @@ export function benchmarkValues(values, { yourRate, amount = 0, annualiser = 1, 
   const your = hasYourRate ? Number(yourRate) : marketTypical;
   const notional = Math.max(0, Number(amount) || 0);
   const delta = isYield ? best - your : your - best; // > 0 ⇒ the best provider still beats you
-  const annualSaving = Math.max(0, (delta / 100) * notional * annualiser);
+  // A percentage metric has to be applied to the balance to become money. An
+  // amount metric IS the money already, so the notional plays no part — multiply
+  // by it and a ₹12,000 fee gap on a ₹5,000,000 balance reads as ₹600m saved.
+  const annualSaving = metricMode === 'amount'
+    ? Math.max(0, delta * annualiser)
+    : Math.max(0, (delta / 100) * notional * annualiser);
 
   // Where the user stands in the pool (only meaningful once they entered a rate).
   const betterThan = asc.filter((v) => (isYield ? v < your : v > your)).length;
@@ -230,12 +275,15 @@ export function benchmarkValues(values, { yourRate, amount = 0, annualiser = 1, 
 export function buildBenchmarkResult({ product, country, currency, values, items, yourRate, amount, extra = {} }) {
   const meta = getProduct(product);
   if (!meta) return { error: 'Unknown product' };
-  const b = benchmarkValues(values, { yourRate, amount, annualiser: meta.annualiser, rateType: meta.rateType });
+  const b = benchmarkValues(values, {
+    yourRate, amount, annualiser: meta.annualiser, rateType: meta.rateType, metricMode: meta.metricMode,
+  });
   if (!b) return { error: 'No benchmark data for this selection yet.' };
 
   return {
     product: meta.label,
     unit: meta.unit,
+    metricMode: meta.metricMode || 'percent', // 'amount' ⇒ render as money, not %
     country,
     currency: currency || null,
     direction: b.direction,

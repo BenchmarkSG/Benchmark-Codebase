@@ -5,6 +5,7 @@ import LegalPage from './components/LegalPage.jsx';
 import UserDashboard from './dashboard/UserDashboard.jsx';
 import AdvisorDashboard from './dashboard/AdvisorDashboard.jsx';
 import { ConfirmProvider } from './components/ConfirmProvider.jsx';
+import UpdatePrompt from './components/UpdatePrompt.jsx';
 
 /* Tiny hash router: `/#admin` renders the admin portal, `#terms` / `#privacy`
    render the legal pages, everything else the marketing site. Hash routing needs
@@ -50,6 +51,9 @@ export default function Root() {
   return (
     <ConfirmProvider>
       <Route hash={hash} />
+      {/* Outside <Route> so it survives navigation, and outside .dash so the
+          dashboard's dark tokens can't reach it. */}
+      <UpdatePrompt />
     </ConfirmProvider>
   );
 }

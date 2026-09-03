@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   PRODUCTS, QUESTIONNAIRES, getProduct, getQuestionnaire,
   benchmarkValues, buildBenchmarkResult, crossBorderCostPct, scoreQuestionnaire,
+  isProductInCountry, productsForCountry,
 } from '../benchmark.js';
 
 test('PRODUCTS: catalog exposes the go-live products with schemas', () => {
@@ -138,4 +139,71 @@ test('scoreQuestionnaire: maturity score + expert hand-off', () => {
 
   assert.equal(scoreQuestionnaire('nope', {}).error, 'Unknown questionnaire');
   assert.ok(QUESTIONNAIRES.length >= 2 && getQuestionnaire('treasury_efficiency'));
+});
+
+
+/* ---- Market availability -------------------------------------------------
+   India's RBI prohibits interest on current accounts, so the credit-interest
+   product must not be offered there — every bank is 0% and any "best rate"
+   would be unobtainable by law. Indian SMEs get the fee-based product instead. */
+
+test('market scoping: current-account credit interest is not offered in India', () => {
+  const interest = getProduct('current_account');
+  assert.deepEqual(interest.onlyCountries, ['SG']);
+  assert.equal(isProductInCountry(interest, 'SG'), true);
+  assert.equal(isProductInCountry(interest, 'IN'), false);
+
+  const ids = (c) => productsForCountry(c).map((p) => p.id);
+  assert.ok(!ids('IN').includes('current_account'));
+  assert.ok(ids('SG').includes('current_account'));
+});
+
+test('market scoping: India gets the fee-based current account instead', () => {
+  const fees = getProduct('current_account_fees');
+  assert.deepEqual(fees.onlyCountries, ['IN']);
+  assert.equal(fees.rateType, 'apr');        // charges: lower is better
+  assert.equal(fees.metricMode, 'amount');   // compared as money, not a percentage
+  assert.ok(productsForCountry('IN').map((p) => p.id).includes('current_account_fees'));
+  assert.ok(!productsForCountry('SG').map((p) => p.id).includes('current_account_fees'));
+});
+
+test('market scoping: unrestricted products stay available everywhere', () => {
+  for (const c of ['SG', 'IN', 'MY', 'TH', 'ID']) {
+    const ids = productsForCountry(c).map((p) => p.id);
+    assert.ok(ids.includes('housing_loan'), `housing_loan missing for ${c}`);
+    assert.ok(ids.includes('overdraft'), `overdraft missing for ${c}`);
+  }
+});
+
+test('benchmarkValues: an amount metric is the saving, not a rate on a balance', () => {
+  // Charges of 18,000/yr against a market best of 6,000 → saves 12,000, and the
+  // balance is context only. Treated as a percentage this would read as millions.
+  const b = benchmarkValues([6000, 9000, 18000, 24000], {
+    yourRate: 18000, amount: 5_000_000, rateType: 'apr', metricMode: 'amount',
+  });
+  assert.equal(b.annualSaving, 12000);
+  assert.equal(b.benchmarkRate ?? b.best, 6000);
+  assert.equal(b.direction, 'lower');
+});
+
+test('buildBenchmarkResult: fee product reports its metric mode for the UI', () => {
+  const r = buildBenchmarkResult({
+    product: 'current_account_fees', country: 'IN', currency: 'INR',
+    values: [6000, 12000, 18000], items: [
+      { bank: 'Cheap Bank', value: 6000 }, { bank: 'Mid Bank', value: 12000 }, { bank: 'Dear Bank', value: 18000 },
+    ],
+    yourRate: 18000, amount: 2_000_000,
+  });
+  assert.equal(r.metricMode, 'amount');
+  assert.equal(r.annualSaving, 12000);
+  assert.equal(r.bestBank, 'Cheap Bank');   // lowest charges wins for an apr product
+});
+
+test('buildBenchmarkResult: percentage products are unaffected', () => {
+  const r = buildBenchmarkResult({
+    product: 'housing_loan', country: 'SG', currency: 'SGD',
+    values: [2.5, 3.5, 4.5], items: [], yourRate: 4.5, amount: 100000,
+  });
+  assert.equal(r.metricMode, 'percent');
+  assert.equal(r.annualSaving, 2000); // (4.5 - 2.5)% of 100,000
 });

@@ -159,14 +159,22 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
   const products = ref?.products ?? [];
   const allCcys = useMemo(() => countries.map((c) => c.currency), [countries]);
   const localCcy = useMemo(() => countries.find((c) => c.code === country)?.currency || 'SGD', [countries, country]);
-  const segmentProducts = useMemo(() => products.filter((p) => p.segments?.includes(segment)), [products, segment]);
+  // Products are filtered by market as well as segment. `onlyCountries` is an
+  // allowlist set server-side for products that don't apply everywhere — e.g.
+  // current-account credit interest, which Indian banks are barred from paying.
+  const inMarket = (p) => !p.onlyCountries || p.onlyCountries.includes(country);
+  const segmentProducts = useMemo(
+    () => products.filter((p) => p.segments?.includes(segment) && inMarket(p)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [products, segment, country],
+  );
   const product = useMemo(() => products.find((p) => p.id === productId) || null, [products, productId]);
   const ccyOptions = useMemo(() => (product ? ccyList(product, localCcy, allCcys) : [localCcy]), [product, localCcy, allCcys]);
 
   // Once reference loads (or segment changes), select a valid product + defaults.
   useEffect(() => {
     if (!products.length) return;
-    const list = products.filter((p) => p.segments?.includes(segment));
+    const list = products.filter((p) => p.segments?.includes(segment) && inMarket(p));
     const next = list.some((p) => p.id === productId) ? products.find((p) => p.id === productId) : list[0];
     if (!next) return;
     if (next.id !== productId) setProductId(next.id);
@@ -215,6 +223,21 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
     setCountry(code);
     if (!product) return;
     const nextLocal = countries.find((c) => c.code === code)?.currency || 'SGD';
+    // Some products only exist in certain markets (`onlyCountries`). If this one
+    // isn't offered where the user just moved, switch to one that is — leaving it
+    // selected would send a request the API is right to refuse. Handled here
+    // rather than in the product effect so that switching market otherwise keeps
+    // the numbers already typed in.
+    if (product.onlyCountries && !product.onlyCountries.includes(code)) {
+      const next = products.find((p) => p.segments?.includes(segment)
+        && (!p.onlyCountries || p.onlyCountries.includes(code)));
+      if (next) {
+        setProductId(next.id);
+        setValues(buildDefaults(next, ccyList(next, nextLocal, allCcys)));
+        setResult(null);
+      }
+      return;
+    }
     const opts = ccyList(product, nextLocal, allCcys);
     // Keep currency fields valid for the new market.
     setValues((v) => {
@@ -471,6 +494,10 @@ function Result({ result, product, compact, localCcy, onReveal, onCrossSell, can
     : formatMoney(1, ccy); // rate products (e.g. housing loan) carry no currency
   const higher = result.direction === 'higher';
   const crossBorder = product?.family === 'crossborder';
+  // Most products compare a percentage; fee-based ones compare a sum of money.
+  // The server says which, so the client never has to infer it from the product.
+  const moneyMetric = result.metricMode === 'amount';
+  const fmtMetric = (v) => (moneyMetric ? formatMoney(Number(v), ccy) : `${v}%`);
   const ahead = result.status === 'ahead';
 
   // Visual comparison of your rate vs the best — bar widths relative to the
@@ -500,17 +527,17 @@ function Result({ result, product, compact, localCcy, onReveal, onCrossSell, can
           <div className="res__ahead-badge">🎉 You're ahead of the market</div>
           <p className="res__ahead-lead">
             Your {crossBorder ? 'all-in cost' : 'rate'} of{' '}
-            <strong>{result.yourRate}{crossBorder ? '%' : ''}</strong> is {standingText(result)}.
+            <strong>{moneyMetric ? fmtMetric(result.yourRate) : `${result.yourRate}${crossBorder ? '%' : ''}`}</strong> is {standingText(result)}.
           </p>
           <div className="res__ahead-cmp">
             <div className="res__ahead-you">
               <span>You</span>
-              <strong>{result.yourRate}</strong>
+              <strong>{moneyMetric ? fmtMetric(result.yourRate) : result.yourRate}</strong>
               <em>✓ best-in-class</em>
             </div>
             <div className="res__ahead-mkt">
               <span>Market's best</span>
-              <strong>{result.benchmarkRate}</strong>
+              <strong>{moneyMetric ? fmtMetric(result.benchmarkRate) : result.benchmarkRate}</strong>
             </div>
           </div>
           <p className="res__ahead-note">
@@ -531,14 +558,14 @@ function Result({ result, product, compact, localCcy, onReveal, onCrossSell, can
 
           <div className="res__cmp">
             <div className="res__cmp-row">
-              <span className="res__cmp-label">{crossBorder ? 'Your all-in cost' : 'Your bank’s rate'}</span>
+              <span className="res__cmp-label">{crossBorder ? 'Your all-in cost' : moneyMetric ? 'What you pay now' : 'Your bank’s rate'}</span>
               <span className="res__cmp-track"><span className="res__cmp-fill res__cmp-fill--you" style={{ width: `${youW}%` }} /></span>
-              <span className="res__cmp-val res__cmp-val--you">{result.yourRate}%</span>
+              <span className="res__cmp-val res__cmp-val--you">{fmtMetric(result.yourRate)}</span>
             </div>
             <div className="res__cmp-row">
               <span className="res__cmp-label">Best available</span>
               <span className="res__cmp-track"><span className="res__cmp-fill res__cmp-fill--best" style={{ width: `${bestW}%` }} /></span>
-              <span className="res__cmp-val res__cmp-val--best">{result.benchmarkRate}%</span>
+              <span className="res__cmp-val res__cmp-val--best">{fmtMetric(result.benchmarkRate)}</span>
             </div>
           </div>
 
