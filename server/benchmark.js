@@ -60,21 +60,21 @@ export const PRODUCTS = [
     id: 'housing_loan', label: 'Housing loan', blurb: 'Home loan rates & conditions', category: 'loan',
     segments: ['individual'], family: 'rate', rateType: 'apr', unit: '% p.a.',
     currencyMode: 'local', annualiser: 1, metricKey: 'rate', amountKey: 'amount',
-    inputs: [bank('Your bank / NBFC'), amount('Outstanding amount'), tenor(), rate('Your interest rate (% p.a.)'), rateBasis()],
+    inputs: [bank('Your Bank/Finance Company'), amount('Outstanding amount'), tenor(), rate('Your interest rate (% p.a.)'), rateBasis()],
     tip: 'Home-loan rates are highly repriceable — lenders quote board rates but settle far lower to retain good borrowers.',
   },
   {
     id: 'personal_loan', label: 'Personal loan', blurb: 'Interest rates & processing fees', category: 'loan',
     segments: ['individual'], family: 'rate', rateType: 'apr', unit: '% p.a.',
     currencyMode: 'local', annualiser: 1, metricKey: 'rate', amountKey: 'amount',
-    inputs: [bank('Your bank / NBFC'), amount('Outstanding amount'), tenor(), rate('Your interest rate (% p.a.)'), rateBasis()],
+    inputs: [bank('Your Bank/Finance Company'), amount('Outstanding amount'), tenor(), rate('Your interest rate (% p.a.)'), rateBasis()],
     tip: 'Advertised “from” rates rarely match realised EIR — benchmark what borrowers with your profile actually pay.',
   },
   {
     id: 'vehicle_loan', label: 'Vehicle loan', blurb: 'Car & vehicle financing rates', category: 'loan',
     segments: ['individual'], family: 'rate', rateType: 'apr', unit: '% p.a.',
     currencyMode: 'local', annualiser: 1, metricKey: 'rate', amountKey: 'amount',
-    inputs: [bank('Your bank / NBFC'), amount('Outstanding amount'), tenor(), rate('Your interest rate (% p.a.)'), rateBasis()],
+    inputs: [bank('Your Bank/Finance Company'), amount('Outstanding amount'), tenor(), rate('Your interest rate (% p.a.)'), rateBasis()],
     tip: 'Dealer-arranged financing is often costlier than refinancing directly with a bank.',
   },
   // ------- Both -------
@@ -82,7 +82,7 @@ export const PRODUCTS = [
     id: 'fixed_deposit', label: 'Fixed deposit', blurb: 'Maturity yields & terms', category: 'deposit',
     segments: ['individual', 'sme'], family: 'rate', rateType: 'yield', unit: '% p.a.',
     currencyMode: 'multi', annualiser: 1, metricKey: 'rate', amountKey: 'amount',
-    inputs: [bank('Your bank / NBFC'), amount('Deposit amount'), tenor(), rate('Your FD rate (% p.a.)'), currency(false)],
+    inputs: [bank('Your Bank/Finance Company'), amount('Deposit amount'), tenor(), rate('Your FD rate (% p.a.)'), currency(false)],
     tip: 'Smaller and foreign banks routinely lead on FD promotional yields.',
   },
   {

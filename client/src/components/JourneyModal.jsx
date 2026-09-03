@@ -4,7 +4,7 @@ import { formatMoney, getReference, createCheckout, getCheckoutSession, getTierP
 import { safeHttpUrl, isStripeCheckoutUrl } from '../lib/safeUrl.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { supabase, isSupabaseConfigured } from '../lib/supabase.js';
-import { listAdvisorDirectory, createLead, updateBenchmark } from '../lib/dashboardApi.js';
+import { listAdvisorDirectory, listAdvisorAvailability, createLead, updateBenchmark, submitFeedback } from '../lib/dashboardApi.js';
 import Certificate from './Certificate.jsx';
 import { buildCertificateImage } from '../lib/certificateImage.js';
 import { SITE_URL } from '../lib/site.js';
@@ -44,9 +44,21 @@ const TIERS = [
 // The ~$1 reveal happens BEFORE this modal (on the result screen); returning from
 // its Stripe checkout lands on the 'options' view (certificate + the 3 actions).
 const VIEW_FOR_TIER = { reveal: 'options', call: 'call', expert: 'expert' };
+// The tier ladder, cheapest first, used to work out what's actually an UPGRADE
+// for someone who already bought one. `reveal` sits at the bottom: it unlocks
+// the bank and everyone on this screen has paid it, so it makes nothing here
+// redundant — a revealed-only user still sees all three offered.
+const TIER_RANK = { reveal: 0, email: 1, call: 2, expert: 3 };
 // The dashboard gates a saved benchmark's bank reveal on its `stage`; a completed
 // purchase moves it to the matching stage so the unlock persists.
 const STAGE_FOR_TIER = { reveal: 'revealed', call: 'call', expert: 'expert' };
+// Marker param pushed onto history while this overlay is open, so the browser
+// Back button dismisses it instead of leaving the site (see the history effect).
+// Deliberately a SEARCH param, never the hash: Root.jsx routes on the hash, so
+// touching it here would navigate the dashboard away from itself mid-flow.
+const NAV_PARAM = 'journey';
+// CC'd on the negotiation email when — and only when — the user ticks the box.
+const CC_EMAIL = 'admin@feeoptima.com';
 const CERT_SHARE_TEXT = 'Just ran an audit on my banking & treasury services using FeeOptima. Turns out companies are leaving serious money on the table with hidden fees. Optimized my stack and unlocked a cleaner structure. Transparency is everything in finance.';
 
 // Demo advisor directory for "Find an expert". Real signed-up advisors get wired
@@ -104,8 +116,77 @@ function appendPrefill(url, prefill) {
   } catch { return url; }
 }
 
+// Star rating + optional comment, asked once a slot is booked.
+//
+// Note what this can and can't be about: at this moment the call hasn't happened
+// yet, so it rates the BOOKING EXPERIENCE, not the specialist. Post-call
+// sentiment is a separate ask — the "How did it go?" email in server/email.js.
+// Wording it as "how was booking" keeps the two from being conflated in the data.
+function FeedbackCard({ source, benchmarkId }) {
+  const [rating, setRating] = useState(0);
+  const [hover, setHover] = useState(0);
+  const [comment, setComment] = useState('');
+  const [state, setState] = useState('idle'); // idle | sending | done | error
+
+  if (state === 'done') {
+    return <div className="jny-note jny-note--ok">✓ Thanks — that helps us sharpen this for the next person.</div>;
+  }
+
+  const send = async () => {
+    if (!rating) return;
+    setState('sending');
+    try {
+      await submitFeedback({ rating, comment, source, benchmarkId });
+      setState('done');
+    } catch {
+      // Never a dead end: their booking is already confirmed, so a failed
+      // rating is a footnote, not something to make them deal with.
+      setState('error');
+    }
+  };
+
+  const shown = hover || rating;
+  return (
+    <div className="jny-rate">
+      <p className="jny-rate__q">How was booking with us?</p>
+      <div className="jny-rate__stars" role="radiogroup" aria-label="Rate your booking experience">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            key={n} type="button"
+            className={`jny-rate__star${n <= shown ? ' is-on' : ''}`}
+            role="radio" aria-checked={rating === n} aria-label={`${n} star${n > 1 ? 's' : ''}`}
+            onMouseEnter={() => setHover(n)} onMouseLeave={() => setHover(0)}
+            onFocus={() => setHover(n)} onBlur={() => setHover(0)}
+            onClick={() => setRating(n)}
+          >
+            ★
+          </button>
+        ))}
+      </div>
+
+      {/* The comment box only appears once they've rated — nothing to say about
+          an experience they haven't scored yet, and it keeps the ask small. */}
+      {rating > 0 && (
+        <>
+          <textarea
+            className="jny-rate__note" rows={3} maxLength={1000} value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Anything you'd like to add? (optional)"
+          />
+          <button type="button" className="btn btn--primary btn--block" disabled={state === 'sending'} onClick={send}>
+            {state === 'sending' ? 'Sending…' : 'Send feedback'}
+          </button>
+          {state === 'error' && <p className="jny-rate__err">We couldn’t save that just now — your booking is confirmed either way.</p>}
+        </>
+      )}
+    </div>
+  );
+}
+
 // Booking panel: the Calendly embed if a URL is available, else a clear placeholder.
-function Scheduler({ url, prefill, note }) {
+// `onDone` is called with 'home' | 'dashboard' once a slot is booked — the modal
+// is a dead end otherwise, since the only way out is the × in the corner.
+function Scheduler({ url, prefill, note, onDone, feedback }) {
   const [scheduled, setScheduled] = useState(false);
   const safeUrl = safeHttpUrl(url); // block javascript:/data: from advisor-controlled links
   const linkUrl = safeUrl ? appendPrefill(safeUrl, prefill) : safeUrl;
@@ -115,7 +196,27 @@ function Scheduler({ url, prefill, note }) {
         <>
           {scheduled && <div className="jny-note jny-note--ok">✓ Time booked — the calendar invite is on its way to your inbox.</div>}
           <CalendlyEmbed url={safeUrl} prefill={prefill} onScheduled={() => setScheduled(true)} />
-          <a className="jny-sched__link" href={linkUrl} target="_blank" rel="noopener noreferrer">Open the scheduler in a new tab ↗</a>
+          {scheduled ? (
+            // Booked — offer a way onward. The "open in a new tab" link is hidden
+            // here: re-opening the scheduler after booking only invites a
+            // duplicate booking.
+            onDone && (
+              <div className="jny-done">
+                {feedback && <FeedbackCard source={feedback.source} benchmarkId={feedback.benchmarkId} />}
+                <p className="jny-done__title">You&apos;re all set. Where next?</p>
+                <div className="jny-actions">
+                  <button type="button" className="btn btn--primary" onClick={() => onDone('dashboard')}>
+                    Go to my dashboard →
+                  </button>
+                  <button type="button" className="btn btn--ghost" onClick={() => onDone('home')}>
+                    Back to home
+                  </button>
+                </div>
+              </div>
+            )
+          ) : (
+            <a className="jny-sched__link" href={linkUrl} target="_blank" rel="noopener noreferrer">Open the scheduler in a new tab ↗</a>
+          )}
         </>
       ) : (
         <div className="jny-sched__ph">
@@ -129,6 +230,29 @@ function Scheduler({ url, prefill, note }) {
   );
 }
 
+// Windows an advisor has blocked (admin → Advisor availability). Surfaced so the
+// user books around them: the embedded Calendly widget cannot know about these,
+// because Calendly exposes no API for writing availability from outside.
+function AwayNote({ windows, name }) {
+  if (!windows?.length) return null;
+  const label = (w) => {
+    // Built as a local date — new Date('2026-09-12') is UTC midnight and shows
+    // as the 11th for anyone west of Greenwich.
+    const [y, m, d] = (w.block_date || '').split('-').map(Number);
+    if (!y) return w.block_date;
+    const day = new Date(y, m - 1, d).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+    return w.start_time
+      ? `${day} ${w.start_time.slice(0, 5)}–${w.end_time.slice(0, 5)}`
+      : `${day} (all day)`;
+  };
+  return (
+    <p className="jny-away">
+      <strong>Unavailable:</strong> {windows.map(label).join(' · ')}
+      {name ? ` — please pick a time outside these when booking ${name}.` : ''}
+    </p>
+  );
+}
+
 export default function JourneyModal({ open, onClose, context, onRequireAuth, resume }) {
   const { user } = useAuth();
   const [view, setView] = useState('options'); // 'options' | 'email' | 'call' | 'expert'
@@ -136,8 +260,10 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
   const [emailTo, setEmailTo] = useState('');
   const [emailBody, setEmailBody] = useState('');
   const [copied, setCopied] = useState(false);
+  const [ccUs, setCcUs] = useState(false); // CC FeeOptima on the negotiation email
   const [shared, setShared] = useState(false);
   const [advisors, setAdvisors] = useState([]);
+  const [blackouts, setBlackouts] = useState([]); // upcoming advisor unavailability
   const [sentTo, setSentTo] = useState(null); // advisor id once a lead is created
   const [paymentsEnabled, setPaymentsEnabled] = useState(false);
   const [prices, setPrices] = useState({}); // { call: 'S$99' | '₹6,199', expert: … }
@@ -280,21 +406,79 @@ Kind regards,
     return () => document.body.classList.remove('jny-open');
   }, [open]);
 
-  // Don't lose an edited negotiation email on a stray backdrop click / Escape.
+  // Has the user edited the negotiation email without copying it? Mirrored into a
+  // ref so the history effect below can check it without listing `emailBody` as a
+  // dependency — which would re-run (and re-push) the effect on every keystroke.
+  const hasDraft = view === 'email' && !!emailBody && emailBody !== defaultBody;
+  const hasDraftRef = useRef(hasDraft);
+  hasDraftRef.current = hasDraft;
+
+  // Don't lose an edited negotiation email on a stray backdrop click / Escape / Back.
+  const confirmDiscardDraft = () => confirm({
+    title: 'Discard your draft?',
+    body: 'Your edits to the negotiation email haven’t been copied yet — close and lose them?',
+    confirmLabel: 'Discard', cancelLabel: 'Keep editing',
+  });
+
   const requestClose = async () => {
-    const editedEmail = view === 'email' && !!emailBody && emailBody !== defaultBody;
-    if (editedEmail) {
-      const ok = await confirm({
-        title: 'Discard your draft?',
-        body: 'Your edits to the negotiation email haven’t been copied yet — close and lose them?',
-        confirmLabel: 'Discard', cancelLabel: 'Keep editing',
-      });
-      if (!ok) return;
-    }
+    if (hasDraft && !(await confirmDiscardDraft())) return;
     onClose();
   };
 
   useModalA11y(open, cardRef, requestClose);
+
+  // Browser Back dismisses the overlay instead of leaving the page. On mobile
+  // Back IS the instinctive "close" gesture, and this overlay shows what the
+  // user just paid for — exiting the site and losing it is the worst outcome we
+  // can hand them. So while it's open we hold one extra history entry, and Back
+  // pops it to close instead of navigating away.
+  //
+  // Note what this deliberately does NOT do: call history.back() itself. Closing
+  // must never navigate. The overlay can unmount mid-flow (its missing-context
+  // note links to #dashboard, which re-routes the whole app), and a back() in
+  // cleanup would undo the user's own navigation and bounce them right back. The
+  // cost is that after closing normally one Back press is absorbed by the spent
+  // entry — cheap next to a close button whose correctness rides on popstate.
+  //
+  // `onClose` lives in a ref because callers pass an unstable inline callback
+  // (UserDashboard does); depending on it here would re-run the effect on every
+  // parent render and push another history entry each time.
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  useEffect(() => {
+    if (!open) return undefined;
+    const marked = (() => {
+      const { pathname, search, hash } = window.location;
+      const params = new URLSearchParams(search);
+      params.set(NAV_PARAM, '1');
+      return `${pathname}?${params}${hash}`;
+    })();
+    window.history.pushState({ jny: true }, '', marked);
+
+    const onPop = async () => {
+      // Back has already consumed our entry. Give it the same draft protection
+      // the close button has: restore the entry, ask, and only then close.
+      if (hasDraftRef.current) {
+        window.history.pushState({ jny: true }, '', marked);
+        if (!(await confirmDiscardDraft())) return; // stay open, entry restored
+      }
+      closeRef.current();
+    };
+    window.addEventListener('popstate', onPop);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      // Strip the marker so the URL matches what's on screen. replaceState is
+      // synchronous and fires no popstate, and rebuilding from the CURRENT
+      // location means a hash navigation that unmounted us is preserved.
+      const { pathname, search, hash } = window.location;
+      const params = new URLSearchParams(search);
+      if (!params.has(NAV_PARAM)) return;
+      params.delete(NAV_PARAM);
+      const query = params.toString();
+      window.history.replaceState({}, '', `${pathname}${query ? `?${query}` : ''}${hash}`);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   // Is Stripe configured on the server? (Controls whether paid tiers charge.)
   useEffect(() => {
@@ -305,7 +489,7 @@ Kind regards,
   // verify the payment before showing the scheduler.
   useEffect(() => {
     if (!open) return;
-    setEmailTo(''); setEmailBody(defaultBody); setCopied(false); setShared(false);
+    setEmailTo(''); setEmailBody(defaultBody); setCopied(false); setShared(false); setCcUs(false);
     if (resume?.afterAuth) {
       // Returned from signing in/up — restore the exact screen they were on.
       // `unlockedTier` lets the dashboard reopen an already-purchased tier in
@@ -339,10 +523,14 @@ Kind regards,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, resume]);
 
-  // Load the real approved-advisor directory for the expert picker.
+  // Load the real approved-advisor directory for the expert picker, plus any
+  // blocked windows so we can flag them before someone picks a time. The
+  // availability call swallows its own errors — a missing note must never stop
+  // a booking.
   useEffect(() => {
     if (!open) return;
     listAdvisorDirectory().then(setAdvisors).catch(() => setAdvisors([]));
+    listAdvisorAvailability().then(setBlackouts).catch(() => setBlackouts([]));
   }, [open]);
 
   // The paid tiers are charged in the user's market currency, so show them that
@@ -367,6 +555,9 @@ Kind regards,
   // Localized label for a tier, with the hardcoded SGD price as the fallback.
   const priceOf = (tier, fallback) => prices[tier] || fallback;
 
+  // Upcoming blocked windows, keyed by advisor (admin → Advisor availability).
+  const blackoutsFor = (id) => blackouts.filter((b) => b.advisor_id === id).slice(0, 6);
+
   // Real advisors if any are approved; otherwise the labelled demo set.
   const experts = advisors.length
     ? advisors.map((a) => ({
@@ -375,6 +566,7 @@ Kind regards,
         company: a.company || '', years: a.years_experience || null,
         blurb: a.description || '', photo: a.photo_url || null,
         calendly_url: a.calendly_url || '', accent: '#2f7bd8',
+        away: blackoutsFor(a.id),
       }))
     : SAMPLE_EXPERTS;
 
@@ -489,9 +681,19 @@ Kind regards,
     try { await navigator.clipboard.writeText(emailBody); setCopied(true); setTimeout(() => setCopied(false), 2000); }
     catch { /* clipboard blocked */ }
   };
-  const mailtoHref = `mailto:${encodeURIComponent(emailTo)}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+  const mailtoHref = `mailto:${encodeURIComponent(emailTo)}?subject=${encodeURIComponent(emailSubject)}`
+    + (ccUs ? `&cc=${encodeURIComponent(CC_EMAIL)}` : '')
+    + `&body=${encodeURIComponent(emailBody)}`;
 
   const back = () => { setView('options'); setExpert(null); setPayError(''); };
+
+  // Where to go once a slot is booked. Close first, then navigate: the modal's
+  // history effect strips its marker param from whatever the location is at
+  // cleanup, so the hash we set here survives.
+  const finishTo = (dest) => {
+    onClose();
+    window.location.hash = dest === 'dashboard' ? '#dashboard' : '#top';
+  };
 
   return (
     <div className="jny" role="dialog" aria-modal="true" aria-label="Your next steps">
@@ -499,29 +701,43 @@ Kind regards,
       <div className="jny__panel" ref={cardRef}>
         <button className="jny__close" onClick={requestClose} aria-label="Close">×</button>
 
-        {/* Reveal panel — the winning bank + saving, with a share button */}
+        {/* Reveal panel — the winning bank + saving, with a share button. Only on
+            the options screen: once the user has picked an action, the sub-view
+            has its own heading and repeating the result here just pushes the
+            actual task below the fold. */}
+        {view === 'options' && (
         <div className="jny-reveal">
           <div className="jny-reveal__top">
             <span className="jny-reveal__eyebrow">{SEG_LABEL[segment]} · your result</span>
-            <button className="jny-reveal__share" onClick={ahead ? share : shareCertificate} title="Share">
-              {shared ? 'Shared ✓' : '↗ Share'}
-            </button>
+            {/* Only in the 'ahead' state, which renders no certificate to carry a
+                share button of its own. Otherwise this would just duplicate it. */}
+            {ahead && (
+              <button className="jny-reveal__share" onClick={share} title="Share">
+                {shared ? 'Shared ✓' : '↗ Share'}
+              </button>
+            )}
           </div>
           {ahead ? (
             <p className="jny-reveal__headline">You&apos;re already ahead of the market — beating <strong>{standing}</strong>. 🎉</p>
           ) : (
             <>
-              <p className="jny-reveal__headline">
-                {isYield ? 'Earn the money your bank isn’t paying you.' : 'Save the money your bank is making off you.'}
-              </p>
-              <div className="jny-reveal__rule jny-reveal__rule--thick" />
+              {/* Headline + its underline shrink-wrap together so the rule stops
+                  at the end of the text, and the pair is centred on the panel.
+                  The amount sits OUTSIDE that band so it centres on the full
+                  panel width rather than on the headline's. */}
+              <div className="jny-reveal__summary">
+                <p className="jny-reveal__headline">
+                  {isYield ? 'Earn the money your bank isn’t paying you.' : 'Save the money your bank is making off you.'}
+                </p>
+                <div className="jny-reveal__rule jny-reveal__rule--thick" />
+              </div>
               {savings
                 ? <div className="jny-reveal__amt">{fmtSaving(savings)}<span> {isYield ? 'extra / year' : 'per year'}</span></div>
                 : <div className="jny-reveal__amt jny-reveal__amt--sm">Pick how you’d like to act below</div>}
-              <div className="jny-reveal__rule jny-reveal__rule--thin" />
             </>
           )}
         </div>
+        )}
 
         {/* OPTIONS — the shareable certificate + the three follow-on actions.
             The bank is already unlocked here (the ~$1 reveal was paid first). */}
@@ -534,20 +750,38 @@ Kind regards,
                 <a href="#dashboard">your dashboard</a> — or check your inbox for your sign-in link.
               </div>
             )}
-            <Certificate segment={segment} product={context?.product} savingPct={savingPct} />
-            <h4 className="jny-sectlabel">Your bank is unlocked — how would you like to act on it?</h4>
+            <Certificate
+              segment={segment} product={context?.product} savingPct={savingPct}
+              onShare={shareCertificate} shared={shared}
+            />
+            <h4 className="jny-sectlabel">
+              {paidTier && !TIERS.some((t) => TIER_RANK[t.id] > TIER_RANK[paidTier])
+                ? 'You’re on our top tier — everything below is already yours.'
+                : 'Your bank is unlocked — how would you like to act on it?'}
+            </h4>
             <div className="jny-tiers">
-              {TIERS.map((t, i) => (
-                <div className={`jny-tier jny-tier--${t.accent}`} key={t.id}>
-                  <span className="jny-tier__badge">Option {i + 1}</span>
-                  <div className="jny-tier__price">{priceOf(t.id, t.price)}</div>
-                  <div className="jny-tier__body">
+              {TIERS.map((t, i) => {
+                // Anything at or below what they've already paid for is theirs.
+                // Re-offering it for sale (which is what this screen used to do
+                // when reached via "Upgrade options") is just wrong.
+                const owned = !!paidTier && TIER_RANK[t.id] <= TIER_RANK[paidTier];
+                const current = paidTier === t.id;
+                return (
+                  <div className={`jny-tier jny-tier--${t.accent}${owned ? ' jny-tier--owned' : ''}`} key={t.id}>
+                    <span className="jny-tier__badge">{current ? 'Your plan' : `Option ${i + 1}`}</span>
+                    <div className="jny-tier__price">
+                      {owned ? (current ? '✓ Purchased' : '✓ Included') : priceOf(t.id, t.price)}
+                    </div>
                     <div className="jny-tier__title">{t.title}</div>
+                    {/* CTA sits directly under the title; the detail reads as a
+                        footnote beneath it rather than something to get past. */}
+                    <button className="jny-tier__cta" onClick={() => setView(t.id)}>
+                      {owned ? (current ? 'Manage this →' : 'Open →') : `${t.cta} →`}
+                    </button>
                     <div className="jny-tier__desc">{t.desc}</div>
                   </div>
-                  <button className="jny-tier__cta" onClick={() => setView(t.id)}>{t.cta} →</button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </>
         )}
@@ -575,6 +809,18 @@ Kind regards,
               <input type="text" value={emailSubject} readOnly />
             </label>
             <textarea className="jny-textarea" rows={12} value={emailBody} onChange={(e) => setEmailBody(e.target.value)} />
+
+            {/* Off by default: this is the user's private correspondence with
+                their own bank, including their rates. Opting them in silently
+                isn't ours to do. Only affects the mail-app link — "Copy email"
+                copies the body, which carries no recipients. */}
+            <label className="jny-cc">
+              <input type="checkbox" checked={ccUs} onChange={(e) => setCcUs(e.target.checked)} />
+              <span>
+                CC us on this email <em>({CC_EMAIL})</em>
+                <small>So we can follow up and help if your bank pushes back.</small>
+              </span>
+            </label>
 
             <div className="jny-actions">
               <button className="btn btn--primary" onClick={copyEmail}>{copied ? 'Copied ✓' : 'Copy email'}</button>
@@ -609,7 +855,7 @@ Kind regards,
               <>
                 {paidTier === 'call' && <div className="jny-note jny-note--ok">✓ Payment received — pick a time below.</div>}
                 <p className="jny-sub__sub"><span className="jny-pill">{priceOf('call', 'S$99')}</span> A FeeOptima specialist coaches you through the negotiation.</p>
-                <Scheduler url={CALENDLY_URL} prefill={bookingPrefill} note="You and the specialist both receive the calendar invite from Calendly." />
+                <Scheduler url={CALENDLY_URL} prefill={bookingPrefill} onDone={finishTo} feedback={{ source: 'call', benchmarkId: context?.benchmarkId }} note="You and the specialist both receive the calendar invite from Calendly." />
               </>
             )}
           </div>
@@ -640,6 +886,7 @@ Kind regards,
                         <div className="jny-expert__name">{x.name}</div>
                         <div className="jny-expert__role">{x.role}{x.company ? ` · ${x.company}` : ''}{x.years ? ` · ${x.years} yrs` : ''}</div>
                         {x.blurb && <div className="jny-expert__blurb">{x.blurb}</div>}
+                        <AwayNote windows={x.away} />
                       </div>
                       <button className="jny-expert__pick" onClick={() => connectExpert(x)}>Select →</button>
                     </div>
@@ -684,7 +931,8 @@ Kind regards,
                 ) : (
                   <>
                     {paidTier === 'expert' && <div className="jny-note jny-note--ok">✓ Payment received — pick a time below.</div>}
-                    <Scheduler url={(expert.real && expert.calendly_url) || CALENDLY_URL} prefill={bookingPrefill} note={expert.real ? `${expert.name} and you both receive the calendar invite from Calendly.` : 'Your matched expert and you both receive the calendar invite from Calendly.'} />
+                    <AwayNote windows={expert.away} name={expert.name} />
+                    <Scheduler url={(expert.real && expert.calendly_url) || CALENDLY_URL} prefill={bookingPrefill} onDone={finishTo} feedback={{ source: 'expert', benchmarkId: context?.benchmarkId }} note={expert.real ? `${expert.name} and you both receive the calendar invite from Calendly.` : 'Your matched expert and you both receive the calendar invite from Calendly.'} />
                   </>
                 )}
               </>

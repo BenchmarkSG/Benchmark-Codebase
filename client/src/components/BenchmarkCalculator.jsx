@@ -13,6 +13,22 @@ const sortByName = (list) => [...(list || [])].sort((a, b) => byName.compare(a.n
 
 const BANK_NAMES = BANK_LOGOS.map((b) => b.name).sort((a, b) => byName.compare(a, b));
 
+// Signing in can reload the whole page (Google OAuth, an email-confirm link), so
+// the computed benchmark is stashed and restored — the user comes back to their
+// result instead of an empty form they'd have to fill in and compute again.
+const RESTORE_KEY = 'bb_calc';
+const RESTORE_TTL = 60 * 60 * 1000; // 1h — long enough for an email round-trip
+const readSavedCalc = () => {
+  try {
+    const d = JSON.parse(localStorage.getItem(RESTORE_KEY) || 'null');
+    if (!d || typeof d.at !== 'number' || Date.now() - d.at > RESTORE_TTL) {
+      localStorage.removeItem(RESTORE_KEY);
+      return null;
+    }
+    return d;
+  } catch { return null; }
+};
+
 // SMEs and Corporates share the same product set, so they're one tab.
 const SEGMENT_TABS = [
   { key: 'individual', label: 'For Individuals' },
@@ -108,16 +124,18 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
   const { user } = useAuth();
   const [ref, setRef] = useState(null);
   const [error, setError] = useState(null);
-  const [segment, setSegment] = useState('individual');
-  const [country, setCountry] = useState('SG');
-  const [productId, setProductId] = useState(null);
-  const [values, setValues] = useState({});
-  const [result, setResult] = useState(null);
+  const savedCalc = useRef(readSavedCalc()).current; // read once, on first render
+  const [segment, setSegment] = useState(savedCalc?.segment || 'individual');
+  const [country, setCountry] = useState(savedCalc?.country || 'SG');
+  const [productId, setProductId] = useState(savedCalc?.productId ?? null);
+  const [values, setValues] = useState(savedCalc?.values || {});
+  const [result, setResult] = useState(savedCalc?.result || null);
+  // Lets the product-selection effect below keep restored values on its first
+  // run instead of clobbering them with defaults.
+  const keepRestored = useRef(!!savedCalc);
   const [loading, setLoading] = useState(false);
   const [saveState, setSaveState] = useState('idle'); // idle | saving | saved | error
   const [savedId, setSavedId] = useState(null); // id of this result's saved-benchmark row (once saved)
-  const [leadName, setLeadName] = useState(''); // name captured inline for the reveal → becomes their account
-  const [leadEmail, setLeadEmail] = useState(''); // email captured inline for the reveal → becomes their login
   const [banks, setBanks] = useState([]); // provider directory for the chosen country
   const [back, setBack] = useState(false); // true after "Recalculate" → animate the form back in
   const [invalid, setInvalid] = useState({}); // { fieldKey: true } for blank required fields
@@ -127,12 +145,9 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
     getReference().then(setRef).catch(() => setError('Could not load reference data.'));
   }, []);
 
-  // Pre-fill the reveal's name/email from the signed-in user (still editable).
-  useEffect(() => {
-    if (user?.email) setLeadEmail((e) => e || user.email);
-    const n = user?.user_metadata?.full_name;
-    if (n) setLeadName((x) => x || n);
-  }, [user]);
+  // Keep the partner-logo marquee on the selected market. Driven by `country`
+  // rather than the dropdown handler, so a restored session syncs it too.
+  useEffect(() => { onMarketChange?.(country); }, [country, onMarketChange]);
 
   // Load the provider directory for the selected market (falls back to the SG
   // logo list if the banks table isn't seeded).
@@ -155,10 +170,22 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
     const next = list.some((p) => p.id === productId) ? products.find((p) => p.id === productId) : list[0];
     if (!next) return;
     if (next.id !== productId) setProductId(next.id);
+    if (keepRestored.current) { keepRestored.current = false; return; } // restored run
     setValues(buildDefaults(next, ccyList(next, localCcy, allCcys)));
     setResult(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [products, segment]);
+
+  // Stash each computed result so it survives a sign-in page reload.
+  useEffect(() => {
+    if (!result) return;
+    try {
+      localStorage.setItem(RESTORE_KEY, JSON.stringify({
+        at: Date.now(), segment, country, productId, values, result,
+      }));
+    } catch { /* storage full / blocked — restoring is best-effort */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result]);
 
   // Apply a request from elsewhere (the "Compare Now" cards / segment CTAs).
   // A selection may name a specific product, just a segment, or both. Runs when
@@ -186,7 +213,6 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
 
   function changeCountry(code) {
     setCountry(code);
-    onMarketChange?.(code); // keep the partner-logo marquee in sync with the market
     if (!product) return;
     const nextLocal = countries.find((c) => c.code === code)?.currency || 'SGD';
     const opts = ccyList(product, nextLocal, allCcys);
@@ -253,8 +279,6 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
       segment,
       benchmarkId: savedId || undefined,
       saveRow: currentSaveRow(),
-      email: leadEmail.trim(),   // billed + becomes their account/login
-      name: leadName.trim(),
     });
   }
 
@@ -315,12 +339,23 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
       <div className={compact ? 'calc-card' : 'container'}>
         <div className={compact ? 'calc-screen' : 'calc-screen--plain'}>
         {compact ? (
-          !result && (
-            <div className="calc-card__head">
-              <h2 className="calc-card__title">Calculate Your Free Comparison</h2>
-              <p className="calc-card__sub">Live rates · no sign-up · no personal data stored</p>
-            </div>
-          )
+          /* Persistent header band — the phone's "navbar". It stays on every
+             screen so the chrome never disappears; only its contents change. */
+          <div className={`calc-card__head${result ? ' calc-card__head--nav' : ''}`}>
+            {result ? (
+              <div className="calc-card__nav">
+                <button type="button" className="calc-card__back" onClick={() => { setResult(null); setBack(true); }}>
+                  ← Recalculate
+                </button>
+                <span className="calc-card__unit">{result.unit}</span>
+              </div>
+            ) : (
+              <>
+                <h2 className="calc-card__title">Calculate Your Free Comparison</h2>
+                <p className="calc-card__sub">Live rates · no sign-up · no personal data stored</p>
+              </>
+            )}
+          </div>
         ) : (
           <>
             <span className="eyebrow calc-sec__eyebrow">Free Benchmark · No sign-up · No personal data stored</span>
@@ -332,7 +367,7 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
           </>
         )}
 
-        <div className={`calcbox ${compact ? 'calcbox--compact' : ''}${compact && result ? ' calcbox--noheader' : ''}`}>
+        <div className={`calcbox ${compact ? 'calcbox--compact' : ''}`}>
           {(!compact || !result) && (
             <form ref={formRef} className={`calcbox__form${back ? ' is-back' : ''}`} onSubmit={compute} noValidate>
               <div className="calcbox__seg">
@@ -349,7 +384,7 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
 
               <div className="calcbox__row">
                 <label className="calcbox__field">
-                  <span>Market</span>
+                  <span>Country</span>
                   <select value={country} onChange={(e) => changeCountry(e.target.value)}>
                     {countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
                   </select>
@@ -389,9 +424,7 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
                 <Result result={result} product={product} compact={compact} localCcy={localCcy}
                   onReveal={revealCurrent}
                   onCrossSell={crossSellNext} canCrossSell={segmentProducts.length > 1}
-                  leadName={leadName} leadEmail={leadEmail} onLeadName={setLeadName} onLeadEmail={setLeadEmail}
                   onDetailedFeedback={() => onDetailedFeedback({ ...result, currency: result.currency || localCcy, segment })}
-                  onBack={() => { setResult(null); setBack(true); }}
                   isAuthed={!!user} saveState={saveState} onSave={saveCurrent} />
               )}
             </div>
@@ -409,22 +442,18 @@ function standingText(result) {
   return `better than ${result.percentileBeaten}% of the ${result.poolSize} providers we benchmark`;
 }
 
-function Result({ result, product, compact, localCcy, onReveal, onCrossSell, canCrossSell, leadName, leadEmail, onLeadName, onLeadEmail, onDetailedFeedback, onBack, isAuthed, saveState, onSave }) {
-  const [leadErr, setLeadErr] = useState('');
+function Result({ result, product, compact, localCcy, onReveal, onCrossSell, canCrossSell, onDetailedFeedback, isAuthed, saveState, onSave }) {
+  const [revealErr, setRevealErr] = useState('');
   const [revealBusy, setRevealBusy] = useState(false);
-  const nameOk = (leadName || '').trim().length >= 2;
-  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((leadEmail || '').trim());
-  // Validate the inline name/email before we send them to Stripe (this email
-  // becomes their account, so we don't want a blank or malformed one).
+  // Not signed in? onReveal opens the sign-in modal and stashes this result, so
+  // the user lands straight back on payment afterwards — nothing to re-enter.
   async function handleReveal() {
-    if (!nameOk) { setLeadErr('Please enter your full name.'); return; }
-    if (!emailOk) { setLeadErr('Please enter a valid email address.'); return; }
-    setLeadErr('');
+    setRevealErr('');
     setRevealBusy(true);
     try {
-      await onReveal(); // redirects to Stripe on success (or opens the demo reveal)
+      await onReveal(); // sign-in prompt, or straight to Stripe when signed in
     } catch {
-      setLeadErr('We couldn’t start the secure checkout. Please check your connection and try again.');
+      setRevealErr('We couldn’t start the secure checkout. Please check your connection and try again.');
     } finally {
       setRevealBusy(false);
     }
@@ -445,16 +474,12 @@ function Result({ result, product, compact, localCcy, onReveal, onCrossSell, can
   const ahead = result.status === 'ahead';
 
   // Visual comparison of your rate vs the best — bar widths relative to the
-  // larger of the two, plus the % gap for a positive "you could save" pill.
+  // larger of the two.
   const yr = Number(result.yourRate);
   const br = Number(result.benchmarkRate);
   const maxRate = Math.max(yr, br) || 1;
   const youW = Number.isFinite(yr) ? Math.max(8, Math.round((yr / maxRate) * 100)) : 0;
   const bestW = Number.isFinite(br) ? Math.max(8, Math.round((br / maxRate) * 100)) : 0;
-  const savePct = (Number.isFinite(yr) && Number.isFinite(br) && yr > 0)
-    ? (() => { const p = higher ? (br - yr) / yr : (yr - br) / yr; return p > 0 ? Math.round(p * 100) : null; })()
-    : null;
-
   const saveLabel = saveState === 'saved' ? 'Saved to dashboard ✓'
     : saveState === 'saving' ? 'Saving…'
     : saveState === 'error' ? 'Couldn’t save — retry'
@@ -462,12 +487,13 @@ function Result({ result, product, compact, localCcy, onReveal, onCrossSell, can
 
   return (
     <div className="res">
-      <div className="res__top">
-        {compact
-          ? <button type="button" className="res__back" onClick={onBack}>← Recalculate</button>
-          : <span className="res__product">{result.product}{result.currency ? ` · ${result.currency}` : ''}</span>}
-        <span className="res__unit">{result.unit}</span>
-      </div>
+      {/* Compact mode shows these in the header navbar instead. */}
+      {!compact && (
+        <div className="res__top">
+          <span className="res__product">{result.product}{result.currency ? ` · ${result.currency}` : ''}</span>
+          <span className="res__unit">{result.unit}</span>
+        </div>
+      )}
 
       {ahead ? (
         <div className="res__ahead">
@@ -500,7 +526,7 @@ function Result({ result, product, compact, localCcy, onReveal, onCrossSell, can
             <span className="res__overpay-lead">
               {higher ? <>You&apos;re <strong>missing out</strong> on</> : <>You&apos;re <strong>overpaying</strong> your bank by</>}
             </span>
-            <strong className="res__overpay-amt">{formatMoney(result.annualSaving, ccy)} / year</strong>
+            <strong className="res__overpay-amt">{formatMoney(result.annualSaving, ccy)} per year</strong>
           </div>
 
           <div className="res__cmp">
@@ -514,9 +540,6 @@ function Result({ result, product, compact, localCcy, onReveal, onCrossSell, can
               <span className="res__cmp-track"><span className="res__cmp-fill res__cmp-fill--best" style={{ width: `${bestW}%` }} /></span>
               <span className="res__cmp-val res__cmp-val--best">{result.benchmarkRate}%</span>
             </div>
-            {savePct != null && (
-              <div className="res__cmp-save">✓ Best available is {savePct}% {higher ? 'higher' : 'lower'}</div>
-            )}
           </div>
 
           <p className="res__tagline">Save the money your bank is making off you.</p>
@@ -556,29 +579,11 @@ function Result({ result, product, compact, localCcy, onReveal, onCrossSell, can
         </button>
       ) : (
         <>
-          <div className="res__lead">
-            <label className="res__lead-field">
-              <span>Full name</span>
-              <input
-                type="text" autoComplete="name" placeholder="e.g. Priya Sharma"
-                value={leadName || ''}
-                onChange={(e) => { onLeadName(e.target.value); if (leadErr) setLeadErr(''); }}
-              />
-            </label>
-            <label className="res__lead-field">
-              <span>Email</span>
-              <input
-                type="email" autoComplete="email" inputMode="email" placeholder="you@email.com"
-                value={leadEmail || ''}
-                onChange={(e) => { onLeadEmail(e.target.value); if (leadErr) setLeadErr(''); }}
-              />
-            </label>
-          </div>
           <button className="btn btn--block res__detail" onClick={handleReveal} disabled={revealBusy}>
-            {revealBusy ? 'Opening secure checkout…' : `Reveal the Best Bank — ${revealLabel} →`}
+            {revealBusy ? 'Opening secure checkout…' : 'Reveal the Best Bank →'}
           </button>
-          {leadErr && <p className="res__lead-err">{leadErr}</p>}
-          <p className="res__reveal-note">🔒 {revealLabel} charged securely · full refund if you’re not satisfied. No password needed — your email becomes your secure login.</p>
+          {revealErr && <p className="res__lead-err">{revealErr}</p>}
+          <p className="res__reveal-note">🔒 {revealLabel} charged securely. 100% cashback if not satisfied.</p>
         </>
       )}
 

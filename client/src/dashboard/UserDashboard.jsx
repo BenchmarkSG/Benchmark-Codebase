@@ -176,7 +176,11 @@ export default function UserDashboard() {
   const openJourney = (r, resume) => setJourney({ ctx: contextFromBenchmark(r), resume });
   const openTier = (r, view) => openJourney(r, { afterAuth: true, view });               // buy a tier
   const openManage = (r) => { const tv = TIER_META[r.stage] || {}; openJourney(r, { afterAuth: true, view: tv.view || 'options', unlockedTier: tv.tier || null }); };
-  const openOptions = (r) => openJourney(r, { afterAuth: true, view: 'options' });        // compare / upgrade
+  // Compare / upgrade. Passes what they already own, so the options screen can
+  // mark those tiers as theirs instead of trying to sell them again.
+  const openOptions = (r) => openJourney(r, {
+    afterAuth: true, view: 'options', unlockedTier: TIER_META[r.stage]?.tier || null,
+  });
   const closeJourney = () => { setJourney(null); load(); };
 
   // Pay the ~$1 reveal for a saved benchmark (user is already signed in here).
@@ -234,15 +238,15 @@ export default function UserDashboard() {
       {/* ---- KPI row (only once there's data — no misleading $0 / — for new users) ---- */}
       {hasData && (
         <div className="udash__kpis">
-          <KpiCard icon="🐷" label="Estimated savings" value={`${formatMoney(Math.round(potential), baseCcy)}`}
+          <KpiCard label="Estimated savings" value={`${formatMoney(Math.round(potential), baseCcy)}`}
             unit="/ year" sub="Potential annual savings" tone="accent" />
-          <KpiCard icon="🏠" label="Best loan rate found"
+          <KpiCard label="Best loan rate found"
             value={bestLoan ? `${bestLoan.benchmark_rate}%` : '—'}
             sub={bestLoan ? bestLoan.product_label || 'Loan' : 'Run a loan benchmark'} tone="green" />
-          <KpiCard icon="💱" label="FX transfer savings"
+          <KpiCard label="FX transfer savings"
             value={fxSaving > 0 ? formatMoney(Math.round(fxSaving), recentFx?.currency || baseCcy) : '—'}
             sub={fx.length ? 'Lower transfer costs' : 'Run an FX benchmark'} />
-          <KpiCard icon="✈️" label="Recent remittance"
+          <KpiCard label="Recent remittance"
             value={recentFx ? `${formatMoney(num(recentFx.inputs?.sent_amount), recentFx.inputs?.send_currency || recentFx.currency || 'SGD')}` : '—'}
             sub={recentFx ? `Sent ${recentFx.inputs?.send_currency || ''} · optimised FX rate` : 'No transfers yet'} />
         </div>
@@ -403,9 +407,11 @@ export default function UserDashboard() {
                 <div className="ubm__options">
                   <span className="ubm__options-label">Reveal your best-match bank to act on it:</span>
                   <button className="ubm__act ubm__act--primary ubm__reveal" onClick={() => revealBank(r)}>
-                    🔓 Reveal the Best Bank — <RevealPriceLabel currency={r.currency} /> →
+                    🔓 Reveal the Best Bank →
                   </button>
-                  <span className="ubm__options-hint">Then negotiate yourself (free), with a coach, or an expert · full refund if not satisfied.</span>
+                  <span className="ubm__options-hint">
+                    <RevealPriceLabel currency={r.currency} /> charged securely. 100% cashback if not satisfied.
+                  </span>
                 </div>
               )}
             </article>
@@ -485,10 +491,10 @@ export default function UserDashboard() {
   );
 }
 
-function KpiCard({ icon, label, value, unit, sub, tone }) {
+function KpiCard({ label, value, unit, sub, tone }) {
   return (
     <div className={`udash__kpi ${tone ? `udash__kpi--${tone}` : ''}`}>
-      <div className="udash__kpi-head"><span className="udash__kpi-label">{label}</span><span className="udash__kpi-icon" aria-hidden="true">{icon}</span></div>
+      <div className="udash__kpi-head"><span className="udash__kpi-label">{label}</span></div>
       <div className="udash__kpi-value">{value}{unit && <em>{unit}</em>}</div>
       <div className="udash__kpi-sub">{sub}</div>
     </div>

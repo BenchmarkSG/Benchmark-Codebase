@@ -22,7 +22,6 @@ import {
 import { createCheckout } from './api.js';
 import { isStripeCheckoutUrl } from './lib/safeUrl.js';
 import { saveBenchmark, updateBenchmark } from './lib/dashboardApi.js';
-import { supabase } from './lib/supabase.js';
 
 // After-auth resume intents live in lib/afterAuth.js (shared with AuthModal,
 // which clears a pending intent when the user dismisses sign-in without
@@ -30,7 +29,7 @@ import { supabase } from './lib/supabase.js';
 import { readAfterAuth, storeAfterAuth, clearAfterAuth } from './lib/afterAuth.js';
 
 export default function App() {
-  const { user, signInWithOtp } = useAuth();
+  const { user } = useAuth();
   const [tiersOpen, setTiersOpen] = useState(false);
   const [context, setContext] = useState(null);
   const [resume, setResume] = useState(null); // set when returning from Stripe Checkout / after auth
@@ -38,20 +37,6 @@ export default function App() {
   const [advisorOpen, setAdvisorOpen] = useState(false);
   const [calcSelection, setCalcSelection] = useState(null);
   const [market, setMarket] = useState('SG'); // market picked in the calculator; drives the partner-logo marquee
-
-  // A first-time reveal buyer has no account. Create it passwordlessly from the
-  // name + email they entered (that email becomes their login), and defer saving
-  // the revealed benchmark until they confirm the magic link — see the
-  // 'reveal-complete' after-auth branch. Never re-charges.
-  const provisionRevealAccount = useCallback((email, name, ctx) => {
-    if (!email) return;
-    signInWithOtp(email, { full_name: name }).catch(() => {});
-    if (ctx?.saveRow) {
-      const ctxForModal = { ...ctx };
-      delete ctxForModal.saveRow; delete ctxForModal.email; delete ctxForModal.name;
-      storeAfterAuth({ kind: 'reveal-complete', email, saveRow: ctx.saveRow, context: ctxForModal });
-    }
-  }, [signInWithOtp]);
 
   // Returning from Stripe Checkout (?checkout=success|cancel): restore the stashed
   // journey context and reopen the modal to the scheduler.
@@ -75,21 +60,6 @@ export default function App() {
       canceled: checkout === 'cancel',
     });
     setTiersOpen(true);
-
-    // A first-time user just paid for the reveal via the inline name/email — they
-    // have no account yet. Create it passwordlessly (that email becomes their
-    // login) and, once they confirm the magic link, persist the revealed
-    // benchmark to their dashboard. This never re-charges.
-    if (checkout === 'success' && tier === 'reveal' && stash?.lead?.email) {
-      (async () => {
-        try {
-          const { data } = await supabase.auth.getSession();
-          if (data?.session) return; // already signed in — nothing to provision
-          provisionRevealAccount(stash.lead.email, stash.lead.name, stash.context);
-        } catch { /* ignore */ }
-      })();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const scrollToCalc = useCallback(() => {
@@ -112,7 +82,7 @@ export default function App() {
   // Open the auth modal. If a `resumeIntent` is given (e.g. from inside the
   // journey), stash it so we can return the user to that exact screen post-auth.
   const requireAuth = useCallback((resumeIntent) => {
-    if (resumeIntent && (resumeIntent.kind === 'journey' || resumeIntent.kind === 'save')) {
+    if (resumeIntent && ['journey', 'save', 'reveal'].includes(resumeIntent.kind)) {
       storeAfterAuth(resumeIntent);
     }
     setAuthOpen(true);
@@ -120,34 +90,30 @@ export default function App() {
   const openAuth = useCallback(() => setAuthOpen(true), []);
   const closeAuth = useCallback(() => setAuthOpen(false), []);
 
-  // The ~$1 reveal — NO sign-in screen. The name + email are captured inline on
-  // the result screen; that email is what we bill and what becomes the user's
-  // account/login (created passwordlessly on the way back from Stripe). We charge
-  // in the user's market currency (FX-localized, priced server-side). If Stripe
-  // isn't configured, fall back to a demo reveal so the flow still works.
+  // The ~$1 reveal. SIGN IN FIRST: an account is what the purchase, the saved
+  // benchmark and the dashboard all hang off, so we never take money without one.
+  // The result is stashed (see the calculator's RESTORE_KEY) and the intent is
+  // recorded, so after signing in — even through an OAuth/email-confirm page
+  // reload — the user lands straight on payment with their numbers intact.
+  // Priced in the user's market currency (FX-localized, server-side).
   const revealBank = useCallback(async (ctx) => {
     const ready = ctx || {};
-    const email = (ready.email || user?.email || '').trim();
-    const name = (ready.name || user?.user_metadata?.full_name || '').trim();
-    if (!email) return; // the calculator validates first; guard anyway.
+    if (!user) { requireAuth({ kind: 'reveal', context: ready }); return; }
 
-    // Signed-in users: persist immediately so the reveal lands in their dashboard.
-    // First-time users have no session yet (writes are RLS-scoped to their own
-    // row), so we defer the save until their new account is confirmed — see the
-    // Stripe-return handler below. Reuse an already-saved row when present.
+    // Persist first so the reveal lands in their dashboard; reuse an existing row.
     let saved = ready;
-    if (user && !saved.benchmarkId && saved.saveRow) {
+    if (!saved.benchmarkId && saved.saveRow) {
       try { const row = await saveBenchmark(saved.saveRow); saved = { ...saved, benchmarkId: row?.id }; }
       catch { /* proceed without persistence */ }
     }
     try {
-      sessionStorage.setItem('bb_journey', JSON.stringify({ tier: 'reveal', context: saved, lead: { email, name } }));
+      sessionStorage.setItem('bb_journey', JSON.stringify({ tier: 'reveal', context: saved }));
       const { url } = await createCheckout({
         tier: 'reveal',
         currency: saved.currency || 'SGD',
         product: saved.product || null,
         segment: saved.segment || 'individual',
-        email,
+        email: user.email,
       });
       if (!isStripeCheckoutUrl(url)) throw new Error('Unexpected checkout URL');
       window.location.assign(url);
@@ -158,13 +124,12 @@ export default function App() {
       // — network blip, server error — must NOT give the paid product away:
       // rethrow so the result screen shows a retry error instead.
       if (!/not configured/i.test(err?.message || '')) throw err;
-      if (!user) provisionRevealAccount(email, name, saved);
       if (saved.benchmarkId) updateBenchmark(saved.benchmarkId, { stage: 'revealed' }).catch(() => {});
       setContext(saved);
       setResume({ tier: 'reveal', demo: true });
       setTiersOpen(true);
     }
-  }, [user, provisionRevealAccount]);
+  }, [user, requireAuth]);
 
   // Once the user is authenticated (in-session sign-in, or after an email-confirm
   // / OAuth reload), reopen the journey exactly where they left off.
@@ -172,18 +137,12 @@ export default function App() {
     if (!user) return;
     const intent = readAfterAuth();
     if (!intent) return;
-    // Confirmed the account we created during a reveal payment → persist the
-    // benchmark (as revealed) and reopen the certificate + options. No payment.
-    // Bound to the buyer: if a DIFFERENT account signs in on this browser within
-    // the TTL, do nothing (their dashboard must not receive someone else's row).
-    if (intent.kind === 'reveal-complete') {
-      if (intent.email && intent.email.toLowerCase() !== (user.email || '').toLowerCase()) return;
+    // Signed in specifically to reveal → carry straight on to the ~$1 checkout,
+    // using the benchmark they'd already computed. Nothing to re-enter.
+    if (intent.kind === 'reveal') {
       clearAfterAuth();
       setAuthOpen(false);
-      if (intent.saveRow) saveBenchmark({ ...intent.saveRow, stage: 'revealed' }).catch(() => {});
-      setContext(intent.context || null);
-      setResume({ afterAuth: true, tier: 'reveal', view: 'options' });
-      setTiersOpen(true);
+      revealBank(intent.context || null);
       return;
     }
     // Signed in from "Save to my dashboard" → persist the benchmark they computed.
@@ -199,7 +158,7 @@ export default function App() {
     setContext(intent.context || null);
     setResume({ afterAuth: true, view: intent.view || 'options', expert: intent.expert || null });
     setTiersOpen(true);
-  }, [user]);
+  }, [user, revealBank]);
 
   // In-page section anchors (#how, #products, #calculator, …) don't scroll when
   // the browser navigates from another hash route (the fragment scroll fires

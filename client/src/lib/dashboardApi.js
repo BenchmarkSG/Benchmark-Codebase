@@ -211,3 +211,73 @@ export async function cancelAccountDeletion(id) {
     .from('account_deletion_requests').update({ status: 'cancelled' }).eq('id', id);
   if (error) throw error;
 }
+
+// ---- Advisor blackouts (unavailability windows) ----------------------------
+// RLS restricts these to admins and the advisor themselves; `reason` never
+// leaves that circle. See supabase/advisor_blackouts.sql.
+
+export async function listAdvisorBlackouts(advisorId) {
+  ensure();
+  let q = supabase
+    .from('advisor_blackouts')
+    .select('*')
+    .order('block_date', { ascending: true })
+    .order('start_time', { ascending: true, nullsFirst: true });
+  if (advisorId) q = q.eq('advisor_id', advisorId);
+  const { data, error } = await q;
+  if (error) throw error;
+  return data || [];
+}
+
+export async function createAdvisorBlackout(row) {
+  ensure();
+  const user = await currentUser();
+  const { data, error } = await supabase
+    .from('advisor_blackouts')
+    .insert({ ...row, created_by: user?.id ?? null })
+    .select().single();
+  // 23505 = unique violation: this exact window is already blocked.
+  if (error?.code === '23505') throw new Error('That window is already blocked for this advisor.');
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteAdvisorBlackout(id) {
+  ensure();
+  const { error } = await supabase.from('advisor_blackouts').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// Public, PII-free view used by the booking flow: upcoming windows only, no
+// reason text. Returns [] rather than throwing — unavailability notes are a
+// nicety, and a failure here must never block someone from booking.
+export async function listAdvisorAvailability() {
+  ensure();
+  const { data, error } = await supabase
+    .from('advisor_availability')
+    .select('*')
+    .order('block_date', { ascending: true });
+  if (error) return [];
+  return data || [];
+}
+
+// ---- Feedback (star rating + optional comment) -----------------------------
+// Written right after a booking; RLS ties every row to its author.
+// See supabase/feedback.sql.
+export async function submitFeedback({ rating, comment, source, benchmarkId }) {
+  ensure();
+  const user = await currentUser();
+  if (!user) throw new Error('Please sign in to leave feedback.');
+  const score = Number(rating);
+  if (!Number.isInteger(score) || score < 1 || score > 5) throw new Error('Pick a rating from 1 to 5.');
+  const { error } = await supabase.from('feedback').insert({
+    user_id: user.id,
+    benchmark_id: benchmarkId || null,
+    source: source || 'booking',
+    rating: score,
+    comment: (comment || '').trim().slice(0, 1000) || null,
+  });
+  // 23505 = the one-per-benchmark unique index. Treat a second submission as a
+  // no-op rather than an error — they've already been heard.
+  if (error && error.code !== '23505') throw error;
+}

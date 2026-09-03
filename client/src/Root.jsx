@@ -33,6 +33,20 @@ function Route({ hash }) {
 
 export default function Root() {
   const hash = useHashRoute();
+
+  // A leftover `?journey=1` means the tab was reloaded while the journey overlay
+  // was open (the overlay pushes that marker so Back dismisses it). The overlay
+  // isn't open now, so strip the param — otherwise the URL advertises a screen
+  // it can't restore, and the next open would find the marker already set.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has('journey')) return;
+    params.delete('journey');
+    const query = params.toString();
+    const { pathname, hash: frag } = window.location;
+    window.history.replaceState({}, '', `${pathname}${query ? `?${query}` : ''}${frag}`);
+  }, []);
+
   return (
     <ConfirmProvider>
       <Route hash={hash} />

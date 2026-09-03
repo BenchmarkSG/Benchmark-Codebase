@@ -1,59 +1,114 @@
-.dash { min-height: 100vh; background: var(--bg-soft); }
+/* THEME TOKENS — dashboard only.
+   Scoped to .dash and named --d-* rather than overriding the global palette on
+   purpose: JourneyModal renders INSIDE .dash but keeps its own light design, so
+   inherited dark values would leave it with pale text on its white cards. The
+   toggle lives in DashboardLayout; see useDashTheme.js for how it's resolved. */
+.dash {
+  --d-bg: var(--bg-soft);
+  --d-surface: #fff;
+  --d-raised: #f7fafd;
+  --d-line: var(--line);
+  --d-text: var(--navy-900);
+  --d-text-2: var(--navy-800);
+  --d-muted: var(--muted);
+  --d-accent: var(--blue-600);
+  --d-accent-bg: var(--blue-50);
+  --d-pill-bg: var(--navy-800);   /* active tab, avatar — a solid dark chip */
+  --d-pill-fg: #fff;
+  --d-ok-bg: #ecfaf1;  --d-ok-line: #b6e6ca;  --d-ok-ink: #0f7a44;
+  --d-warn-bg: #fff8e8; --d-warn-line: #e6cf88; --d-warn-ink: #8a5a00;
+  --d-err-bg: #fdeaea;  --d-err-line: #f6c9cc; --d-err-ink: var(--red-600);
+  --d-shadow-sm: var(--shadow-sm);
+  --d-shadow-md: var(--shadow-md);
+}
+.dash[data-theme='dark'] {
+  --d-bg: #0d1523;
+  --d-surface: #141f33;
+  --d-raised: #1b2942;
+  --d-line: #26364f;
+  --d-text: #e8eef8;
+  --d-text-2: #cfdaeb;
+  --d-muted: #8ea1bd;
+  --d-accent: #7ab0f7;            /* brand blue lifted for contrast on dark */
+  --d-accent-bg: #17253c;
+  --d-pill-bg: #2f6fd0;           /* navy chip would vanish into a dark page */
+  --d-pill-fg: #fff;
+  --d-ok-bg: #10261c;  --d-ok-line: #1e5c3d;  --d-ok-ink: #5fd39a;
+  --d-warn-bg: #2b2312; --d-warn-line: #6b5320; --d-warn-ink: #e6b95c;
+  --d-err-bg: #2c1618;  --d-err-line: #6d2c32; --d-err-ink: #f08b92;
+  --d-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --d-shadow-md: 0 12px 30px rgba(0, 0, 0, 0.45);
+  /* Native scrollbars, date pickers and form controls follow along. */
+  color-scheme: dark;
+}
+
+.dash { min-height: 100vh; background: var(--d-bg); color: var(--d-text); }
 
 /* Top bar */
 .dash__top {
-  background: #fff;
-  border-bottom: 1px solid var(--line);
+  background: var(--d-surface);
+  border-bottom: 1px solid var(--d-line);
   position: sticky; top: 0; z-index: 20;
 }
 .dash__top-inner {
   max-width: 1120px; margin: 0 auto; padding: 0 20px;
   height: 62px; display: flex; align-items: center; justify-content: space-between;
 }
-.dash__brand { font-size: 18px; font-weight: 800; color: var(--navy-900); text-decoration: none; }
-.dash__brand span { color: var(--blue-600); }
+.dash__brand { font-size: 18px; font-weight: 800; color: var(--d-text); text-decoration: none; }
+.dash__brand span { color: var(--d-accent); }
 .dash__top-right { display: flex; align-items: center; gap: 10px; }
+/* Light/dark toggle. Sits left of the avatar so it stays put whether or not
+   someone is signed in — the rest of this row changes with auth state. */
+.dash__theme {
+  display: grid; place-items: center;
+  width: 32px; height: 32px; flex: none;
+  border: 1px solid var(--d-line); border-radius: 50%;
+  background: var(--d-surface); color: var(--d-text-2);
+  cursor: pointer; transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.dash__theme:hover { background: var(--d-raised); color: var(--d-accent); border-color: var(--d-accent); }
+.dash__theme:focus-visible { outline: 2px solid var(--d-accent); outline-offset: 2px; }
 .dash__avatar {
   width: 30px; height: 30px; border-radius: 50%;
-  background: var(--navy-800); color: #fff;
+  background: var(--d-pill-bg); color: #fff;
   display: grid; place-items: center; font-size: 11px; font-weight: 800;
 }
-.dash__who { font-size: 13px; font-weight: 700; color: var(--navy-800); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dash__who { font-size: 13px; font-weight: 700; color: var(--d-text-2); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dash__signout, .dash__homelink {
   border: none; background: transparent; cursor: pointer;
-  color: var(--blue-600); font-weight: 700; font-size: 13px; text-decoration: none;
+  color: var(--d-accent); font-weight: 700; font-size: 13px; text-decoration: none;
 }
 .dash__signout:hover, .dash__homelink:hover { text-decoration: underline; }
 
 /* Sign-in gate */
 .dash__gate { display: grid; place-items: center; padding: 80px 20px; }
 .dash__gate-card {
-  background: #fff; border: 1px solid var(--line); border-radius: 18px;
-  box-shadow: var(--shadow-md); padding: 34px; max-width: 420px; text-align: center;
+  background: var(--d-surface); border: 1px solid var(--d-line); border-radius: 18px;
+  box-shadow: var(--d-shadow-md); padding: 34px; max-width: 420px; text-align: center;
 }
 .dash__gate-icon { font-size: 34px; }
-.dash__gate-card h1 { font-size: 22px; color: var(--navy-900); margin-top: 10px; }
-.dash__gate-card p { color: var(--muted); font-size: 14px; margin: 8px 0 18px; line-height: 1.55; }
-.dash__gate-back { display: block; margin-top: 14px; color: var(--blue-600); font-weight: 700; font-size: 13px; text-decoration: none; }
+.dash__gate-card h1 { font-size: 22px; color: var(--d-text); margin-top: 10px; }
+.dash__gate-card p { color: var(--d-muted); font-size: 14px; margin: 8px 0 18px; line-height: 1.55; }
+.dash__gate-back { display: block; margin-top: 14px; color: var(--d-accent); font-weight: 700; font-size: 13px; text-decoration: none; }
 
 /* Main */
 .dash__main { max-width: 1120px; margin: 0 auto; padding: 28px 20px 64px; }
 .dash__head { margin-bottom: 18px; }
 .dash__eyebrow {
   display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: 0.6px;
-  text-transform: uppercase; color: var(--blue-600); background: var(--blue-50);
+  text-transform: uppercase; color: var(--d-accent); background: var(--d-accent-bg);
   padding: 3px 9px; border-radius: 999px; margin-bottom: 8px;
 }
-.dash__title { font-size: 28px; font-weight: 800; color: var(--navy-900); }
+.dash__title { font-size: 28px; font-weight: 800; color: var(--d-text); }
 
 /* Tabs */
 .dash__tabs { display: flex; gap: 6px; margin-bottom: 22px; flex-wrap: wrap; }
 .dash__tab {
-  border: 1px solid var(--line); background: #fff; cursor: pointer;
-  padding: 9px 16px; border-radius: 999px; font-weight: 700; font-size: 13.5px; color: var(--muted);
+  border: 1px solid var(--d-line); background: var(--d-surface); cursor: pointer;
+  padding: 9px 16px; border-radius: 999px; font-weight: 700; font-size: 13.5px; color: var(--d-muted);
   display: inline-flex; align-items: center; gap: 7px;
 }
-.dash__tab.is-active { background: var(--navy-800); color: #fff; border-color: var(--navy-800); }
+.dash__tab.is-active { background: var(--d-pill-bg); color: #fff; border-color: var(--d-text-2); }
 .dash__tab-count {
   font-size: 11px; font-weight: 800; background: rgba(0,0,0,0.08);
   border-radius: 999px; padding: 1px 7px; min-width: 18px; text-align: center;
@@ -65,43 +120,43 @@
 .dash__cards-3 { grid-template-columns: repeat(3, 1fr); }
 .dash__cards-2 { grid-template-columns: repeat(2, 1fr); }
 .dash-card {
-  background: #fff; border: 1px solid var(--line); border-radius: 16px;
-  padding: 18px 20px; box-shadow: var(--shadow-sm);
+  background: var(--d-surface); border: 1px solid var(--d-line); border-radius: 16px;
+  padding: 18px 20px; box-shadow: var(--d-shadow-sm);
 }
-.dash-card__label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
-.dash-card__big { font-size: 30px; font-weight: 800; color: var(--navy-900); margin-top: 6px; }
-.dash-card__big--accent { color: var(--blue-600); }
-.dash-card__sub { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+.dash-card__label { font-size: 12px; font-weight: 700; color: var(--d-muted); text-transform: uppercase; letter-spacing: 0.4px; }
+.dash-card__big { font-size: 30px; font-weight: 800; color: var(--d-text); margin-top: 6px; }
+.dash-card__big--accent { color: var(--d-accent); }
+.dash-card__sub { font-size: 12.5px; color: var(--d-muted); margin-top: 4px; }
 
-.dash__section-title { font-size: 17px; font-weight: 800; color: var(--navy-900); margin: 26px 0 12px; }
+.dash__section-title { font-size: 17px; font-weight: 800; color: var(--d-text); margin: 26px 0 12px; }
 
 /* Empty state */
 .dash__empty {
-  background: #fff; border: 1px dashed #c3d2ea; border-radius: 16px;
-  padding: 40px 24px; text-align: center; color: var(--muted);
+  background: var(--d-surface); border: 1px dashed var(--d-line); border-radius: 16px;
+  padding: 40px 24px; text-align: center; color: var(--d-muted);
 }
 .dash__empty-icon { font-size: 30px; }
-.dash__empty h3 { font-size: 16px; color: var(--navy-900); margin-top: 8px; }
+.dash__empty h3 { font-size: 16px; color: var(--d-text); margin-top: 8px; }
 .dash__empty p { font-size: 13.5px; margin: 6px 0 16px; }
 
 /* Loading / status text */
-.dash__note { color: var(--muted); font-size: 13.5px; padding: 12px 2px; }
-.dash__err { color: var(--red-600); font-size: 13.5px; font-weight: 600; padding: 10px 2px; }
+.dash__note { color: var(--d-muted); font-size: 13.5px; padding: 12px 2px; }
+.dash__err { color: var(--d-err-ink); font-size: 13.5px; font-weight: 600; padding: 10px 2px; }
 
 /* Transient "couldn't save" toast (sticks near the top of the content) */
 .dash__flash {
   position: sticky; top: 70px; z-index: 15;
   margin: 0 0 14px; padding: 10px 14px;
-  background: #fdeaea; border: 1px solid #f6c9cc; color: var(--red-600);
+  background: var(--d-err-bg); border: 1px solid var(--d-err-line); color: var(--d-err-ink);
   border-radius: 10px; font-size: 13px; font-weight: 700;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--d-shadow-sm);
 }
 
 /* Spinner used in place of a bare "Loading…" string */
-.dash__loading { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13.5px; padding: 16px 2px; }
+.dash__loading { display: flex; align-items: center; gap: 10px; color: var(--d-muted); font-size: 13.5px; padding: 16px 2px; }
 .dash__spinner {
   width: 18px; height: 18px; border-radius: 50%;
-  border: 2.5px solid var(--line); border-top-color: var(--blue-600);
+  border: 2.5px solid var(--d-line); border-top-color: var(--d-accent);
   animation: dash-spin 0.7s linear infinite;
 }
 @keyframes dash-spin { to { transform: rotate(360deg); } }
@@ -115,3 +170,13 @@
 /* Profile picture in the top bar — the uploaded photo, or the default SVG
    avatar when none is set. Both fill the same circle. */
 .dash__avatar--img { object-fit: cover; padding: 0; background: none; }
+
+/* Modals rendered from inside the dashboard keep their own light design, so
+   re-anchor what they inherit from .dash. The --d-* tokens don't reach them
+   (that's why the theme layer is scoped rather than a global override), but
+   `color` is inherited — without this, dark mode would put near-white text on
+   their white cards. Their own rules set most colours explicitly; this catches
+   everything that relies on inheritance. */
+.dash .jny,
+.dash .auth,
+.dash .cfm { color: var(--ink); }

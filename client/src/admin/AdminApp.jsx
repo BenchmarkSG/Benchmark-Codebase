@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import AdvisorAvailability from './AdvisorAvailability.jsx';
 import './admin.css';
 import { useAuth } from '../context/AuthContext.jsx';
 import { supabase } from '../lib/supabase.js';
@@ -123,6 +124,24 @@ const SECTIONS = [
       { key: 'photo_url', label: 'Photo', type: 'link' },
       { key: 'status', label: 'Status', type: 'text', editable: true },
       { key: 'created_at', label: 'Applied', get: (r) => (r.created_at ? formatDate(r.created_at) : '') },
+    ],
+  },
+  {
+    key: 'availability', title: 'Advisor availability', custom: 'availability',
+  },
+  {
+    // Reads the definer-owned view, which joins the submitter's name/email and
+    // re-checks is_admin() itself — the base table's RLS is per-user.
+    key: 'feedback', title: 'User feedback', table: 'feedback_admin', pk: 'id',
+    select: 'id, rating, comment, source, full_name, email, created_at',
+    order: 'created_at', desc: true, emptyText: 'No feedback yet.',
+    columns: [
+      { key: 'rating', label: 'Rating', get: (r) => '★'.repeat(r.rating || 0) + '☆'.repeat(5 - (r.rating || 0)) },
+      { key: 'source', label: 'After' },
+      { key: 'comment', label: 'Comment' },
+      { key: 'full_name', label: 'From' },
+      { key: 'email', label: 'Email' },
+      { key: 'created_at', label: 'Received', get: (r) => (r.created_at ? formatDate(r.created_at) : '') },
     ],
   },
   {
@@ -473,9 +492,11 @@ function Editor({ onSignOut, email, user }) {
         </div>
         {active.custom === 'account'
           ? <AccountSettings role="admin" />
-          : active.custom === 'proposals'
-            ? <RateProposals key={`proposals:${country}`} country={country} />
-            : <Section key={`${sectionKey}:${country}`} config={active} country={country} />}
+          : active.custom === 'availability'
+            ? <AdvisorAvailability />
+            : active.custom === 'proposals'
+              ? <RateProposals key={`proposals:${country}`} country={country} />
+              : <Section key={`${sectionKey}:${country}`} config={active} country={country} />}
       </div>
     </div>
   );

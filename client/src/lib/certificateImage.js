@@ -6,6 +6,7 @@
 // Keep the copy/design here in sync with Certificate.jsx.
 
 import { SITE_URL } from './site.js';
+import { crownOutline, CROWN_BAND, CROWN_TOOTH } from './crownOutline.js';
 
 const C = {
   border: '#1d63c4',   // blue-600
@@ -137,6 +138,7 @@ export async function buildCertificateImage({ segment = 'individual', product, s
   const rlLines = layout(ctx, toWords([{ t: 'Your bank is profiting from you — find out by how much.' }]), contentW, RL.size, RL.reg, RL.bold);
 
   const RIBBON_H = 34, FOOT_H = 62;
+  // PAD already clears the points on every side (PAD - CROWN_BAND = 16px gap).
   let y = PAD;
   y += RIBBON_H + 18;
   y += hlLines.length * HL.lh + 12;
@@ -151,25 +153,44 @@ export async function buildCertificateImage({ segment = 'individual', product, s
   canvas.height = (CARD_H + M * 2) * S;
   ctx.scale(S, S);
 
-  // Backdrop (white so a dark social timeline doesn't bleed through corners).
-  ctx.fillStyle = '#ffffff';
+  // Backdrop — opaque so a dark social timeline can't bleed through the gaps
+  // between the points. Tinted to match the panel the card sits on in the app,
+  // which also keeps the near-white card distinct from its own margin.
+  ctx.fillStyle = '#edf4fd';
   ctx.fillRect(0, 0, CARD_W + M * 2, CARD_H + M * 2);
   ctx.translate(M, M);
 
   // Card body + border + inner hairline.
   const grad = ctx.createLinearGradient(0, 0, CARD_W * 0.5, CARD_H);
-  grad.addColorStop(0, '#f5f9ff'); grad.addColorStop(0.6, '#ffffff');
-  roundRect(ctx, 1, 1, CARD_W - 2, CARD_H - 2, 16);
-  ctx.fillStyle = grad; ctx.fill();
-  ctx.lineWidth = 2; ctx.strokeStyle = C.border; ctx.stroke();
-  roundRect(ctx, 6, 6, CARD_W - 12, CARD_H - 12, 11);
+  grad.addColorStop(0, '#ffffff'); grad.addColorStop(1, '#f1f7ff');
+  // The crenellated edge, from the SAME path generator the on-screen card uses,
+  // so the shared image can't drift from what the user just looked at. Inset by
+  // 1px to match, leaving room for the 2px stroke. Falls back to the old rounded
+  // rectangle on anything without Path2D rather than dropping the card entirely.
+  const outline = typeof Path2D === 'function'
+    ? new Path2D(crownOutline({ w: CARD_W - 2, h: CARD_H - 2, band: CROWN_BAND, tooth: CROWN_TOOTH }))
+    : null;
+  ctx.save();
+  ctx.translate(1, 1);
+  if (outline) {
+    ctx.fillStyle = grad; ctx.fill(outline);
+    ctx.lineWidth = 2; ctx.strokeStyle = C.border; ctx.lineJoin = 'round'; ctx.stroke(outline);
+  } else {
+    roundRect(ctx, 0, 0, CARD_W - 2, CARD_H - 2, 16);
+    ctx.fillStyle = grad; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = C.border; ctx.stroke();
+  }
+  ctx.restore();
+  // Inner hairline, tucked inside the ring of points (matches .cert__frame).
+  const frame = CROWN_BAND + 4;
+  roundRect(ctx, frame, frame, CARD_W - frame * 2, CARD_H - frame * 2, 11);
   ctx.lineWidth = 1; ctx.strokeStyle = C.inner; ctx.stroke();
 
   let cy = PAD;
 
   // Ribbon pill.
   ctx.font = fontStr(800, 15);
-  const ribbonText = `🏅 ${title}`;
+  const ribbonText = `👑 ${title}`;
   const pillW = ctx.measureText(ribbonText).width + 28;
   roundRect(ctx, PAD, cy, pillW, RIBBON_H, RIBBON_H / 2);
   ctx.fillStyle = C.ribbon; ctx.fill();

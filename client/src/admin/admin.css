@@ -239,3 +239,34 @@ button.adm-val--editable:hover::after { opacity: 0.7; }
   /* The email is hidden on small screens, so keep the avatar as the tap target. */
   .adm-header__account { padding: 4px; gap: 0; }
 }
+
+/* ---- Advisor availability (blackout windows) ---- */
+.adm-avail { display: flex; flex-direction: column; gap: 14px; }
+.adm-avail__warn {
+  background: #fff8e8; border: 1px solid #e6cf88; border-radius: 10px;
+  padding: 12px 14px; font-size: 12.5px; line-height: 1.55; color: #6b4e08;
+}
+.adm-avail__warn strong { color: #533c05; }
+.adm-avail__pick select { min-width: 260px; }
+.adm-avail__form {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px;
+  background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 14px;
+}
+.adm-avail__field { display: flex; flex-direction: column; gap: 5px; }
+.adm-avail__field--grow { flex: 1 1 200px; }
+.adm-avail__field > span { font-size: 11.5px; font-weight: 700; color: var(--muted); }
+.adm-avail__field > span em { font-style: normal; font-weight: 600; opacity: 0.8; }
+.adm-avail__field input {
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
+  font-size: 13px; font-family: inherit; background: #fff; width: 100%;
+}
+.adm-avail__check { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; padding-bottom: 9px; }
+.adm-avail__check input { width: 16px; height: 16px; }
+.adm-avail__error { font-size: 13px; font-weight: 700; color: #b3261e; }
+.adm-avail__notice { font-size: 13px; font-weight: 700; color: #0f7a44; }
+.adm-avail__muted { color: var(--muted); }
+.adm-avail__sep td {
+  background: #f4f8fd; font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.04em; color: var(--muted); font-weight: 700;
+}
+.adm-avail__past td { opacity: 0.6; }

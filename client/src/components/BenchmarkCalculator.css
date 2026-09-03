@@ -65,6 +65,34 @@
 }
 .calc-card .calc-card__title { font-size: 20px; font-weight: 800; color: #fff; }
 .calc-card .calc-card__sub { font-size: 12px; margin-top: 3px; font-weight: 600; color: rgba(255, 255, 255, 0.82); }
+
+/* Navbar variant — same band, shown on the result (and later) screens so the
+   phone chrome never disappears mid-flow. Keeps the 40px top padding that
+   clears the dynamic island. */
+.calc-card .calc-card__head--nav { padding-bottom: 14px; }
+.calc-card .calc-card__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.calc-card .calc-card__back {
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: #fff;
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.calc-card .calc-card__back:hover { color: rgba(255, 255, 255, 0.78); }
+.calc-card .calc-card__unit {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.82);
+  white-space: nowrap;
+}
 .calc-card .calc-modes { margin-top: 14px; width: 100%; }
 .calc-card .calc-modes button { flex: 1; padding: 9px 8px; font-size: 12.5px; }
 
@@ -79,10 +107,6 @@
   /* Header now clears the island, so the body uses normal top padding. */
   padding: 14px 20px 34px;
   overflow: visible;
-}
-/* Result screen hides the header, so the body itself must clear the island. */
-.calc-card .calcbox--noheader {
-  padding-top: 42px;
 }
 .calc-card .calcbox__form {
   padding: 0;
@@ -111,15 +135,6 @@
   .calc-card .res,
   .calc-card .calcbox__form.is-back { animation: none; }
 }
-.res__back {
-  border: none;
-  background: transparent;
-  color: var(--blue-600);
-  font-weight: 700;
-  font-size: 13px;
-  padding: 0 0 10px;
-}
-.res__back:hover { color: var(--blue-700); }
 
 /* Mode tabs */
 .calc-modes {
@@ -206,10 +221,12 @@
   gap: 6px;
   background: var(--bg-soft);
   padding: 5px;
+  border: 1.5px solid var(--line);   /* outlines the control as one unit */
   border-radius: 12px;
 }
 .calcbox__seg-btn {
   flex: 1;
+  position: relative;                /* anchors the divider below */
   border: none;
   background: transparent;
   padding: 10px 8px;
@@ -217,6 +234,19 @@
   font-weight: 700;
   font-size: 13px;
   color: var(--muted);
+}
+/* Hairline divider centred in the 6px gap, so the two options read as separate
+   choices even when one of them isn't filled. Inset vertically so it stays a
+   separator rather than looking like a border on the active pill. */
+.calcbox__seg-btn + .calcbox__seg-btn::before {
+  content: '';
+  position: absolute;
+  left: -3.75px;
+  top: 22%;
+  bottom: 22%;
+  width: 1.5px;
+  border-radius: 1px;
+  background: #cfd9e8;
 }
 .calcbox__seg-btn.is-active { background: var(--navy-800); color: #fff; }
 
@@ -293,14 +323,8 @@
 /* Bigger, thicker brush swoosh under the headline amount. inline-block so the
    stroke hugs the number's width, not the full centred row. */
 .res__overpay-amt {
-  display: inline-block; position: relative;
+  display: inline-block;
   margin-top: 20px; font-size: 30px; font-weight: 800; color: var(--navy-900); letter-spacing: -0.02em;
-}
-.res__overpay-amt::after {
-  content: '';
-  position: absolute; left: -6px; right: -6px; bottom: -10px; height: 16px;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 22' fill='none'%3E%3Cpath d='M6 13 C48 6 112 18 154 9' stroke='%23d81e29' stroke-width='9' stroke-linecap='round'/%3E%3Cpath d='M11 17 C54 12 104 19 149 14' stroke='%23d81e29' stroke-width='4' stroke-linecap='round' opacity='0.55'/%3E%3C/svg%3E") no-repeat center / 100% 100%;
-  pointer-events: none;
 }
 
 /* Visual "you vs best" comparison chart — proportional bars tell the story. */
@@ -324,14 +348,9 @@
 }
 .res__cmp-val--you { color: var(--red-600); border-color: #f3c3c7; background: #fdf2f3; }
 .res__cmp-val--best { color: #12945a; border-color: #b6e6ca; background: #f2fbf6; }
-.res__cmp-save {
-  grid-column: 1 / -1; justify-self: center; margin-top: 2px;
-  font-size: 12.5px; font-weight: 800; color: #0f7a44;
-  background: #eafaf1; border: 1px solid #b6e6ca; border-radius: 999px; padding: 5px 12px;
-}
 @keyframes res-cmp-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
-.res__tagline { margin-top: 14px; text-align: center; font-size: 13.5px; font-weight: 700; color: var(--navy-700); }
+.res__tagline { margin-top: 16px; text-align: center; font-size: 17px; line-height: 1.35; font-weight: 800; color: var(--navy-800); }
 
 /* Primary result CTA — blue (overrides the global red .btn* unification) */
 .res .res__detail { background: var(--blue-600); color: #fff; box-shadow: 0 8px 20px rgba(29, 99, 196, 0.26); }
@@ -446,23 +465,8 @@
   border-radius: 10px;
   padding: 11px 12px;
 }
-/* Inline name + email captured before the reveal — this email becomes the
-   user's account/login (no separate sign-in screen). */
-.res__lead { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
-.res__lead-field { display: flex; flex-direction: column; gap: 5px; text-align: left; }
-.res__lead-field > span { font-size: 12px; font-weight: 700; color: var(--navy-800, #12294d); }
-.res__lead-field input {
-  width: 100%; padding: 11px 12px; border: 1.5px solid #d7deea; border-radius: 12px;
-  font-size: 14px; font-weight: 600; color: var(--navy-800, #12294d); background: #fff;
-  transition: border-color .15s ease, box-shadow .15s ease;
-}
-.res__lead-field input::placeholder { color: #9aa6b8; font-weight: 500; }
-.res__lead-field input:focus {
-  outline: none; border-color: var(--blue-600, #1d63c4);
-  box-shadow: 0 0 0 3px rgba(29, 99, 196, 0.14);
-}
+/* Error line under the reveal CTA (checkout couldn't be started). */
 .res__lead-err { text-align: center; margin-top: 8px; color: #c0392b; font-size: 12.5px; font-weight: 700; }
-@media (max-width: 420px) { .res__lead { grid-template-columns: 1fr; } }
 
 .res__detail { margin-top: 14px; }
 .res__reveal-note { text-align: center; margin-top: 8px; color: var(--muted); font-size: 12px; font-weight: 600; }
@@ -479,7 +483,6 @@
   .calc-card { padding: 9px; border-radius: 40px; }
   .calc-card .calc-screen { border-radius: 32px; }
   .calc-card .calcbox { padding: 14px 16px 32px; }
-  .calc-card .calcbox--noheader { padding-top: 42px; }
   .calc-card .calc-modes { width: 100%; }
   .calc-card .calc-modes button { min-width: 0; flex: 1; font-size: 12px; padding: 9px 6px; }
   .calcbox__row { grid-template-columns: 1fr; }
