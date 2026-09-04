@@ -8,7 +8,7 @@ const SLIDES = [
     title: (
       <>Stop Overpaying Your Bank by <span className="hero__title-accent">Thousands</span> Every Year</>
     ),
-    lead: 'Find out your number in 30 secs. Compare your bank against the best for mortgages, loans, remittances, trade finance, FX fees & current account credit interest. Your bank is profiting from you — find out by how much.',
+    lead: 'Compare your Bank against the best for mortgage, loans, remittance, trade finance, FX & current a/c credit interest. Your Bank is profiting from you — find out by how much in 60 secs.',
   },
   {
     title: (
@@ -16,10 +16,16 @@ const SLIDES = [
     ),
     lead: (
       <>
-        We compare and uncover the hidden FX markups, loan margins and deposit rates that banks never advertise.{' '}
-        <span className="hero__underline">See exactly how much you overpay</span> — in 30 secs. No login required.
+        We uncover the hidden FX markups and loan margins that Banks never advertise.{' '}
+        <span className="hero__underline">See how much you overpaid</span> — in 60 secs.
       </>
     ),
+  },
+  {
+    title: (
+      <>9 out of 10 SMEs overpay their Bank for the services, <span className="hero__title-accent">You don’t have to</span></>
+    ),
+    lead: 'SMEs overpay, not because good rates don’t exist, but because the system is built for Banks profitability. We help you compute your savings and negotiate best savings for you.',
   },
 ];
 
@@ -28,7 +34,9 @@ const prefersReducedMotion = () =>
 
 export default function Hero({ onDetailedFeedback, onReveal, onStart, calcSelection, onRequireAuth, onMarketChange }) {
   const [active, setActive] = useState(0);
-  const [paused, setPaused] = useState(prefersReducedMotion); // don't auto-rotate for reduced-motion users
+  // No play/pause control any more, so this is fixed at mount: users who ask for
+  // reduced motion get a static carousel they drive with the dots (WCAG 2.2.2).
+  const [paused] = useState(prefersReducedMotion);
   const hovering = useRef(false);
 
   // Auto-advance the left-column text carousel — but never while paused, hovered,
@@ -61,7 +69,11 @@ export default function Hero({ onDetailedFeedback, onReveal, onStart, calcSelect
             </div>
           </div>
 
-          <div className="hero__controls">
+          <div
+            className="hero__controls"
+            onFocusCapture={() => { hovering.current = true; }}
+            onBlurCapture={() => { hovering.current = false; }}
+          >
             <div className="hero__dots" role="tablist" aria-label="Highlights">
               {SLIDES.map((_, i) => (
                 <button
@@ -74,15 +86,6 @@ export default function Hero({ onDetailedFeedback, onReveal, onStart, calcSelect
                 />
               ))}
             </div>
-            {SLIDES.length > 1 && (
-              <button
-                className="hero__playpause"
-                onClick={() => setPaused((p) => !p)}
-                aria-label={paused ? 'Play highlights' : 'Pause highlights'}
-              >
-                {paused ? '▶' : '❚❚'}
-              </button>
-            )}
           </div>
 
           <button className="btn btn--red hero__cta" onClick={onStart}>
