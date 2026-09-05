@@ -22,6 +22,7 @@ import {
 import { createCheckout } from './api.js';
 import { isStripeCheckoutUrl } from './lib/safeUrl.js';
 import { saveBenchmark, updateBenchmark } from './lib/dashboardApi.js';
+import { readCheckoutReturn, stashJourney, clearJourney, goToPage } from './lib/checkoutReturn.js';
 
 // After-auth resume intents live in lib/afterAuth.js (shared with AuthModal,
 // which clears a pending intent when the user dismisses sign-in without
@@ -41,24 +42,16 @@ export default function App() {
   // Returning from Stripe Checkout (?checkout=success|cancel): restore the stashed
   // journey context and reopen the modal to the scheduler.
   useEffect(() => {
-    const p = new URLSearchParams(window.location.search);
-    const checkout = p.get('checkout');
-    if (!checkout) return;
-    let stash = null;
-    try { stash = JSON.parse(sessionStorage.getItem('bb_journey') || 'null'); } catch { /* ignore */ }
-    sessionStorage.removeItem('bb_journey');
-    window.history.replaceState({}, '', window.location.pathname + window.location.hash);
-    const tier = p.get('tier') || stash?.tier || 'call';
+    const r = readCheckoutReturn('home');
+    if (!r) return;
+    // Paid from the dashboard: Stripe always returns to the bare origin, so send
+    // them back to the page they started on and let it finish the resume.
+    if (r.redirectTo) { goToPage(r.redirectTo); return; }
     // A canceled ~$1 reveal means NOTHING was bought — never open the modal (its
     // 'options' view shows the bank + certificate, i.e. the paid product).
-    if (checkout === 'cancel' && tier === 'reveal') return;
-    setContext(stash?.context || null);
-    setResume({
-      tier,
-      sessionId: p.get('session_id') || null,
-      expert: stash?.expert || null,
-      canceled: checkout === 'cancel',
-    });
+    if (r.canceled && r.tier === 'reveal') return;
+    setContext(r.context);
+    setResume({ tier: r.tier, sessionId: r.sessionId, expert: r.expert, canceled: r.canceled });
     setTiersOpen(true);
   }, []);
 
@@ -107,7 +100,7 @@ export default function App() {
       catch { /* proceed without persistence */ }
     }
     try {
-      sessionStorage.setItem('bb_journey', JSON.stringify({ tier: 'reveal', context: saved }));
+      stashJourney({ tier: 'reveal', context: saved });
       const { url } = await createCheckout({
         tier: 'reveal',
         currency: saved.currency || 'SGD',
@@ -118,7 +111,7 @@ export default function App() {
       if (!isStripeCheckoutUrl(url)) throw new Error('Unexpected checkout URL');
       window.location.assign(url);
     } catch (err) {
-      sessionStorage.removeItem('bb_journey');
+      clearJourney();
       // Only fall back to the free demo reveal when Stripe genuinely isn't
       // configured (the server 503s with this exact message). Any OTHER failure
       // — network blip, server error — must NOT give the paid product away:

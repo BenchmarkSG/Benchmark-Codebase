@@ -370,7 +370,10 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
                 <button type="button" className="calc-card__back" onClick={() => { setResult(null); setBack(true); }}>
                   ← Recalculate
                 </button>
-                <span className="calc-card__unit">{result.unit}</span>
+                <span className="calc-card__meta">
+                  <b>{result.product}</b>
+                  <span>{result.unit}</span>
+                </span>
               </div>
             ) : (
               <>
@@ -527,22 +530,23 @@ function Result({ result, product, compact, localCcy, onReveal, onCrossSell, can
           <div className="res__ahead-badge">🎉 You're ahead of the market</div>
           <p className="res__ahead-lead">
             Your {crossBorder ? 'all-in cost' : 'rate'} of{' '}
-            <strong>{moneyMetric ? fmtMetric(result.yourRate) : `${result.yourRate}${crossBorder ? '%' : ''}`}</strong> is {standingText(result)}.
+            <strong>{fmtMetric(result.yourRate)}</strong> is {standingText(result)}.
           </p>
           <div className="res__ahead-cmp">
             <div className="res__ahead-you">
               <span>You</span>
-              <strong>{moneyMetric ? fmtMetric(result.yourRate) : result.yourRate}</strong>
+              <strong>{fmtMetric(result.yourRate)}</strong>
               <em>✓ best-in-class</em>
             </div>
             <div className="res__ahead-mkt">
               <span>Market's best</span>
-              <strong>{moneyMetric ? fmtMetric(result.benchmarkRate) : result.benchmarkRate}</strong>
+              <strong>{fmtMetric(result.benchmarkRate)}</strong>
             </div>
           </div>
           <p className="res__ahead-note">
             {higher
-              ? "You're already earning more than the market — "
+              ? 'On this product a higher rate is better — you earn it rather than pay it. '
+                + "You're already earning more than the market — "
               : "You're already paying less than the market — "}
             little to nothing to save here. But banks often claw it back elsewhere — check your other products below.
           </p>

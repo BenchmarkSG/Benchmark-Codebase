@@ -4,7 +4,7 @@ import { formatMoney, getReference, createCheckout, getCheckoutSession, getTierP
 import { safeHttpUrl, isStripeCheckoutUrl } from '../lib/safeUrl.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { supabase, isSupabaseConfigured } from '../lib/supabase.js';
-import { listAdvisorDirectory, listAdvisorAvailability, createLead, updateBenchmark, submitFeedback } from '../lib/dashboardApi.js';
+import { listAdvisorDirectory, listAdvisorAvailability, createLead, updateBenchmark, submitFeedback, getMyProfile } from '../lib/dashboardApi.js';
 import Certificate from './Certificate.jsx';
 import { buildCertificateImage } from '../lib/certificateImage.js';
 import { SITE_URL } from '../lib/site.js';
@@ -261,6 +261,8 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
   const [emailBody, setEmailBody] = useState('');
   const [copied, setCopied] = useState(false);
   const [ccUs, setCcUs] = useState(false); // CC FeeOptima on the negotiation email
+  const [company, setCompany] = useState(''); // names the SME certificate's holder
+  const [holderName, setHolderName] = useState(''); // names the individual certificate's holder
   const [shared, setShared] = useState(false);
   const [advisors, setAdvisors] = useState([]);
   const [blackouts, setBlackouts] = useState([]); // upcoming advisor unavailability
@@ -523,6 +525,25 @@ Kind regards,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, resume]);
 
+  // Both certificates are made out to someone: the SME's to a company, the
+  // individual's to a person. Best-effort — each design falls back to a neutral
+  // placeholder rather than rendering a blank holder line.
+  useEffect(() => {
+    if (!open || !user) return undefined;
+    let alive = true;
+    const meta = user.user_metadata || {};
+    // Show the name we already have immediately; the profile may refine it.
+    setHolderName(meta.full_name || '');
+    getMyProfile()
+      .then((p) => {
+        if (!alive) return;
+        setCompany(p?.company || p?.full_name || '');
+        setHolderName(p?.full_name || meta.full_name || '');
+      })
+      .catch(() => { /* placeholder holder name is fine */ });
+    return () => { alive = false; };
+  }, [open, user]);
+
   // Load the real approved-advisor directory for the expert picker, plus any
   // blocked windows so we can flag them before someone picks a time. The
   // availability call swallows its own errors — a missing note must never stop
@@ -603,7 +624,7 @@ Kind regards,
       years: adv.years, blurb: adv.blurb, photo: adv.photo, accent: adv.accent, calendly_url: adv.calendly_url,
     } : null;
     try {
-      sessionStorage.setItem('bb_journey', JSON.stringify({ tier, expert: snap, context }));
+      stashJourney({ tier, expert: snap, context });
       const { url } = await createCheckout({
         tier,
         currency: context?.currency || 'SGD', // bill in the currency we showed
@@ -617,7 +638,7 @@ Kind regards,
       if (!isStripeCheckoutUrl(url)) throw new Error('Unexpected checkout URL');
       window.location.assign(url);
     } catch {
-      sessionStorage.removeItem('bb_journey');
+      clearJourney();
       setBusy(false);
       // With Stripe LIVE, a failed checkout call must never fall through to a
       // free unlock — that would give the paid product away on a network blip.
@@ -638,7 +659,7 @@ Kind regards,
   const shareCertificate = async () => {
     const url = SITE_URL;
     let file = null;
-    try { file = await buildCertificateImage({ segment, product: context?.product, savingPct }); } catch { /* fall back below */ }
+    try { file = await buildCertificateImage({ segment, product: context?.product, savingPct, company, holderName }); } catch { /* fall back below */ }
 
     // 1) Native file share — image + caption together (mobile).
     if (file && navigator.canShare?.({ files: [file] })) {
@@ -752,6 +773,7 @@ Kind regards,
             )}
             <Certificate
               segment={segment} product={context?.product} savingPct={savingPct}
+              company={company} holderName={holderName}
               onShare={shareCertificate} shared={shared}
             />
             <h4 className="jny-sectlabel">

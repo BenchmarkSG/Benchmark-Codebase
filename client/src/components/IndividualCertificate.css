@@ -1,0 +1,154 @@
+/* Individual certificate — classic award document.
+   Three nested layers, matching the reference: a navy field carrying the gold
+   filigree bands, a heavy gold frame inside it, then the white paper. */
+.icert {
+  --i-navy: #17255c;
+  --i-navy-dk: #101a44;
+  --i-gold: #d9ae45;
+  --i-gold-lt: #f0d78d;
+  --i-gold-dk: #a9801f;
+  --i-maroon: #6d1a24;
+
+  position: relative;
+  padding: 62px 16px;                /* clears the filigree bands top and bottom */
+  background:
+    radial-gradient(120% 80% at 50% 0%, #1d2c6b 0%, rgba(29, 44, 107, 0) 60%),
+    linear-gradient(180deg, var(--i-navy) 0%, var(--i-navy-dk) 100%);
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+/* Filigree bands. One SVG tile repeated across; the bottom one is mirrored so
+   the flourishes point inward on both edges. */
+.icert__band {
+  position: absolute; left: 0; right: 0; height: 62px;
+  background-repeat: repeat-x;
+  background-position: center;
+  pointer-events: none;
+}
+.icert__band--top { top: 0; }
+.icert__band--bottom { bottom: 0; transform: scaleY(-1); }
+
+.icert__share {
+  position: absolute; top: 12px; right: 12px; z-index: 3;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; padding: 0;
+  border: 1.5px solid var(--i-gold); border-radius: 50%;
+  background: rgba(16, 26, 68, 0.72); color: var(--i-gold-lt);
+  cursor: pointer; transition: background 0.15s ease, color 0.15s ease;
+}
+.icert__share:hover { background: var(--i-gold); color: var(--i-navy-dk); }
+.icert__share:focus-visible { outline: 2px solid var(--i-gold-lt); outline-offset: 2px; }
+.icert__share-ok { font-size: 15px; font-weight: 800; line-height: 1; }
+
+/* Heavy gold frame. */
+.icert__gold {
+  position: relative;
+  padding: 14px;
+  background: linear-gradient(150deg, var(--i-gold-lt) 0%, var(--i-gold) 38%, var(--i-gold-dk) 72%, var(--i-gold) 100%);
+  box-shadow: 0 0 0 1px rgba(16, 26, 68, 0.35) inset;
+}
+
+.icert__paper {
+  position: relative;
+  background: #fff;
+  padding: 34px 26px 24px;
+  text-align: center;
+}
+
+/* Gold ribbon banner straddling the top edge of the paper. */
+.icert__ribbon {
+  position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+  max-width: 78%;
+}
+.icert__ribbon span {
+  display: block; padding: 5px 30px;
+  background: linear-gradient(180deg, var(--i-gold-lt), var(--i-gold) 55%, var(--i-gold-dk));
+  color: #fff; font-size: 13px; font-weight: 800; letter-spacing: 0.06em;
+  white-space: nowrap;
+  /* Notched ends — a ribbon, not a pill. */
+  clip-path: polygon(0 0, 100% 0, calc(100% - 11px) 50%, 100% 100%, 0 100%, 11px 50%);
+  text-shadow: 0 1px 1px rgba(109, 26, 36, 0.35);
+}
+
+.icert__title {
+  margin-top: 12px;
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-size: 34px; font-weight: 700; letter-spacing: 0.09em;
+  text-transform: uppercase; color: var(--i-maroon); line-height: 1.05;
+}
+.icert__sub {
+  margin-top: 2px;
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-size: 15px; font-style: italic; color: var(--muted);
+}
+
+/* The recipient. Italic serif in gold stands in for the reference's script
+   face — a web font would be a CSP entry and a network dependency on a card
+   built to render offline and be screenshotted. */
+.icert__holder {
+  margin-top: 18px;
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-size: 30px; font-style: italic; font-weight: 700;
+  color: var(--i-gold-dk); line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.icert__body {
+  margin: 14px auto 0; max-width: 360px;
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-size: 13px; line-height: 1.7; color: var(--navy-700);
+}
+.icert__body strong { color: var(--i-maroon); font-weight: 700; }
+
+.icert__foot {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
+  margin-top: 26px;
+}
+.icert__meta { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 74px; }
+.icert__meta-val {
+  font-size: 12px; font-weight: 700; color: var(--navy-800);
+  padding-bottom: 5px; border-bottom: 1px solid var(--navy-800); min-width: 74px;
+}
+.icert__meta-label {
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--muted);
+}
+
+/* Seal — the navy medallion with a gold rope edge. */
+.icert__seal {
+  flex: none; width: 78px; height: 78px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: radial-gradient(circle at 32% 26%, var(--i-gold-lt), var(--i-gold) 55%, var(--i-gold-dk));
+  box-shadow: 0 2px 6px rgba(16, 26, 68, 0.3);
+}
+.icert__seal-ring {
+  width: 62px; height: 62px; border-radius: 50%;
+  background: var(--i-navy); color: #fff;
+  border: 1px solid var(--i-gold-lt);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  text-align: center; padding: 4px;
+}
+.icert__seal-ring em { font-style: normal; font-size: 6.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--i-gold-lt); }
+.icert__seal-ring strong { font-size: 9px; font-weight: 800; line-height: 1.1; }
+.icert__seal-ring i { font-style: normal; font-size: 5.5px; font-weight: 600; letter-spacing: 0.04em; color: rgba(255, 255, 255, 0.65); }
+
+.icert__qr {
+  width: 52px; height: 52px; border-radius: 4px; display: block;
+  background: #fff; border: 1px solid var(--line); padding: 2px;
+}
+.icert__qr--ph { background: repeating-conic-gradient(#eef2f8 0% 25%, #fff 0% 50%) 50% / 10px 10px; }
+
+@media (max-width: 460px) {
+  .icert { padding: 50px 10px; }
+  .icert__band { height: 50px; background-size: auto 50px; }
+  .icert__gold { padding: 10px; }
+  .icert__paper { padding: 28px 16px 18px; }
+  .icert__title { font-size: 26px; }
+  .icert__holder { font-size: 24px; }
+  .icert__seal { width: 66px; height: 66px; }
+  .icert__seal-ring { width: 52px; height: 52px; }
+  .icert__foot { gap: 8px; }
+  .icert__meta, .icert__meta-val { min-width: 60px; }
+}

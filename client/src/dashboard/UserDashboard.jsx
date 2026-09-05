@@ -8,6 +8,7 @@ import { isStripeCheckoutUrl } from '../lib/safeUrl.js';
 import { useConfirm } from '../components/ConfirmProvider.jsx';
 import { formatDate } from '../lib/formatDate.js';
 import JourneyModal from '../components/JourneyModal.jsx';
+import { readCheckoutReturn, stashJourney, clearJourney } from '../lib/checkoutReturn.js';
 import AccountSettings from './AccountSettings.jsx';
 
 // A rate value with its unit (defaults to %), so "3.5" never renders unit-less.
@@ -183,13 +184,30 @@ export default function UserDashboard() {
   });
   const closeJourney = () => { setJourney(null); load(); };
 
+  // Finish a checkout that was started HERE. Stripe returns to the bare origin,
+  // so App bounces back to #dashboard and this picks it up — without it, paying
+  // from the dashboard ended on the landing page looking at an unrelated
+  // benchmark the hero calculator had restored.
+  useEffect(() => {
+    const r = readCheckoutReturn('dashboard');
+    if (!r || r.redirectTo) return;
+    // A canceled reveal bought nothing — the modal's options view IS the paid
+    // product, so just refresh the rows.
+    if (r.canceled && r.tier === 'reveal') { load(); return; }
+    setJourney({
+      ctx: r.context,
+      resume: { tier: r.tier, sessionId: r.sessionId, expert: r.expert, canceled: r.canceled },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Pay the ~$1 reveal for a saved benchmark (user is already signed in here).
   // On return the benchmark's stage becomes 'revealed' and its bank appears.
   // Falls back to a demo reveal if Stripe isn't configured.
   const revealBank = async (r) => {
     const ctx = contextFromBenchmark(r);
     try {
-      sessionStorage.setItem('bb_journey', JSON.stringify({ tier: 'reveal', context: ctx }));
+      stashJourney({ tier: 'reveal', context: ctx });
       const { url } = await createCheckout({
         tier: 'reveal', currency: ctx.currency || 'SGD',
         product: ctx.product || null, segment: ctx.segment || 'individual', email: user?.email || undefined,
@@ -197,7 +215,7 @@ export default function UserDashboard() {
       if (!isStripeCheckoutUrl(url)) throw new Error('Unexpected checkout URL');
       window.location.assign(url);
     } catch (err) {
-      sessionStorage.removeItem('bb_journey');
+      clearJourney();
       // Only unlock for free when Stripe genuinely isn't configured — a network
       // blip must not give the paid reveal away.
       if (!/not configured/i.test(err?.message || '')) {

@@ -1,0 +1,145 @@
+/* SME / corporate certificate — a formal award document.
+   Gold frame + corner accents carry the "award" read; everything else stays in
+   FeeOptima's navy so it looks issued by us rather than bought from a template
+   site. Centred throughout, because that's what makes a certificate a
+   certificate rather than a card. */
+.ccert {
+  --gold: #c9a227;
+  --gold-lt: #e6cb74;
+  --gold-dk: #9c7b12;
+
+  position: relative;
+  background: #fff;
+  border: 2px solid var(--gold);
+  border-radius: 4px;               /* a document, not an app card */
+  padding: 26px 22px 22px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+/* Inner hairline rule, the classic double-frame of a printed certificate. */
+.ccert__frame {
+  position: absolute; inset: 7px;
+  border: 1px solid var(--gold-lt);
+  pointer-events: none;
+}
+/* Corner accents — a nod to the diagonal ribbons on formal stock, kept to two
+   quiet strokes per corner so they frame the text instead of shouting over it. */
+.ccert__corner { position: absolute; width: 30px; height: 30px; }
+.ccert__corner::before, .ccert__corner::after { content: ''; position: absolute; background: var(--gold); }
+.ccert__corner::before { width: 100%; height: 2px; }
+.ccert__corner::after { width: 2px; height: 100%; }
+.ccert__corner--tl { top: -1px; left: -1px; }
+.ccert__corner--tr { top: -1px; right: -1px; }
+.ccert__corner--tr::after { right: 0; }
+.ccert__corner--bl { bottom: -1px; left: -1px; }
+.ccert__corner--bl::before { bottom: 0; }
+.ccert__corner--br { bottom: -1px; right: -1px; }
+.ccert__corner--br::before { bottom: 0; }
+.ccert__corner--br::after { right: 0; }
+
+.ccert__share {
+  position: absolute; top: 14px; right: 14px; z-index: 2;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; padding: 0;
+  border: 1.5px solid var(--gold); border-radius: 50%;
+  background: #fff; color: var(--gold-dk);
+  cursor: pointer; transition: background 0.15s ease, color 0.15s ease;
+}
+.ccert__share:hover { background: var(--gold); color: #fff; }
+.ccert__share:focus-visible { outline: 2px solid var(--gold-dk); outline-offset: 2px; }
+.ccert__share-ok { font-size: 15px; font-weight: 800; line-height: 1; }
+
+.ccert__inner { position: relative; text-align: center; }
+
+/* Serif, letterspaced, small-caps-ish — the visual grammar of an award. No web
+   font: a system serif stack keeps it offline-safe and out of the CSP. */
+.ccert__title {
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-size: 30px; font-weight: 700; letter-spacing: 0.10em;
+  text-transform: uppercase; color: var(--navy-900);
+  line-height: 1.1;
+}
+.ccert__subtitle {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin-top: 6px;
+  font-size: 11.5px; font-weight: 800; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--gold-dk);
+}
+.ccert__rule { flex: 0 0 34px; height: 1px; background: var(--gold); }
+
+.ccert__presented {
+  margin-top: 16px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--muted);
+}
+.ccert__holder {
+  margin-top: 8px;
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-size: 26px; font-weight: 700; font-style: italic;
+  color: var(--gold-dk); line-height: 1.2;
+  overflow-wrap: anywhere;          /* a long legal name must not burst the frame */
+}
+.ccert__holder-rule {
+  width: min(320px, 80%); height: 1px; margin: 10px auto 0;
+  background: var(--navy-900);
+}
+
+.ccert__body {
+  margin: 14px auto 0; max-width: 400px;
+  font-size: 12.5px; line-height: 1.65; color: var(--navy-700);
+}
+.ccert__body strong { color: var(--navy-900); }
+
+.ccert__date { margin-top: 14px; font-size: 11.5px; font-weight: 700; color: var(--muted); }
+
+.ccert__signatures {
+  display: flex; justify-content: center; gap: 34px; flex-wrap: wrap;
+  margin-top: 26px;
+}
+.ccert__sig { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 130px; }
+.ccert__sig-line { width: 100%; height: 1px; background: var(--navy-800); margin-bottom: 5px; }
+.ccert__sig-name { font-size: 12px; font-weight: 800; color: var(--navy-900); }
+.ccert__sig-role { font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+
+.ccert__foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  margin-top: 22px; padding-top: 16px; border-top: 1px solid #ecd9a0;
+  text-align: left;
+}
+
+/* Seal — the gold medallion, in brand navy rather than the stock red. */
+.ccert__seal {
+  flex: none; width: 62px; height: 62px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: radial-gradient(circle at 32% 28%, var(--gold-lt), var(--gold) 58%, var(--gold-dk));
+  box-shadow: 0 1px 4px rgba(11, 31, 58, 0.22);
+}
+.ccert__seal-inner {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: var(--navy-900); color: #fff;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  text-align: center; padding: 3px;
+}
+.ccert__seal-inner em { font-style: normal; font-size: 6.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold-lt); }
+.ccert__seal-inner strong { font-size: 7.5px; font-weight: 800; line-height: 1.15; }
+
+.ccert__brand { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.ccert__logo { font-size: 15px; font-weight: 800; color: var(--navy-900); }
+.ccert__logo span { color: var(--blue-600); }
+.ccert__handle { font-size: 11px; font-weight: 600; color: var(--muted); }
+
+.ccert__qr {
+  flex: none; width: 58px; height: 58px; border-radius: 6px;
+  background: #fff; border: 1px solid var(--line); padding: 3px;
+}
+.ccert__qr--ph { background: repeating-conic-gradient(#eef2f8 0% 25%, #fff 0% 50%) 50% / 12px 12px; }
+
+@media (max-width: 460px) {
+  .ccert { padding: 20px 14px 16px; }
+  .ccert__title { font-size: 24px; }
+  .ccert__holder { font-size: 21px; }
+  .ccert__signatures { gap: 18px; }
+  .ccert__foot { flex-wrap: wrap; justify-content: center; text-align: center; }
+  .ccert__brand { flex: 1 1 100%; align-items: center; order: 3; }
+}
