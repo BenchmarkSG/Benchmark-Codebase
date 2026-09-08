@@ -76,7 +76,11 @@ export default function Navbar({ onGetStarted, onSignIn }) {
     <header className="nav" ref={ref}>
       <div className="container nav__inner">
         <a className="nav__brand" href="#top" onClick={close}>
-          <span className="nav__brand-accent">Fee</span>Optima
+          {/* alt="" on purpose: the wordmark beside it already names the brand,
+              so a screen reader would otherwise say "FeeOptima" twice. Intrinsic
+              width/height keep the row from reflowing before the file loads. */}
+          <img className="nav__logo" src="/logo-mark.png" alt="" width="162" height="120" />
+          <span className="nav__brand-name"><span className="nav__brand-accent">Fee</span>Optima</span>
         </a>
         <nav className="nav__links">
           {LINKS.map(([href, label]) => <a key={href} href={href}>{label}</a>)}

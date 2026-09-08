@@ -48,7 +48,15 @@ jobs:
             const fs = require('fs');
             const marker = '<!-- rates-stale-bot -->';
             const title = '🗓️ Rates due for review';
-            const body = `${fs.readFileSync('rates-stale.md', 'utf8')}\n\n${marker}`;
+            // GitHub caps an issue body at 65,536 characters and rejects the whole
+            // call when it's exceeded — which is how this reminder went silently
+            // dead for two days once the backlog grew. rates-stale.mjs already
+            // bounds the report; this is the belt to its braces.
+            const NOTE = "\n\n_…truncated to fit GitHub's issue-body limit._";
+            const LIMIT = 65000;
+            const raw = fs.readFileSync('rates-stale.md', 'utf8');
+            const trimmed = raw.length > LIMIT ? raw.slice(0, LIMIT - NOTE.length) + NOTE : raw;
+            const body = `${trimmed}\n\n${marker}`;
             const { owner, repo } = context.repo;
             const open = await github.paginate(github.rest.issues.listForRepo, { owner, repo, state: 'open', per_page: 100 });
             const found = open.find((i) => (i.body || '').includes(marker));

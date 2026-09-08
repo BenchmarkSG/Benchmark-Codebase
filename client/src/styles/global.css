@@ -15,6 +15,11 @@
   --red-500: #e6323d;
   --red-50: #fdecec;
 
+  /* Warm accent — a sibling of the brand red, used sparingly on dark navy
+     (currently the hero phone bezel). Not a fill colour. */
+  --orange-500: #f28b30;
+  --orange-400: #ff9d4d;
+
   --ink: #0b1f3a;
   --muted: #5b6b82;
   --line: #e4e9f2;

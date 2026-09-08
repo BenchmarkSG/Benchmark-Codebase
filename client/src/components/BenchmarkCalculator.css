@@ -11,12 +11,16 @@
   max-width: 430px;
   margin: 0 auto;
   background: linear-gradient(165deg, #223050 0%, #0c1424 60%, #0a111f 100%);
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  /* Warm rim: the orange reads as a deliberate accent against the navy hero
+     rather than the stray hairline a white border became on dark backgrounds.
+     Halo + inner ring keep it from looking like a 1px mistake. */
+  border: 1.5px solid var(--orange-500);
   border-radius: 44px;
   box-shadow:
     0 26px 60px -22px rgba(9, 15, 28, 0.6),
     0 6px 16px rgba(9, 15, 28, 0.25),
-    inset 0 0 0 2px rgba(255, 255, 255, 0.05);
+    0 0 22px -6px rgba(242, 139, 48, 0.45),
+    inset 0 0 0 2px rgba(255, 157, 77, 0.14);
   padding: 11px;
 }
 

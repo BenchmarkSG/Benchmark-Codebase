@@ -19,6 +19,18 @@ export default function UpdatePrompt() {
   const [updateSW, setUpdateSW] = useState(null);
 
   useEffect(() => {
+    // Dev runs NO service worker by design (vite.config.js devOptions) — but one
+    // WAS enabled in dev historically, and a registration outlives the config
+    // that created it. A zombie SW kept controlling localhost:5173, intercepting
+    // fetches with rules from a dead config and masking live edits. Unregister
+    // anything found and drop its caches; harmless when there's nothing there.
+    if (import.meta.env.DEV) {
+      navigator.serviceWorker?.getRegistrations?.()
+        .then((regs) => regs.forEach((r) => r.unregister()))
+        .catch(() => {});
+      window.caches?.keys?.().then((keys) => keys.forEach((k) => caches.delete(k))).catch(() => {});
+      return undefined;
+    }
     let timer;
     const update = registerSW({
       onNeedRefresh() { setReady(true); },

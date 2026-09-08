@@ -13,15 +13,19 @@
   height: 68px;
 }
 .nav__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
   font-weight: 800;
   font-size: 22px;
   color: var(--navy-900);
   letter-spacing: -0.03em;
   white-space: nowrap;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
+/* The mark keeps its size; only the wordmark truncates on a narrow header. */
+.nav__logo { flex: none; display: block; height: 32px; width: auto; }
+.nav__brand-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .nav__brand-accent { color: var(--blue-600); }
 
 .nav__links {
@@ -156,11 +160,13 @@
 @media (max-width: 560px) {
   .nav__inner { gap: 12px; height: 60px; }
   .nav__actions { gap: 8px; }
-  .nav__brand { font-size: 18px; }
+  .nav__brand { font-size: 18px; gap: 7px; }
+  .nav__logo { height: 27px; }
 }
 @media (max-width: 400px) {
   .nav__inner { gap: 8px; }
-  .nav__brand { font-size: 16.5px; }
+  .nav__brand { font-size: 16.5px; gap: 6px; }
+  .nav__logo { height: 24px; }
 }
 
 /* Profile picture inside the account-menu button — uploaded photo or the

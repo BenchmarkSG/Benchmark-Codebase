@@ -13,6 +13,13 @@ import { createClient } from '@supabase/supabase-js';
 import { writeFileSync, appendFileSync } from 'node:fs';
 
 const STALE_DAYS = Number(process.env.STALE_DAYS || 30);
+// GitHub rejects an issue body over 65,536 characters, and this reminder died
+// silently for two days when the backlog crossed it (1,178 rows => 77 kB). The
+// report is now bounded by construction: an exact count straight from Postgres,
+// but only the most overdue MAX_LIST rows spelled out per section. A 1,200-item
+// bullet list was never actionable anyway — the work happens in the admin portal.
+const MAX_LIST = Number(process.env.MAX_LIST || 40);
+const BODY_LIMIT = 60000;
 const cutoff = new Date(Date.now() - STALE_DAYS * 86400000).toISOString();
 const staleFilter = `updated_at.is.null,updated_at.lt.${cutoff}`;
 
@@ -42,11 +49,22 @@ async function main() {
   const sections = [];
   let total = 0;
   for (const t of TABLES) {
-    const { data, error } = await db.from(t.table).select(t.select).or(staleFilter);
+    // Count and sample are separate queries on purpose. A plain select is capped
+    // at PostgREST's 1,000-row ceiling, so a 1,245-row backlog used to report
+    // itself as exactly 1,000 — wrong, and wrong in the quiet direction.
+    // head: true returns the number with no rows at all.
+    const { count, error: countErr } = await db.from(t.table)
+      .select(t.select, { count: 'exact', head: true }).or(staleFilter);
+    if (countErr) { console.error(`✗ ${t.table}:`, countErr.message); continue; }
+
+    // Oldest first, so the sample we do print is the most overdue. Sorting in
+    // SQL rather than JS is what makes the LIMIT meaningful.
+    const { data, error } = await db.from(t.table).select(t.select).or(staleFilter)
+      .order('updated_at', { ascending: true, nullsFirst: true }).limit(MAX_LIST);
     if (error) { console.error(`✗ ${t.table}:`, error.message); continue; }
-    const rows = (data || []).sort((a, b) => new Date(a.updated_at || 0) - new Date(b.updated_at || 0));
-    total += rows.length;
-    sections.push({ ...t, rows });
+
+    total += count || 0;
+    sections.push({ ...t, rows: data || [], count: count || 0 });
   }
 
   // Build a Markdown report.
@@ -55,14 +73,21 @@ async function main() {
     lines.push('✅ Everything is current. Nice work.');
   } else {
     for (const s of sections) {
-      if (!s.rows.length) continue;
-      lines.push(`**${s.title} (${s.rows.length})**`, '');
+      if (!s.count) continue;
+      lines.push(`**${s.title} (${s.count})**`, '');
       for (const r of s.rows) lines.push(`- ${s.label(r)} — _${daysAgo(r.updated_at)}_`);
+      const hidden = s.count - s.rows.length;
+      if (hidden > 0) lines.push(`- _…and ${hidden} more — the ${s.rows.length} most overdue are listed above._`);
       lines.push('');
     }
     lines.push('Open the **admin portal**, review each against the source, then click **✓ Verify** (or edit the rate) to clear it.');
   }
-  const report = lines.join('\n');
+  // Last line of defence: even a future change to MAX_LIST can't take the daily
+  // reminder down again.
+  let report = lines.join('\n');
+  if (report.length > BODY_LIMIT) {
+    report = `${report.slice(0, BODY_LIMIT)}\n\n_…report truncated._`;
+  }
 
   console.log(report);
   writeFileSync('rates-stale.md', report + '\n');

@@ -1,0 +1,96 @@
+/* Share bar — a strip fused to the bottom edge of the certificate rather than a
+   floating row of buttons, so the two read as one object. Each variant borrows
+   the palette of the certificate it hangs off. */
+
+.cert-wrap { position: relative; }
+/* Square off the joint so there's no seam between document and strip. */
+.cert-wrap .ccert,
+.cert-wrap .icert { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+
+.certshare {
+  position: relative;               /* anchors the clipped empty status line */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 16px;
+  padding: 13px 16px;
+  border-radius: 0 0 5px 5px;
+}
+
+.certshare__label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.certshare__btns { display: flex; align-items: center; gap: 10px; }
+
+.certshare__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  box-shadow: 0 2px 6px rgba(11, 31, 58, 0.28);
+}
+.certshare__btn:hover { transform: translateY(-2px); filter: brightness(1.08); }
+.certshare__btn:active { transform: none; }
+.certshare__btn:disabled { opacity: 0.6; cursor: default; transform: none; }
+
+/* Brand colours — recognition is the whole point of putting logos here. */
+.certshare__btn--linkedin { background: #0a66c2; }
+.certshare__btn--x { background: #0f1419; }
+.certshare__btn--meta { background: #0866ff; }
+.certshare__btn--instagram {
+  background: radial-gradient(circle at 28% 108%, #fdf497 0%, #fd5949 42%, #d6249f 62%, #285aeb 96%);
+}
+
+/* Empty until something happens — never reserve the space. It stays in the DOM
+   (and the accessibility tree) even when blank: a live region that was
+   display:none doesn't reliably announce the text that unhides it, so the empty
+   state is clipped-but-present instead, and absolute so it isn't a flex item
+   the row gap has to make room for. */
+.certshare__note {
+  flex: 1 1 100%;
+  margin: 0;
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.certshare__note:empty {
+  position: absolute;
+  width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* --- SME: white document, gold frame --- */
+.certshare--sme {
+  background: #fdf8ea;
+  border: 2px solid #c9a227;
+  border-top: 0;
+}
+.certshare--sme .certshare__label { color: #8a6c10; }
+.certshare--sme .certshare__note { color: var(--muted); }
+
+/* --- Individual: the navy field simply continues --- */
+.certshare--individual {
+  background: #101a44;
+  box-shadow: inset 0 1px 0 rgba(240, 215, 141, 0.32);
+}
+.certshare--individual .certshare__label { color: #f0d78d; }
+.certshare--individual .certshare__note { color: rgba(255, 255, 255, 0.72); }
+
+@media (max-width: 460px) {
+  .certshare { gap: 8px 12px; padding: 12px 12px; }
+  .certshare__label { font-size: 10px; letter-spacing: 0.1em; }
+  .certshare__btn { width: 36px; height: 36px; }
+}

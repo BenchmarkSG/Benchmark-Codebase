@@ -10,6 +10,7 @@ import { buildCertificateImage } from '../lib/certificateImage.js';
 import { SITE_URL } from '../lib/site.js';
 import { useModalA11y } from '../hooks/useModalA11y.js';
 import { useConfirm } from './ConfirmProvider.jsx';
+import { stashJourney, clearJourney } from '../lib/checkoutReturn.js';
 
 /* Screen 3 — the "reveal + act on it" screen. Three vertical tiers: negotiate
    yourself ($1), get a coaching call ($99), or hire an expert ($199). The paid
@@ -272,6 +273,8 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
   const [paidTier, setPaidTier] = useState(null); // 'call' | 'expert' once paid (or demo)
   const [busy, setBusy] = useState(false);
   const [payError, setPayError] = useState('');
+  const [checkoutUrl, setCheckoutUrl] = useState(''); // set once Stripe hands us a URL
+  const [stalled, setStalled] = useState(false);      // redirect didn't take
   const bookedRef = useRef(null); // Stripe session already logged to the dashboard
   const unlockRef = useRef(null); // benchmark stage already marked for this tier
   const cardRef = useRef(null);
@@ -492,6 +495,7 @@ Kind regards,
   useEffect(() => {
     if (!open) return;
     setEmailTo(''); setEmailBody(defaultBody); setCopied(false); setShared(false); setCcUs(false);
+    setCheckoutUrl(''); setStalled(false);
     if (resume?.afterAuth) {
       // Returned from signing in/up — restore the exact screen they were on.
       // `unlockedTier` lets the dashboard reopen an already-purchased tier in
@@ -636,20 +640,46 @@ Kind regards,
       // Only ever navigate to a genuine Stripe Checkout URL (defends against a
       // compromised/misconfigured API returning an open-redirect target).
       if (!isStripeCheckoutUrl(url)) throw new Error('Unexpected checkout URL');
+      // If the redirect doesn't take, the button would otherwise sit on
+      // "Redirecting…" forever with no way out. A cross-origin assign() can be
+      // swallowed by a stale service worker, an extension, or a blocked popup,
+      // and none of those reject — so nothing here would ever run again. Hand
+      // the user a working link instead of a dead end. Cleared by the unload
+      // that a successful navigation triggers.
+      setCheckoutUrl(url);
+      const stall = setTimeout(() => { setBusy(false); setStalled(true); }, 6000);
+      window.addEventListener('pagehide', () => clearTimeout(stall), { once: true });
       window.location.assign(url);
-    } catch {
+    } catch (err) {
       clearJourney();
       setBusy(false);
       // With Stripe LIVE, a failed checkout call must never fall through to a
       // free unlock — that would give the paid product away on a network blip.
       if (paymentsEnabled) {
-        setPayError('We couldn’t start the secure checkout. Please check your connection and try again.');
+        // Server messages are already sanitised (app.js keeps internals out of
+        // responses), so showing them beats a generic line that tells the user
+        // nothing about whether retrying will help.
+        setPayError(err?.message
+          ? `We couldn’t start the secure checkout. ${err.message}`
+          : 'We couldn’t start the secure checkout. Please check your connection and try again.');
         return;
       }
       // Stripe not configured (demo build) → fall back to demo scheduling.
       setPaidTier(tier);
       applyUnlock(tier); // demo mode has no redirect — mark the benchmark now
     }
+  };
+
+  // Rendering the certificate to a PNG costs a canvas paint and a blob encode,
+  // and the share bar can fire several times (one per network). Build it once
+  // per set of inputs; the effect below drops the cache when they change.
+  const certFileRef = useRef(null);
+  useEffect(() => { certFileRef.current = null; }, [segment, context?.product, savingPct, company, holderName]);
+  const buildCertFile = async () => {
+    if (!certFileRef.current) {
+      certFileRef.current = await buildCertificateImage({ segment, product: context?.product, savingPct, company, holderName });
+    }
+    return certFileRef.current;
   };
 
   // Share the certificate itself as an IMAGE (with the caption text). On mobile
@@ -659,7 +689,7 @@ Kind regards,
   const shareCertificate = async () => {
     const url = SITE_URL;
     let file = null;
-    try { file = await buildCertificateImage({ segment, product: context?.product, savingPct, company, holderName }); } catch { /* fall back below */ }
+    try { file = await buildCertFile(); } catch { /* fall back below */ }
 
     // 1) Native file share — image + caption together (mobile).
     if (file && navigator.canShare?.({ files: [file] })) {
@@ -775,6 +805,7 @@ Kind regards,
               segment={segment} product={context?.product} savingPct={savingPct}
               company={company} holderName={holderName}
               onShare={shareCertificate} shared={shared}
+              caption={CERT_SHARE_TEXT} buildFile={buildCertFile}
             />
             <h4 className="jny-sectlabel">
               {paidTier && !TIERS.some((t) => TIER_RANK[t.id] > TIER_RANK[paidTier])
@@ -858,6 +889,13 @@ Kind regards,
             <button className="jny__back" onClick={back}>← Back to options</button>
             <h4 className="jny-sub__title">Book your specialist call</h4>
             {payError && <div className="jny-note jny-note--warn">{payError}</div>}
+            {stalled && checkoutUrl && (
+              <div className="jny-note jny-note--warn">
+                The redirect didn’t go through — this can happen if a browser extension
+                or a cached service worker blocks it.{' '}
+                <a href={checkoutUrl} rel="noopener noreferrer">Open secure checkout →</a>
+              </div>
+            )}
             {paymentsEnabled && paidTier !== 'call' ? (
               <>
                 <p className="jny-sub__sub">
@@ -929,6 +967,13 @@ Kind regards,
                   </div>
                 )}
                 {payError && <div className="jny-note jny-note--warn">{payError}</div>}
+            {stalled && checkoutUrl && (
+              <div className="jny-note jny-note--warn">
+                The redirect didn’t go through — this can happen if a browser extension
+                or a cached service worker blocks it.{' '}
+                <a href={checkoutUrl} rel="noopener noreferrer">Open secure checkout →</a>
+              </div>
+            )}
 
                 {expert.real && !user && (
                   <div className="jny-note jny-note--warn">
