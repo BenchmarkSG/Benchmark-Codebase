@@ -17,14 +17,29 @@
 
   /* Warm accent — a sibling of the brand red, used sparingly on dark navy
      (currently the hero phone bezel). Not a fill colour. */
-  --orange-500: #f28b30;
-  --orange-400: #ff9d4d;
+  --orange-500: #d9761c;
 
+  /* SEMANTIC tokens — these are what components should use, and these are what
+     the dark theme swaps. The palette scale above never flips: --navy-900 is a
+     dark background in places (.section--navy, the hero) and dark text in
+     others, so inverting it would break half the site. Anything that means
+     "text" uses --ink*, anything that means "a raised surface" uses --surface. */
   --ink: #0b1f3a;
+  --ink-2: #12294d;
+  --ink-3: #1a3763;
   --muted: #5b6b82;
   --line: #e4e9f2;
   --bg: #ffffff;
   --bg-soft: #f4f8fd;
+  --surface: #ffffff;      /* cards, modals, anything lifted off the page */
+  --surface-2: #f8fbff;    /* a step up from the page, below a card */
+  --accent: var(--blue-600);   /* brand blue where it's TEXT, not a fill */
+
+  /* Status washes. Same values the dashboard's --d-* layer uses, so a panel
+     doesn't change character depending on which shell it renders in. */
+  --ok-bg: #ecfaf1;   --ok-line: #b6e6ca;  --ok-ink: #0f7a44;
+  --warn-bg: #fff8e8; --warn-line: #e6cf88; --warn-ink: #8a5a00;
+  --err-bg: #fdeaea;  --err-line: #f6c9cc; --err-ink: var(--red-600);
 
   --radius: 16px;
   --radius-sm: 10px;
@@ -34,6 +49,44 @@
   --maxw: 1180px;
 
   --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+  color-scheme: light;
+}
+
+/* DARK THEME. Set as data-theme on <html> by useTheme(), so it reaches every
+   surface including portals and modals. Only the semantic tokens move; the
+   brand scale stays put. `color-scheme` is what makes form controls,
+   scrollbars and the space beyond the page render dark too. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --ink: #e8eef8;
+  --ink-2: #dbe5f4;
+  --ink-3: #cfdaeb;
+  --muted: #8ea1bd;
+  --line: #26364f;
+  --bg: #0d1523;
+  --bg-soft: #101b2e;
+  --surface: #141f33;
+  --surface-2: #1b2942;
+  /* Brand blue at #1d63c4 fails contrast as text on a dark page, so the
+     text-blue token lifts. The fill colour (--blue-600) deliberately doesn't. */
+  --accent: #7ab0f7;
+
+  /* Tint backgrounds invert rather than lighten — a pale blue wash on a dark
+     page reads as a rendering error. */
+  --blue-50: #16233a;
+  --blue-100: #1d3050;
+  --red-50: #2c1618;
+
+  --ok-bg: #10261c;   --ok-line: #1e5c3d;  --ok-ink: #5fd39a;
+  --warn-bg: #2b2312; --warn-line: #6b5320; --warn-ink: #e6b95c;
+  --err-bg: #2c1618;  --err-line: #6d2c32; --err-ink: #f08b92;
+
+  /* Shadows need real darkness on a dark ground; navy-tinted ones vanish. */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 12px 30px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55);
 }
 
 * { box-sizing: border-box; }
@@ -108,14 +161,14 @@ img { max-width: 100%; display: block; }
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--blue-600);
+  color: var(--accent);
 }
 
 .section-title {
   font-size: clamp(26px, 3.4vw, 38px);
   font-weight: 800;
   text-align: center;
-  color: var(--navy-900);
+  color: var(--ink);
 }
 .section-sub {
   text-align: center;
@@ -124,7 +177,7 @@ img { max-width: 100%; display: block; }
   margin: 12px auto 0;
   font-size: 16px;
 }
-.accent-blue { color: var(--blue-600); }
+.accent-blue { color: var(--accent); }
 .accent-red { color: var(--red-600); }
 
 /* Buttons */
@@ -155,11 +208,11 @@ img { max-width: 100%; display: block; }
 .btn--navy:hover,
 .btn--red:hover { background: #b91820; }
 .btn--ghost {
-  background: #fff;
-  color: var(--navy-800);
+  background: var(--surface);
+  color: var(--ink-2);
   border: 1.5px solid var(--line);
 }
-.btn--ghost:hover { border-color: var(--navy-600); }
+.btn--ghost:hover { border-color: var(--ink-3); }
 .btn--block { width: 100%; justify-content: center; }
 
 @media (max-width: 720px) {

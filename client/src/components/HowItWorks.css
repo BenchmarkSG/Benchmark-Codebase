@@ -12,7 +12,7 @@
   grid-template-columns: 60px 1fr;
   gap: 16px;
   align-items: center;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 18px 20px;
@@ -27,7 +27,7 @@
   width: 56px; height: 56px;
   border-radius: 50%;
   background: var(--blue-50);
-  color: var(--blue-600);
+  color: var(--accent);
   display: grid; place-items: center;
   border: 1px solid #d6e4f7;
 }
@@ -45,12 +45,12 @@
 }
 
 .hiw-step__body { padding-top: 0; }
-.hiw-step__title { font-size: 17px; font-weight: 800; color: var(--navy-900); }
+.hiw-step__title { font-size: 17px; font-weight: 800; color: var(--ink); }
 .hiw-step__text { margin-top: 6px; color: var(--muted); font-size: 14px; }
 
 .hiw__cta {
   margin-top: 8px;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 18px 20px;
@@ -61,5 +61,5 @@
   flex-wrap: wrap;
   box-shadow: var(--shadow-sm);
 }
-.hiw__cta strong { display: block; font-size: 16px; color: var(--navy-900); }
+.hiw__cta strong { display: block; font-size: 16px; color: var(--ink); }
 .hiw__cta span { color: var(--muted); font-size: 13px; }

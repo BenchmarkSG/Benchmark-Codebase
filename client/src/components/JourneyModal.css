@@ -16,22 +16,23 @@
 .jny__panel {
   /* Tone the panel blends into low down — anything that needs to disappear
      against the panel (the OR divider's label) matches this rather than #fff. */
-  --jny-surface: #f8fbff;
+  --jny-surface: var(--surface-2);
 
   position: relative;
   width: 100%;
   max-width: 600px;
   max-height: 92vh;
   overflow-y: auto;
-  /* A soft blue wash rather than flat white, with a glow behind the headline
-     that fades out down the panel. The white cards on top (certificate, tier
-     options) now read as raised surfaces instead of blending into the page.
-     background-attachment defaults to `scroll`, so the wash stays put while
-     the panel's content scrolls under it. */
-  background:
-    radial-gradient(88% 42% at 50% 0%, #dee9fa 0%, rgba(222, 233, 250, 0) 72%),
-    linear-gradient(180deg, #edf4fd 0%, #f4f8fd 42%, var(--jny-surface) 100%);
+  /* Flat, themed surface. This used to be a three-stop wash of hardcoded light
+     blues, so in dark mode the panel stayed pale and swallowed its own
+     headline. Separation now comes from the blue header band and the cards'
+     own borders. */
+  background: var(--surface-2);
   border-radius: 22px;
+  /* NO `overflow: hidden` here — the shorthand would override the overflow-y
+     above it and the panel would stop scrolling. It isn't needed anyway: a
+     scroll container already clips its content to the border radius, which is
+     what keeps the header band's square corners off the panel's round ones. */
   box-shadow: var(--shadow-lg);
   padding: 26px;
   animation: pop 0.22s ease;
@@ -43,16 +44,30 @@
   position: absolute;
   top: 14px; right: 14px;
   border: none;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(11, 31, 58, 0.10);
+  background: rgba(255, 255, 255, 0.16);
   display: grid; place-items: center;
   width: 40px; height: 40px;
   border-radius: 50%;
   font-size: 24px; line-height: 1;
-  color: var(--navy-800); cursor: pointer;
+  color: #fff; cursor: pointer;
   z-index: 2;
 }
-.jny__close:hover { background: #e2ebf7; }
+.jny__close:hover { background: rgba(255, 255, 255, 0.28); }
+
+/* Blue header band — the same chrome the calculator's phone mock wears, so the
+   two screens read as one product. Negative margins pull it out to the panel's
+   edges without restructuring the padded body around it. */
+.jny__head {
+  margin: -26px -26px 20px;
+  padding: 20px 26px 18px;
+  background: linear-gradient(150deg, var(--blue-600) 0%, var(--navy-800) 100%);
+  color: #fff;
+}
+.jny__head-title { font-size: 19px; font-weight: 800; color: #fff; line-height: 1.15; }
+.jny__head-sub {
+  margin-top: 3px; font-size: 11.5px; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255, 255, 255, 0.78);
+}
 
 /* Hide the floating WhatsApp "Need Help?" widget while the journey modal is open. */
 body.jny-open .needhelp { display: none; }
@@ -60,16 +75,15 @@ body.jny-open .needhelp { display: none; }
 /* Reveal panel */
 .jny-reveal {
   background: transparent;
-  color: var(--navy-900);
+  color: var(--ink);
   padding: 0;
   margin-bottom: 18px;
 }
-.jny-reveal__top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.jny-reveal__eyebrow { font-size: 11.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.jny-reveal__top { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
 .jny-reveal__share {
   border: 1px solid var(--line);
-  background: #fff;
-  color: var(--navy-800); font-weight: 700; font-size: 12.5px;
+  background: var(--surface);
+  color: var(--ink-2); font-weight: 700; font-size: 12.5px;
   padding: 6px 12px; border-radius: 999px; cursor: pointer;
   margin-right: 34px; /* clear the close button */
 }
@@ -81,49 +95,52 @@ body.jny-open .needhelp { display: none; }
    instead of running the full panel width, then centres the pair. fit-content
    collapses to the available width once the headline wraps — right on phones. */
 .jny-reveal__summary { width: fit-content; max-width: 100%; margin-inline: auto; }
-.jny-reveal__headline { margin-top: 14px; text-align: center; font-size: 18px; font-weight: 800; color: var(--navy-900); line-height: 1.3; }
-.jny-reveal__headline strong { color: var(--blue-600); }
+.jny-reveal__headline { margin-top: 14px; text-align: center; font-size: 18px; font-weight: 800; color: var(--ink); line-height: 1.3; }
+.jny-reveal__headline strong { color: var(--accent); }
 .jny-reveal__rule { border-radius: 999px; background: var(--red-600); }
 .jny-reveal__rule--thick { height: 4px; margin: 14px 0; }
 /* Centred on the full panel — hence it lives outside .jny-reveal__summary. */
-.jny-reveal__amt { margin-bottom: 22px; text-align: center; font-size: 30px; font-weight: 800; color: var(--navy-900); letter-spacing: -0.02em; }
-.jny-reveal__amt span { font-size: 16px; font-weight: 700; color: var(--navy-700); letter-spacing: 0; }
-.jny-reveal__amt--sm { font-size: 16px; font-weight: 700; color: var(--navy-700); }
+.jny-reveal__amt { margin-bottom: 22px; text-align: center; font-size: 30px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; }
+.jny-reveal__amt span { font-size: 16px; font-weight: 700; color: var(--ink-3); letter-spacing: 0; }
+.jny-reveal__amt--sm { font-size: 16px; font-weight: 700; color: var(--ink-3); }
 
-.jny-sectlabel { font-size: 14px; font-weight: 800; color: var(--navy-900); margin: 22px 0 12px; }
+.jny-sectlabel { font-size: 14px; font-weight: 800; color: var(--ink); margin: 24px 0 28px; }
 
 /* Vertical tiers */
-.jny-tiers { display: flex; flex-direction: column; gap: 12px; }
+.jny-tiers { display: flex; flex-direction: column; gap: 30px; }
 .jny-tier {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 10px;
-  border: 1.5px solid var(--line);
+  /* The tier's colour frames the whole card rather than capping one edge. */
+  border: 2px solid var(--line);
   border-radius: 14px;
-  background: #fff;
+  background: var(--surface);
   padding: 22px 18px 18px;
-  border-top-width: 4px;
   transition: box-shadow 0.15s ease, transform 0.12s ease;
 }
 .jny-tier:hover { box-shadow: var(--shadow-sm); }
 /* Already paid for — present as owned, not as something to buy again. */
-.jny-tier--owned { background: #f7fbff; border-color: #cfe0f7; }
+.jny-tier--owned { background: var(--surface-2); }
 .jny-tier--owned .jny-tier__price { color: #0f7a44; font-size: 16px; }
-.jny-tier--owned .jny-tier__cta { background: #fff; color: var(--navy-800); border: 1.5px solid var(--line); }
-.jny-tier--owned .jny-tier__cta:hover { border-color: var(--navy-600); filter: none; }
-.jny-tier--green { border-top-color: #1a9d6a; }
-.jny-tier--blue  { border-top-color: var(--blue-600); }
-.jny-tier--violet { border-top-color: #6a34c9; }
+.jny-tier--owned .jny-tier__cta { background: var(--surface); color: var(--ink-2); border: 1.5px solid var(--line); }
+.jny-tier--owned .jny-tier__cta:hover { border-color: var(--ink-3); filter: none; }
+.jny-tier--green { border-color: #1a9d6a; }
+.jny-tier--blue  { border-color: var(--blue-600); }
+.jny-tier--violet { border-color: #6a34c9; }
 
 /* "Option 1/2/3" badge straddling the card's top border (per the sketch). */
 .jny-tier__badge {
   position: absolute;
-  top: -11px; left: 50%; transform: translateX(-50%);
+  /* The pill straddles the card's top border. `top` is measured from the
+     padding box, so centring it needs half the pill's height (~14px) PLUS the
+     card's 2px border — measured in the browser, not eyeballed. */
+  top: -16px; left: 50%; transform: translateX(-50%);
   color: #fff; background: var(--navy-900);
-  font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
-  padding: 3px 13px; border-radius: 999px; white-space: nowrap;
+  font-size: 13.5px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase;
+  padding: 4px 16px; border-radius: 999px; white-space: nowrap;
 }
 .jny-tier--green .jny-tier__badge { background: #1a9d6a; }
 .jny-tier--blue  .jny-tier__badge { background: var(--blue-600); }
@@ -133,10 +150,10 @@ body.jny-open .needhelp { display: none; }
 .jny-tier__price {
   width: 100%; text-align: center;
   font-size: 20px; font-weight: 800;
-  color: var(--navy-900);
+  color: var(--ink);
 }
 .jny-tier__was { color: var(--muted); font-weight: 600; font-size: 15px; margin-right: 4px; }
-.jny-tier__title { width: 100%; text-align: center; font-size: 15.5px; font-weight: 800; color: var(--navy-900); }
+.jny-tier__title { width: 100%; text-align: center; font-size: 15.5px; font-weight: 800; color: var(--ink); }
 /* Footnote under the CTA — spacing comes from the card's flex gap. */
 .jny-tier__desc { width: 100%; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
 .jny-tier__cta {
@@ -154,8 +171,8 @@ body.jny-open .needhelp { display: none; }
 .jny-tier__cta:hover { filter: brightness(1.06); }
 
 /* Sub-views (email / call / expert) */
-.jny__back { border: none; background: transparent; color: var(--blue-600); font-weight: 700; font-size: 13.5px; padding: 10px 6px 12px; margin-left: -6px; cursor: pointer; min-height: 40px; }
-.jny-sub__title { font-size: 18px; font-weight: 800; color: var(--navy-900); }
+.jny__back { border: none; background: transparent; color: var(--accent); font-weight: 700; font-size: 13.5px; padding: 10px 6px 12px; margin-left: -6px; cursor: pointer; min-height: 40px; }
+.jny-sub__title { font-size: 18px; font-weight: 800; color: var(--ink); }
 .jny-sub__sub { font-size: 13.5px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
 .jny-pill {
   display: inline-block; margin-right: 6px;
@@ -163,21 +180,21 @@ body.jny-open .needhelp { display: none; }
   font-weight: 800; font-size: 12px; padding: 2px 9px; border-radius: 999px;
 }
 
-.jny-label { font-size: 12.5px; font-weight: 700; color: var(--navy-800); }
+.jny-label { font-size: 12.5px; font-weight: 700; color: var(--ink-2); }
 .jny-field { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
 .jny-field input {
-  border: 1.5px solid var(--line); border-radius: 10px; background: #fff;
-  padding: 11px 12px; font-size: 14px; font-weight: 600; color: var(--navy-900);
+  border: 1.5px solid var(--line); border-radius: 10px; background: var(--surface);
+  padding: 11px 12px; font-size: 14px; font-weight: 600; color: var(--ink);
   font-family: inherit;
 }
 .jny-field input:focus { outline: none; border-color: var(--blue-500); }
-.jny-field input[readonly] { background: var(--bg-soft); color: var(--navy-800); }
+.jny-field input[readonly] { background: var(--bg-soft); color: var(--ink-2); }
 
 .jny-textarea {
   margin-top: 14px; width: 100%;
-  border: 1.5px solid var(--line); border-radius: 12px; background: #fff;
+  border: 1.5px solid var(--line); border-radius: 12px; background: var(--surface);
   padding: 14px; font-size: 13.5px; line-height: 1.6;
-  color: var(--navy-900); font-family: inherit; resize: vertical;
+  color: var(--ink); font-family: inherit; resize: vertical;
 }
 .jny-textarea:focus { outline: none; border-color: var(--blue-500); }
 
@@ -185,19 +202,19 @@ body.jny-open .needhelp { display: none; }
 .jny-cc {
   display: flex; align-items: flex-start; gap: 10px;
   margin-top: 14px; padding: 12px 14px;
-  background: #fff; border: 1.5px solid var(--line); border-radius: 12px;
+  background: var(--surface); border: 1.5px solid var(--line); border-radius: 12px;
   cursor: pointer;
 }
 .jny-cc:hover { border-color: #c3d8f5; }
 .jny-cc input { flex: none; width: 17px; height: 17px; margin-top: 1px; accent-color: var(--blue-600); cursor: pointer; }
-.jny-cc span { font-size: 13px; font-weight: 700; color: var(--navy-900); line-height: 1.4; }
+.jny-cc span { font-size: 13px; font-weight: 700; color: var(--ink); line-height: 1.4; }
 .jny-cc em { font-style: normal; font-weight: 600; color: var(--muted); }
 .jny-cc small { display: block; margin-top: 2px; font-size: 11.5px; font-weight: 600; color: var(--muted); }
 
 /* Advisor's blocked windows, shown next to the scheduler. */
 .jny-away {
   margin-top: 8px; padding: 8px 10px;
-  background: #fff8e8; border: 1px solid #e6cf88; border-radius: 8px;
+  background: var(--warn-bg); border: 1px solid #e6cf88; border-radius: 8px;
   font-size: 11.5px; font-weight: 600; line-height: 1.45; color: #6b4e08;
 }
 .jny-away strong { font-weight: 800; }
@@ -206,15 +223,15 @@ body.jny-open .needhelp { display: none; }
 .jny-actions .btn { flex: 1; min-width: 150px; text-align: center; }
 .jny-note { font-size: 11.5px; color: var(--muted); text-align: center; margin-top: 12px; }
 .jny-note--ok {
-  font-size: 13px; color: #0f7a44; background: #ecfaf1; border: 1px solid #b6e6ca;
+  font-size: 13px; color: #0f7a44; background: var(--ok-bg); border: 1px solid #b6e6ca;
   border-radius: 10px; padding: 10px 12px; font-weight: 700;
 }
 .jny-note--warn {
-  font-size: 13px; color: #6b4e08; background: #fff8e8; border: 1px solid #e6cf88;
+  font-size: 13px; color: #6b4e08; background: var(--warn-bg); border: 1px solid #e6cf88;
   border-radius: 10px; padding: 10px 12px; font-weight: 700;
   display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;
 }
-.jny-linkbtn { border: none; background: transparent; color: var(--blue-600); font-weight: 800; font-size: 13px; cursor: pointer; text-decoration: underline; }
+.jny-linkbtn { border: none; background: transparent; color: var(--accent); font-weight: 800; font-size: 13px; cursor: pointer; text-decoration: underline; }
 
 /* Calendly scheduler */
 .jny-sched { margin-top: 16px; }
@@ -225,7 +242,7 @@ body.jny-open .needhelp { display: none; }
 .jny-pay { width: 100%; margin-top: 14px; font-size: 15px; }
 
 /* Option 1 card promo subtext (Standard $9 · $1 when you share) */
-.jny-tier__promo { margin-top: 8px; font-size: 12px; font-weight: 700; color: var(--navy-700); }
+.jny-tier__promo { margin-top: 8px; font-size: 12px; font-weight: 700; color: var(--ink-3); }
 .jny-tier__promo s { color: var(--muted); font-weight: 600; }
 
 /* Reveal view — unlocked bank + two pricing paths */
@@ -234,12 +251,24 @@ body.jny-open .needhelp { display: none; }
   background: var(--blue-50); border: 1px solid #c3d8f5; border-radius: 12px;
   padding: 14px 16px; margin: 4px 0 12px;
 }
-.jny-unlock__name { font-size: 24px; font-weight: 800; color: var(--navy-900); line-height: 1.1; }
-.jny-unlock__rate { font-size: 13px; font-weight: 700; color: var(--blue-600); }
+.jny-unlock__name { font-size: 24px; font-weight: 800; color: var(--ink); line-height: 1.1; }
+.jny-unlock__rate { font-size: 13px; font-weight: 700; color: var(--accent); }
+.jny-unlock__label {
+  font-size: 11px; font-weight: 800; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--muted);
+}
+/* In the reveal panel everything is centred, and the card sits between the
+   headline amount and the options. */
+.jny-unlock--reveal { align-items: center; text-align: center; margin: 18px 0 2px; }
+
+/* The certificate is a keepsake, not a fourth option — narrower than the tier
+   cards so it reads as a different kind of thing. The cap only binds on wide
+   panels; on a phone it stays full width. */
+.jny .cert-wrap { width: 100%; max-width: 420px; margin: 26px auto 0; }
 
 /* Two pricing paths shown SIDE BY SIDE so they read as two parallel choices,
    not a $9-then-$1 sequence:  [ Standard $9 ]  OR  [ Share & save $1 ]. */
-.jny-paths__lead { margin-top: 16px; font-size: 12.5px; font-weight: 700; color: var(--navy-700); text-align: center; }
+.jny-paths__lead { margin-top: 16px; font-size: 12.5px; font-weight: 700; color: var(--ink-3); text-align: center; }
 .jny-paths {
   margin-top: 10px;
   display: grid;
@@ -250,9 +279,9 @@ body.jny-open .needhelp { display: none; }
 .jny-path {
   display: flex; flex-direction: column;
   border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px;
-  background: #fff;
+  background: var(--surface);
 }
-.jny-path--promo { position: relative; border-color: #b6e6ca; background: #f2fbf6; }
+.jny-path--promo { position: relative; border-color: #b6e6ca; background: var(--ok-bg); }
 .jny-path__badge {
   position: absolute; top: -10px; right: 12px;
   background: #12945a; color: #fff;
@@ -260,8 +289,8 @@ body.jny-open .needhelp { display: none; }
   padding: 3px 9px; border-radius: 999px; box-shadow: 0 2px 6px rgba(18, 148, 90, 0.28);
 }
 .jny-path__head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-.jny-path__label { font-size: 13.5px; font-weight: 800; color: var(--navy-900); }
-.jny-path__price { font-size: 18px; font-weight: 800; color: var(--navy-900); white-space: nowrap; }
+.jny-path__label { font-size: 13.5px; font-weight: 800; color: var(--ink); }
+.jny-path__price { font-size: 18px; font-weight: 800; color: var(--ink); white-space: nowrap; }
 .jny-path__price s { color: var(--muted); font-weight: 600; font-size: 13px; margin-right: 4px; }
 
 /* Vertical OR divider sitting in the centre column between the two cards. */
@@ -281,7 +310,7 @@ body.jny-open .needhelp { display: none; }
 .jny-pay:disabled { opacity: 0.6; cursor: not-allowed; }
 /* Star rating asked after a booking. */
 .jny-rate { padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px dashed #c3d2ea; }
-.jny-rate__q { font-size: 14px; font-weight: 800; color: var(--navy-900); text-align: center; }
+.jny-rate__q { font-size: 14px; font-weight: 800; color: var(--ink); text-align: center; }
 .jny-rate__stars { display: flex; justify-content: center; gap: 4px; margin-top: 8px; }
 .jny-rate__star {
   border: none; background: none; cursor: pointer; padding: 2px 4px;
@@ -292,10 +321,10 @@ body.jny-open .needhelp { display: none; }
 .jny-rate__star:hover { transform: scale(1.12); }
 .jny-rate__star:focus-visible { outline: 2px solid var(--blue-600); outline-offset: 2px; border-radius: 6px; }
 .jny-rate__note {
-  margin-top: 10px; width: 100%; background: #fff;
+  margin-top: 10px; width: 100%; background: var(--surface);
   border: 1.5px solid var(--line); border-radius: 10px;
   padding: 10px 12px; font-size: 13px; font-family: inherit;
-  color: var(--navy-900); resize: vertical;
+  color: var(--ink); resize: vertical;
 }
 .jny-rate__note:focus { outline: none; border-color: var(--blue-500); }
 .jny-rate .btn { margin-top: 10px; }
@@ -304,23 +333,23 @@ body.jny-open .needhelp { display: none; }
 /* Post-booking exit — the modal has no other way out but the × . */
 .jny-done {
   margin-top: 14px; padding: 16px;
-  background: #fff; border: 1.5px solid #b6e6ca; border-radius: 14px;
+  background: var(--surface); border: 1.5px solid #b6e6ca; border-radius: 14px;
 }
-.jny-done__title { font-size: 14.5px; font-weight: 800; color: var(--navy-900); text-align: center; }
+.jny-done__title { font-size: 14.5px; font-weight: 800; color: var(--ink); text-align: center; }
 .jny-done .jny-actions { margin-top: 12px; }
-.jny-sched__link { display: inline-block; margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--blue-600); }
+.jny-sched__link { display: inline-block; margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--accent); }
 .jny-sched__ph {
   text-align: center;
   border: 1.5px dashed #c3d2ea;
   border-radius: 14px;
   padding: 34px 20px;
-  background: #fff;
+  background: var(--surface);
 }
 .jny-sched__ph-icon { font-size: 40px; }
-.jny-sched__ph strong { display: block; margin-top: 10px; font-size: 16px; color: var(--navy-900); }
+.jny-sched__ph strong { display: block; margin-top: 10px; font-size: 16px; color: var(--ink); }
 .jny-sched__ph p { margin-top: 6px; font-size: 13px; color: var(--muted); max-width: 360px; margin-inline: auto; }
 .jny-sched__ph small { display: block; margin-top: 10px; font-size: 11.5px; color: var(--muted); }
-.jny-sched__ph code { background: #e6eefb; padding: 1px 5px; border-radius: 5px; }
+.jny-sched__ph code { background: var(--surface-2); padding: 1px 5px; border-radius: 5px; }
 
 /* Expert directory */
 .jny-experts { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
@@ -336,7 +365,7 @@ body.jny-open .needhelp { display: none; }
 }
 .jny-expert__avatar--img { object-fit: cover; }
 .jny-expert__body { flex: 1; min-width: 0; }
-.jny-expert__name { font-size: 15px; font-weight: 800; color: var(--navy-900); }
+.jny-expert__name { font-size: 15px; font-weight: 800; color: var(--ink); }
 .jny-expert__role { font-size: 12px; color: var(--blue-700); font-weight: 600; margin-top: 1px; }
 .jny-expert__blurb { font-size: 12.5px; color: var(--muted); margin-top: 4px; line-height: 1.45; }
 .jny-expert__pick {

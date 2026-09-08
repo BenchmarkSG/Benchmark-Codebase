@@ -10,25 +10,28 @@
   width: 100%;
   max-width: 430px;
   margin: 0 auto;
-  background: linear-gradient(165deg, #223050 0%, #0c1424 60%, #0a111f 100%);
-  /* Warm rim: the orange reads as a deliberate accent against the navy hero
-     rather than the stray hairline a white border became on dark backgrounds.
-     Halo + inner ring keep it from looking like a 1px mistake. */
-  border: 1.5px solid var(--orange-500);
+  /* The bezel ITSELF is the orange — this band is the phone's body, not a
+     border around it. A separate rim on top of it just read as a second edge.
+     Shaded top-left to bottom-right so it still looks like a moulded case
+     rather than a flat swatch. */
+  background: linear-gradient(165deg, #ea9440 0%, var(--orange-500) 52%, #9c4f08 100%);
+  border: none;
   border-radius: 44px;
   box-shadow:
     0 26px 60px -22px rgba(9, 15, 28, 0.6),
     0 6px 16px rgba(9, 15, 28, 0.25),
-    0 0 22px -6px rgba(242, 139, 48, 0.45),
-    inset 0 0 0 2px rgba(255, 157, 77, 0.14);
-  padding: 11px;
+    /* Catch-light along the top edge and a shadow along the bottom — the two
+       cues that make a solid band read as a physical bezel. */
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.42),
+    inset 0 -1.5px 0 rgba(120, 60, 0, 0.35);
+  padding: 7px;
 }
 
 /* The "screen": blue heading band + white body, clipped to rounded corners */
 .calc-card .calc-screen {
   position: relative;
-  background: #fff;
-  border-radius: 34px;
+  background: var(--surface);
+  border-radius: 38px;
   overflow: hidden;
   isolation: isolate;
 }
@@ -117,7 +120,7 @@
   border: none;
   box-shadow: none;
   border-radius: 0;
-  background: #fff;
+  background: var(--surface);
   margin-top: 0;
   /* Header now clears the island, so the body uses normal top padding. */
   padding: 14px 20px 34px;
@@ -157,7 +160,7 @@
   gap: 6px;
   justify-content: center;
   margin: 28px auto 0;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--line);
   padding: 5px;
   border-radius: 30px;
@@ -180,7 +183,7 @@
   padding: 12px;
   font-size: 14px;
   font-family: 'SFMono-Regular', ui-monospace, Menlo, monospace;
-  color: var(--navy-900);
+  color: var(--ink);
   resize: vertical;
   line-height: 1.5;
 }
@@ -196,15 +199,15 @@
   padding: 9px 11px;
   margin: 0;
 }
-.calcbox__consent a { color: var(--blue-600); font-weight: 700; text-decoration: none; }
+.calcbox__consent a { color: var(--accent); font-weight: 700; text-decoration: none; }
 .calcbox__consent a:hover { text-decoration: underline; }
 
 .res__locked {
   margin-top: 12px;
   font-size: 12px;
   font-weight: 700;
-  color: var(--navy-700);
-  background: #fff;
+  color: var(--ink-3);
+  background: var(--surface);
   border: 1px dashed #c3d2ea;
   border-radius: 10px;
   padding: 10px 12px;
@@ -216,7 +219,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 20px;
   box-shadow: var(--shadow-md);
@@ -266,8 +269,8 @@
 .calcbox__seg-btn.is-active { background: var(--navy-800); color: #fff; }
 
 .calcbox__row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.calcbox__field { display: flex; flex-direction: column; gap: 7px; font-size: 13px; font-weight: 700; color: var(--navy-800); }
-.calcbox__field b { color: var(--blue-600); }
+.calcbox__field { display: flex; flex-direction: column; gap: 7px; font-size: 13px; font-weight: 700; color: var(--ink-2); }
+.calcbox__field b { color: var(--accent); }
 .calcbox__field select,
 .calcbox__field input:not([type='range']) {
   border: 1.5px solid var(--line);
@@ -275,8 +278,8 @@
   padding: 12px;
   font-size: 15px;
   font-weight: 600;
-  color: var(--navy-900);
-  background: #fff;
+  color: var(--ink);
+  background: var(--surface);
 }
 .calcbox__field input::placeholder { color: #6f7d94; font-weight: 500; }
 .calcbox__field select:focus,
@@ -284,7 +287,7 @@
 .calcbox__field input[type='range'] { accent-color: var(--blue-600); }
 
 /* Required-field asterisk */
-.calcbox__req { color: var(--red-600); font-weight: 800; font-style: normal; margin-left: 3px; }
+.calcbox__req { color: var(--err-ink); font-weight: 800; font-style: normal; margin-left: 3px; }
 
 /* Blank required field on submit — red outline until the user fills it. */
 .calcbox__field.is-invalid > span { color: var(--red-600); }
@@ -313,19 +316,19 @@
 .calcbox__placeholder-icon { font-size: 36px; }
 .calcbox__placeholder small { font-size: 12px; }
 
-.res__head { display: flex; justify-content: space-between; align-items: baseline; font-weight: 800; color: var(--navy-900); font-size: 15px; }
+.res__head { display: flex; justify-content: space-between; align-items: baseline; font-weight: 800; color: var(--ink); font-size: 15px; }
 .res__unit { font-size: 12px; color: var(--muted); font-weight: 700; }
 
 /* --- Redesigned result: red rules, "overpaying" headline, rate rows, tagline --- */
 .res__top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.res__product { font-weight: 800; color: var(--navy-900); font-size: 15px; }
+.res__product { font-weight: 800; color: var(--ink); font-size: 15px; }
 .res__overpay {
   text-align: center; margin-top: 16px;
-  background: linear-gradient(180deg, #eef5fd, #fff);
+  background: linear-gradient(180deg, var(--blue-50), #fff);
   border: 1px solid #c3d8f5; border-radius: 16px;
   padding: 18px 16px 22px;
 }
-.res__overpay-lead { display: block; font-size: 15px; font-weight: 700; color: var(--navy-700); }
+.res__overpay-lead { display: block; font-size: 15px; font-weight: 700; color: var(--ink-3); }
 /* The emphasised word blends with its neighbours in colour; a red hand-drawn
    brush swoosh underneath does the emphasising instead of a red font. */
 .res__overpay-lead strong { position: relative; color: inherit; font-weight: 800; }
@@ -339,7 +342,7 @@
    stroke hugs the number's width, not the full centred row. */
 .res__overpay-amt {
   display: inline-block;
-  margin-top: 20px; font-size: 30px; font-weight: 800; color: var(--navy-900); letter-spacing: -0.02em;
+  margin-top: 20px; font-size: 30px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em;
 }
 
 /* Visual "you vs best" comparison chart — proportional bars tell the story. */
@@ -348,8 +351,8 @@
    so their children land directly in these shared columns. */
 .res__cmp { margin-top: 22px; display: grid; grid-template-columns: minmax(96px, max-content) 1fr auto; align-items: center; column-gap: 12px; row-gap: 12px; }
 .res__cmp-row { display: contents; }
-.res__cmp-label { font-size: 13px; font-weight: 700; color: var(--navy-800); text-align: left; }
-.res__cmp-track { height: 10px; border-radius: 999px; background: #eef1f6; overflow: hidden; }
+.res__cmp-label { font-size: 13px; font-weight: 700; color: var(--ink-2); text-align: left; }
+.res__cmp-track { height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
 .res__cmp-fill {
   display: block; height: 100%; border-radius: 999px;
   transform-origin: left center; animation: res-cmp-grow 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -359,23 +362,23 @@
 .res__cmp-val {
   min-width: 62px; text-align: center;
   border-radius: 9px; padding: 6px 10px; font-size: 15px; font-weight: 800;
-  border: 1px solid var(--line); background: #fff; color: var(--navy-900);
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
 }
-.res__cmp-val--you { color: var(--red-600); border-color: #f3c3c7; background: #fdf2f3; }
-.res__cmp-val--best { color: #12945a; border-color: #b6e6ca; background: #f2fbf6; }
+.res__cmp-val--you { color: var(--red-600); border-color: #f3c3c7; background: var(--err-bg); }
+.res__cmp-val--best { color: #12945a; border-color: #b6e6ca; background: var(--ok-bg); }
 @keyframes res-cmp-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
-.res__tagline { margin-top: 16px; text-align: center; font-size: 17px; line-height: 1.35; font-weight: 800; color: var(--navy-800); }
+.res__tagline { margin-top: 16px; text-align: center; font-size: 17px; line-height: 1.35; font-weight: 800; color: var(--ink-2); }
 
 /* Primary result CTA — blue (overrides the global red .btn* unification) */
 .res .res__detail { background: var(--blue-600); color: #fff; box-shadow: 0 8px 20px rgba(29, 99, 196, 0.26); }
 .res .res__detail:hover { background: var(--blue-700); }
 .res__rates { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; margin-top: 14px; }
-.res__rate { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 14px; text-align: center; }
+.res__rate { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; text-align: center; }
 .res__rate--best { border-color: #c3d8f5; background: var(--blue-50); }
 .res__rate-label { font-size: 11px; font-weight: 700; color: var(--muted); }
-.res__rate-val { font-size: 28px; font-weight: 800; color: var(--navy-900); margin-top: 4px; }
-.res__rate--best .res__rate-val { color: var(--blue-600); }
+.res__rate-val { font-size: 28px; font-weight: 800; color: var(--ink); margin-top: 4px; }
+.res__rate--best .res__rate-val { color: var(--accent); }
 .res__arrow { color: var(--muted); font-weight: 800; }
 
 .res__saving {
@@ -389,14 +392,14 @@
   flex-direction: column;
   gap: 2px;
 }
-.res__saving span { font-size: 12.5px; font-weight: 700; color: var(--navy-700); }
-.res__saving strong { font-size: 28px; font-weight: 800; color: var(--blue-600); }
+.res__saving span { font-size: 12.5px; font-weight: 700; color: var(--ink-3); }
+.res__saving strong { font-size: 28px; font-weight: 800; color: var(--accent); }
 .res__saving small { font-size: 12px; color: var(--muted); }
 
 /* "You're ahead" state — user already beats the pool */
 .res__ahead {
   margin-top: 14px;
-  background: linear-gradient(180deg, #e9f9f0, #fff);
+  background: linear-gradient(180deg, var(--ok-bg), #fff);
   border: 1px solid #b6e6ca;
   border-radius: 16px;
   padding: 18px;
@@ -414,7 +417,7 @@
   margin-top: 12px;
   font-size: 14.5px;
   line-height: 1.55;
-  color: var(--navy-800);
+  color: var(--ink-2);
   font-weight: 600;
 }
 .res__ahead-lead strong { color: #0f7a44; font-weight: 800; }
@@ -425,30 +428,30 @@
   gap: 10px;
 }
 .res__ahead-you, .res__ahead-mkt {
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 12px;
   text-align: center;
 }
-.res__ahead-you { border-color: #b6e6ca; background: #f2fbf6; }
+.res__ahead-you { border-color: #b6e6ca; background: var(--ok-bg); }
 .res__ahead-you span, .res__ahead-mkt span { display: block; font-size: 11px; font-weight: 700; color: var(--muted); }
-.res__ahead-you strong, .res__ahead-mkt strong { display: block; font-size: 26px; font-weight: 800; color: var(--navy-900); margin-top: 3px; }
+.res__ahead-you strong, .res__ahead-mkt strong { display: block; font-size: 26px; font-weight: 800; color: var(--ink); margin-top: 3px; }
 .res__ahead-you strong { color: #0f7a44; }
 .res__ahead-you em { display: block; font-style: normal; font-size: 10.5px; font-weight: 800; color: #0f7a44; margin-top: 2px; }
 .res__ahead-note {
   margin-top: 12px;
   font-size: 12.5px;
   line-height: 1.55;
-  color: var(--navy-700);
+  color: var(--ink-3);
 }
 
 .res__standing {
   margin-top: 12px;
   font-size: 12.5px;
   line-height: 1.5;
-  color: var(--navy-700);
-  background: #fff;
+  color: var(--ink-3);
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 10px 12px;
@@ -458,24 +461,24 @@
 .res__marketref {
   margin-top: 10px;
   font-size: 12px;
-  color: var(--navy-700);
-  background: #f2f6fc;
+  color: var(--ink-3);
+  background: var(--surface-2);
   border: 1px solid #dbe6f6;
   border-radius: 10px;
   padding: 9px 11px;
 }
-.res__marketref strong { color: var(--navy-900); }
+.res__marketref strong { color: var(--ink); }
 
 .res__repay { margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.res__repay > div { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 11px; }
+.res__repay > div { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 11px; }
 .res__repay span { display: block; font-size: 11px; color: var(--muted); font-weight: 700; }
-.res__repay strong { font-size: 16px; color: var(--navy-900); }
+.res__repay strong { font-size: 16px; color: var(--ink); }
 
 .res__tip {
   margin-top: 12px;
   font-size: 12.5px;
-  color: var(--navy-700);
-  background: #fff;
+  color: var(--ink-3);
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 11px 12px;
@@ -495,7 +498,7 @@
 
 /* Phone: keep everything inside the card width */
 @media (max-width: 560px) {
-  .calc-card { padding: 9px; border-radius: 40px; }
+  .calc-card { padding: 6px; border-radius: 40px; }
   .calc-card .calc-screen { border-radius: 32px; }
   .calc-card .calcbox { padding: 14px 16px 32px; }
   .calc-card .calc-modes { width: 100%; }

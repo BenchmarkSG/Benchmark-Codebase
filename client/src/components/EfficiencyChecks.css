@@ -1,6 +1,6 @@
 .effc { background: var(--bg-soft); }
 .effc__eyebrow { display: block; text-align: center; margin-bottom: 8px; }
-.effc__segment { text-align: center; font-weight: 800; color: var(--navy-900); font-size: 15px; margin: 20px 0 2px; }
+.effc__segment { text-align: center; font-weight: 800; color: var(--ink); font-size: 15px; margin: 20px 0 2px; }
 
 .effc__grid {
   margin-top: 34px;
@@ -16,7 +16,7 @@
   align-items: flex-start;
   gap: 12px;
   text-align: left;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 16px;
   padding: 22px;
@@ -33,9 +33,9 @@
   font-size: 24px;
 }
 .effc__body { display: flex; flex-direction: column; gap: 4px; }
-.effc__title { font-size: 17px; font-weight: 800; color: var(--navy-900); }
+.effc__title { font-size: 17px; font-weight: 800; color: var(--ink); }
 .effc__desc { font-size: 13.5px; color: var(--muted); line-height: 1.45; }
-.effc__cta { margin-top: 2px; font-size: 14px; font-weight: 800; color: var(--blue-600); }
+.effc__cta { margin-top: 2px; font-size: 14px; font-weight: 800; color: var(--accent); }
 
 @media (max-width: 620px) {
   .effc__grid { grid-template-columns: 1fr; }

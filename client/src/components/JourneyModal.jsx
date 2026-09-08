@@ -292,6 +292,11 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
       ? `${context.percentileBeaten}% of the providers we benchmark`
       : 'the market'; // dashboard-saved rows don't carry the percentile fields
   const bank = context?.bestBank || null;
+  const withUnit = (v) => {
+    const u = context?.unit;
+    if (!u) return `${v}%`;
+    return u.startsWith('%') ? `${v}${u}` : `${v} ${u}`;
+  };
   const productLabel = context?.product || 'banking product';
 
   // Identity used to prefill Calendly + attribute the booking (set once signed in).
@@ -750,6 +755,10 @@ Kind regards,
     <div className="jny" role="dialog" aria-modal="true" aria-label="Your next steps">
       <div className="jny__backdrop" onClick={requestClose} />
       <div className="jny__panel" ref={cardRef}>
+        <div className="jny__head">
+          <div className="jny__head-title">Your result</div>
+          <div className="jny__head-sub">{SEG_LABEL[segment]} · {productLabel}</div>
+        </div>
         <button className="jny__close" onClick={requestClose} aria-label="Close">×</button>
 
         {/* Reveal panel — the winning bank + saving, with a share button. Only on
@@ -759,7 +768,6 @@ Kind regards,
         {view === 'options' && (
         <div className="jny-reveal">
           <div className="jny-reveal__top">
-            <span className="jny-reveal__eyebrow">{SEG_LABEL[segment]} · your result</span>
             {/* Only in the 'ahead' state, which renders no certificate to carry a
                 share button of its own. Otherwise this would just duplicate it. */}
             {ahead && (
@@ -787,6 +795,17 @@ Kind regards,
                 : <div className="jny-reveal__amt jny-reveal__amt--sm">Pick how you’d like to act below</div>}
             </>
           )}
+          {/* The unlocked bank itself. This is what the reveal was paid for, so
+              it leads the screen — everything below is what you do about it. */}
+          {bank && (
+            <div className="jny-unlock jny-unlock--reveal">
+              <span className="jny-unlock__label">Your best-match bank</span>
+              <span className="jny-unlock__name">{bank}</span>
+              {context?.benchmarkRate != null && (
+                <span className="jny-unlock__rate">Best price · {withUnit(context.benchmarkRate)}</span>
+              )}
+            </div>
+          )}
         </div>
         )}
 
@@ -801,12 +820,6 @@ Kind regards,
                 <a href="#dashboard">your dashboard</a> — or check your inbox for your sign-in link.
               </div>
             )}
-            <Certificate
-              segment={segment} product={context?.product} savingPct={savingPct}
-              company={company} holderName={holderName}
-              onShare={shareCertificate} shared={shared}
-              caption={CERT_SHARE_TEXT} buildFile={buildCertFile}
-            />
             <h4 className="jny-sectlabel">
               {paidTier && !TIERS.some((t) => TIER_RANK[t.id] > TIER_RANK[paidTier])
                 ? 'You’re on our top tier — everything below is already yours.'
@@ -836,6 +849,14 @@ Kind regards,
                 );
               })}
             </div>
+            {/* Last: the keepsake. Narrower than the options on purpose — it's a
+                document to share, not another thing to act on. */}
+            <Certificate
+              segment={segment} product={context?.product} savingPct={savingPct}
+              company={company} holderName={holderName}
+              onShare={shareCertificate} shared={shared}
+              caption={CERT_SHARE_TEXT} buildFile={buildCertFile}
+            />
           </>
         )}
 
@@ -848,7 +869,7 @@ Kind regards,
             <div className="jny-unlock">
               <span className="jny-unlock__name">{bank || 'Top provider'}</span>
               {context?.benchmarkRate != null && (
-                <span className="jny-unlock__rate">Best price · {context.benchmarkRate}{context?.unit ? ` ${context.unit}` : '%'}</span>
+                <span className="jny-unlock__rate">Best price · {withUnit(context.benchmarkRate)}</span>
               )}
             </div>
             <p className="jny-sub__sub">Here’s a ready-to-send email to negotiate directly with your bank.</p>
@@ -948,7 +969,7 @@ Kind regards,
                         {x.blurb && <div className="jny-expert__blurb">{x.blurb}</div>}
                         <AwayNote windows={x.away} />
                       </div>
-                      <button className="jny-expert__pick" onClick={() => connectExpert(x)}>Select →</button>
+                      <button className="jny-expert__pick" onClick={() => connectExpert(x)}>Select Me</button>
                     </div>
                   ))}
                 </div>

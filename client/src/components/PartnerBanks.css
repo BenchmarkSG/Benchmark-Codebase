@@ -3,7 +3,7 @@
 /* Standalone white logo band (sits between "Why Choose" and the health check). */
 .partners {
   padding: 34px 24px 36px;
-  background: #fff;
+  background: var(--surface);
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
 }

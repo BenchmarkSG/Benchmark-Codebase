@@ -1,8 +1,11 @@
 .adm, .adm-login, .adm-center {
   /* Alias the app-wide design tokens (from global.css) so admin colours never
      drift from the rest of the product. */
-  --navy: var(--navy-900);
-  --blue: var(--blue-600);
+  /* Point at the SEMANTIC tokens, not the brand scale: --navy-900 is a dark
+     background elsewhere so it deliberately never flips, and aliasing text to
+     it left the whole portal navy-on-navy in dark mode. */
+  --navy: var(--ink);
+  --blue: var(--accent);
   --blue-dk: var(--blue-700);
   --red: var(--red-600);
   font-family: var(--font);
@@ -20,7 +23,7 @@
 .adm-login__card {
   width: 100%;
   max-width: 380px;
-  background: #fff;
+  background: var(--surface);
   border-radius: 16px;
   padding: 30px;
   box-shadow: 0 30px 70px rgba(11, 31, 58, 0.4);
@@ -41,16 +44,16 @@
 .adm-login__back { margin-top: 8px; text-align: center; font-size: 12.5px; color: var(--muted); }
 
 /* ---- Shell ---- */
-.adm { min-height: 100vh; background: #f4f8fd; }
+.adm { min-height: 100vh; background: var(--surface-2); }
 .adm-center {
   min-height: 100vh; display: grid; place-content: center; gap: 14px; text-align: center;
-  padding: 40px; background: #f4f8fd; font-size: 15px;
+  padding: 40px; background: var(--surface-2); font-size: 15px;
 }
-.adm-center code { background: #e9f0fb; padding: 2px 6px; border-radius: 6px; }
+.adm-center code { background: var(--blue-50); padding: 2px 6px; border-radius: 6px; }
 
 .adm-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 24px; background: var(--navy); color: #fff;
+  padding: 14px 24px; background: var(--navy-900); color: #fff;
 }
 .adm-header__brand { font-weight: 800; }
 .adm-header__brand span { color: #6ea8ff; }
@@ -61,58 +64,58 @@
 
 .adm-tabs {
   display: flex; flex-wrap: wrap; gap: 4px;
-  padding: 12px 24px 0; background: #fff; border-bottom: 1px solid var(--line);
+  padding: 12px 24px 0; background: var(--surface); border-bottom: 1px solid var(--line);
 }
 .adm-tab {
   border: none; background: transparent; padding: 10px 16px; border-radius: 8px 8px 0 0;
   font-size: 13.5px; font-weight: 700; color: var(--muted); cursor: pointer;
 }
-.adm-tab:hover { color: var(--navy); background: #f4f8fd; }
+.adm-tab:hover { color: var(--navy); background: var(--surface-2); }
 .adm-tab.is-active { color: var(--blue); border-bottom: 2px solid var(--blue); }
 
 .adm-body { padding: 22px 24px 60px; }
 .adm-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 6px; }
 .adm-toolbar h2 { font-size: 20px; font-weight: 800; }
 .adm-country { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700; color: var(--muted); }
-.adm-country select { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; background: #fff; }
+.adm-country select { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; background: var(--surface); }
 .adm-section__count { font-size: 12.5px; color: var(--muted); margin: 4px 0 14px; }
 .adm-loading { display: flex; align-items: center; gap: 10px; padding: 24px; color: var(--muted); }
 .adm-empty-note {
   padding: 22px; color: var(--muted); font-size: 13.5px;
-  background: #fff; border: 1px dashed #c3d2ea; border-radius: 12px; text-align: center;
+  background: var(--surface); border: 1px dashed var(--line); border-radius: 12px; text-align: center;
 }
 
 /* Search box above each table */
 .adm-controls { display: flex; align-items: center; gap: 12px; margin: 2px 0 12px; flex-wrap: wrap; }
 .adm-search {
   flex: 1; min-width: 220px; max-width: 340px;
-  padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px; font-size: 13.5px; background: #fff;
+  padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px; font-size: 13.5px; background: var(--surface);
 }
 .adm-search:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(29, 99, 196, 0.15); }
 .adm-controls__note { font-size: 12px; color: var(--muted); }
 
 /* ---- Table ---- */
-.adm-tablewrap { overflow-x: auto; background: #fff; border: 1px solid var(--line); border-radius: 12px; }
+.adm-tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
 .adm-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .adm-table th, .adm-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
-.adm-table th { background: #f4f8fd; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.adm-table th { background: var(--surface-2); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
 .adm-table tr:last-child td { border-bottom: none; }
-.adm-table tr.adm-saved { background: #eafaf0; transition: background 0.4s ease; }
+.adm-table tr.adm-saved { background: var(--ok-bg); transition: background 0.4s ease; }
 
 .adm-val { color: var(--navy); }
 /* Editable cells are buttons that read as "click to edit" (dashed underline + pencil hint on hover). */
 button.adm-val--editable {
   font-weight: 700; color: var(--navy); background: transparent; border: none;
   padding: 2px 4px; margin: -2px -4px; border-radius: 6px; cursor: text;
-  border-bottom: 1px dashed #b9c6dd; text-align: left; font-family: inherit; font-size: inherit;
+  border-bottom: 1px dashed var(--line); text-align: left; font-family: inherit; font-size: inherit;
 }
-button.adm-val--editable:hover { background: #eef5fd; border-bottom-color: var(--blue); color: var(--blue-dk); }
+button.adm-val--editable:hover { background: var(--blue-50); border-bottom-color: var(--blue); color: var(--blue-dk); }
 button.adm-val--editable::after { content: ' ✎'; opacity: 0; font-size: 11px; }
 button.adm-val--editable:hover::after { opacity: 0.7; }
 
 /* Per-row save/verify error, shown directly beneath the acting row. */
 .adm-errorrow td {
-  background: #fdeaea; color: var(--red); font-size: 12.5px; font-weight: 700;
+  background: var(--err-bg); color: var(--red); font-size: 12.5px; font-weight: 700;
   padding: 8px 12px; white-space: normal;
 }
 .adm-emptyrow { padding: 22px 14px !important; text-align: center; color: var(--muted); white-space: normal !important; }
@@ -122,52 +125,58 @@ button.adm-val--editable:hover::after { opacity: 0.7; }
 .adm-actions-col { text-align: right; width: 1%; }
 .adm-rowactions { display: flex; gap: 6px; justify-content: flex-end; }
 .adm-pencil {
-  border: 1px solid var(--line); background: #fff; color: var(--blue);
+  border: 1px solid var(--line); background: var(--surface); color: var(--blue);
   width: 30px; height: 30px; border-radius: 8px; cursor: pointer;
   display: inline-grid; place-items: center;
 }
-.adm-pencil:hover { background: #eef5fd; border-color: var(--blue); }
+.adm-pencil:hover { background: var(--blue-50); border-color: var(--blue); }
 
 .adm-btn { border: none; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 700; cursor: pointer; }
-.adm-btn--save { background: var(--blue); color: #fff; }
+.adm-btn--save { background: var(--blue-600); color: #fff; }
 .adm-btn--save:hover:not(:disabled) { background: var(--blue-dk); }
 .adm-btn--save:disabled { opacity: 0.6; cursor: default; }
 .adm-btn--ghost { background: transparent; border: 1px solid var(--line); color: var(--navy); }
-.adm-btn--ghost:hover { background: #f4f8fd; }
-.adm-btn--verify { background: #eaf1fb; color: #1a56b0; border: 1px solid #cfe0f7; padding: 7px 10px; }
-.adm-btn--verify:hover:not(:disabled) { background: #dbeafc; border-color: #a9c9f2; }
+.adm-btn--ghost:hover { background: var(--surface-2); }
+.adm-btn--verify { background: var(--blue-50); color: var(--accent); border: 1px solid var(--line); padding: 7px 10px; }
+.adm-btn--verify:hover:not(:disabled) { background: var(--blue-100); border-color: var(--accent); }
 .adm-btn--verify:disabled { opacity: 0.6; cursor: default; }
 
 /* Rate freshness (manually-maintained rate tables) */
 .adm-fresh { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
-.adm-fresh--ok { background: #e6f6ec; color: #137a3e; }
-.adm-fresh--warn { background: #fdf1dc; color: #9a6a12; }
-.adm-fresh--stale { background: #fde4e4; color: #b3261e; }
-.adm-fresh--none { background: #eceff3; color: #6b7683; }
+.adm-fresh--ok { background: var(--ok-bg); color: var(--ok-ink); }
+.adm-fresh--warn { background: var(--warn-bg); color: var(--warn-ink); }
+.adm-fresh--stale { background: var(--err-bg); color: var(--err-ink); }
+.adm-fresh--none { background: var(--surface-2); color: var(--muted); }
 
 .adm-freshbar {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   flex-wrap: wrap; margin: 2px 0 12px;
-  background: #f6f9fd; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px;
 }
-.adm-freshbar__count { font-size: 13px; font-weight: 800; color: #6b7683; }
-.adm-freshbar__count.is-due { color: #b3261e; }
+.adm-freshbar__count { font-size: 13px; font-weight: 800; color: var(--muted); }
+.adm-freshbar__count.is-due { color: var(--err-ink); }
 .adm-freshbar__toggle { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; color: var(--navy); cursor: pointer; }
+.adm-freshbar__right { display: inline-flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+/* Full-width so a partial-failure message wraps under the row rather than
+   squeezing the button. */
+.adm-freshbar__msg { flex: 1 1 100%; margin: 2px 0 0; font-size: 12.5px; font-weight: 700; }
+.adm-freshbar__msg--ok { color: var(--ok-ink); }
+.adm-freshbar__msg--err { color: var(--err-ink); }
 
 /* Pending updates (proposal diff) */
 .adm-prop__change { white-space: nowrap; }
 .adm-prop__cur { color: var(--muted); font-weight: 700; }
 .adm-prop__arrow { margin: 0 7px; color: var(--muted); }
 .adm-prop__new { font-weight: 800; color: var(--navy); }
-.adm-prop__new.is-changed { color: #137a3e; }
-.adm-prop__tag { margin-left: 8px; font-size: 11px; font-weight: 800; color: #1a56b0; background: #eaf1fb; border: 1px solid #cfe0f7; border-radius: 999px; padding: 1px 7px; }
+.adm-prop__new.is-changed { color: var(--ok-ink); }
+.adm-prop__tag { margin-left: 8px; font-size: 11px; font-weight: 800; color: var(--accent); background: var(--blue-50); border: 1px solid var(--line); border-radius: 999px; padding: 1px 7px; }
 /* On the dark navy header the ghost button needs light text to be readable. */
 .adm-header .adm-btn--ghost { border-color: rgba(255, 255, 255, 0.35); color: #fff; }
 .adm-header .adm-btn--ghost:hover { background: rgba(255, 255, 255, 0.12); border-color: rgba(255, 255, 255, 0.6); }
 
 .adm-error {
   padding: 10px 12px; margin-bottom: 12px; border-radius: 8px;
-  background: #fdeaea; border: 1px solid #f6c9cc; color: var(--red); font-size: 12.5px;
+  background: var(--err-bg); border: 1px solid var(--err-line); color: var(--err-ink); font-size: 12.5px;
 }
 
 /* ---- Responsive / mobile ---- */
@@ -202,8 +211,8 @@ button.adm-val--editable:hover::after { opacity: 0.7; }
   .adm-table { font-size: 13.5px; }
   .adm-table thead { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
   .adm-table, .adm-table tbody, .adm-table tr, .adm-table td { display: block; width: 100%; }
-  .adm-table tr { background: #fff; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 10px; padding: 4px 12px; }
-  .adm-table tr.adm-saved { border-color: #9fdcb8; }
+  .adm-table tr { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 10px; padding: 4px 12px; }
+  .adm-table tr.adm-saved { border-color: var(--ok-line); }
   .adm-table td {
     display: flex; align-items: center; justify-content: space-between; gap: 14px;
     border: none; border-bottom: 1px solid #eef2f8; padding: 9px 0; white-space: normal;
@@ -243,14 +252,14 @@ button.adm-val--editable:hover::after { opacity: 0.7; }
 /* ---- Advisor availability (blackout windows) ---- */
 .adm-avail { display: flex; flex-direction: column; gap: 14px; }
 .adm-avail__warn {
-  background: #fff8e8; border: 1px solid #e6cf88; border-radius: 10px;
+  background: var(--warn-bg); border: 1px solid #e6cf88; border-radius: 10px;
   padding: 12px 14px; font-size: 12.5px; line-height: 1.55; color: #6b4e08;
 }
 .adm-avail__warn strong { color: #533c05; }
 .adm-avail__pick select { min-width: 260px; }
 .adm-avail__form {
   display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px;
-  background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 14px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px;
 }
 .adm-avail__field { display: flex; flex-direction: column; gap: 5px; }
 .adm-avail__field--grow { flex: 1 1 200px; }
@@ -258,15 +267,15 @@ button.adm-val--editable:hover::after { opacity: 0.7; }
 .adm-avail__field > span em { font-style: normal; font-weight: 600; opacity: 0.8; }
 .adm-avail__field input {
   border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
-  font-size: 13px; font-family: inherit; background: #fff; width: 100%;
+  font-size: 13px; font-family: inherit; background: var(--surface); width: 100%;
 }
 .adm-avail__check { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; padding-bottom: 9px; }
 .adm-avail__check input { width: 16px; height: 16px; }
 .adm-avail__error { font-size: 13px; font-weight: 700; color: #b3261e; }
-.adm-avail__notice { font-size: 13px; font-weight: 700; color: #0f7a44; }
+.adm-avail__notice { font-size: 13px; font-weight: 700; color: var(--ok-ink); }
 .adm-avail__muted { color: var(--muted); }
 .adm-avail__sep td {
-  background: #f4f8fd; font-size: 11px; text-transform: uppercase;
+  background: var(--surface-2); font-size: 11px; text-transform: uppercase;
   letter-spacing: 0.04em; color: var(--muted); font-weight: 700;
 }
 .adm-avail__past td { opacity: 0.6; }

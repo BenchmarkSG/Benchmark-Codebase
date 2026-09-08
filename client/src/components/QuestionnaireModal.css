@@ -23,4 +23,4 @@
   color: var(--muted); font-size: 13px; font-weight: 600;
   cursor: pointer;
 }
-.qn-textbtn:hover { color: var(--navy-800); text-decoration: underline; }
+.qn-textbtn:hover { color: var(--ink-2); text-decoration: underline; }

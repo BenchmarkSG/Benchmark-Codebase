@@ -9,6 +9,23 @@
       content="Instantly benchmark your bank against the best options in Singapore & SEA for mortgages, loans, FX, deposits and more."
     />
 
+    <!-- Resolve the theme BEFORE first paint. React mounts after the browser has
+         already painted, so without this a dark-mode visitor gets a white flash
+         on every load. Must stay in step with hooks/useTheme.js. -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('bb_theme') || localStorage.getItem('bb_dash_theme');
+          if (t !== 'dark' && t !== 'light') {
+            t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          document.documentElement.setAttribute('data-theme', t);
+          // theme-color is only OS chrome, not a paint concern — useTheme()
+          // updates the tag below on mount.
+        } catch (e) { /* private mode, or no matchMedia — light is the default */ }
+      })();
+    </script>
+
     <!-- PWA / mobile -->
     <meta name="theme-color" content="#1d63c4" />
     <link rel="icon" type="image/png" href="/favicon-64.png" />

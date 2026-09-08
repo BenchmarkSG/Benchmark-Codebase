@@ -21,5 +21,5 @@
   font-family: inherit; cursor: pointer;
 }
 .swup__btn:hover { background: rgba(255, 255, 255, 0.12); }
-.swup__btn--go { background: #fff; color: var(--navy-900); border-color: #fff; }
+.swup__btn--go { background: var(--surface); color: var(--ink); border-color: #fff; }
 .swup__btn--go:hover { background: #e8eef8; }

@@ -2,6 +2,18 @@
    Three nested layers, matching the reference: a navy field carrying the gold
    filigree bands, a heavy gold frame inside it, then the white paper. */
 .icert {
+  /* A certificate is a printed document, not a UI surface — it looks the same
+     in dark mode as it does on paper, and the PNG export renders it light
+     regardless. Re-anchor the inherited tokens so the site theme can't leak in
+     and leave pale text on white paper. */
+  --ink: #0b1f3a;
+  --ink-2: #12294d;
+  --ink-3: #1a3763;
+  --muted: #5b6b82;
+  --line: #e4e9f2;
+  --surface: #ffffff;
+  color-scheme: light;
+
   --i-navy: #17255c;
   --i-navy-dk: #101a44;
   --i-gold: #d9ae45;

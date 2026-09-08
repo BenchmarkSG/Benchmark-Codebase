@@ -1,5 +1,35 @@
 /* Trim vertical whitespace around this section */
-.sw { padding-top: 46px; padding-bottom: 46px; }
+.sw {
+  padding-top: 46px;
+  padding-bottom: 46px;
+
+  /* The two halves are a matched PAIR — one tint per audience — so they have to
+     move together between themes. Tokenised rather than hardcoded because
+     flipping only one of them (which is what happened first) leaves light text
+     stranded on a light panel. */
+  --sw-ind: var(--surface-2);   /* Individuals half — slate tint */
+  --sw-sme: #d9e6fb;            /* SMEs half — blue tint */
+  --sw-rule: #a4b6d4;           /* the divider down the middle */
+  --sw-ring: #cdd9ec;           /* the centre badge's ring */
+  --sw-sme-btn: var(--navy-800);
+  --sw-sme-btn-hover: var(--navy-900);
+  --sw-arrow-navy: var(--navy-800);
+  --sw-arrow-blue: var(--blue-500);
+}
+:root[data-theme='dark'] .sw {
+  --sw-ind: #16233a;
+  --sw-sme: #1e3050;
+  --sw-rule: #3a4d6d;
+  --sw-ring: #2c4066;
+  /* Navy-on-navy would swallow the SME button whole, so its fill lifts — the
+     same reason the dashboard's pills do. */
+  --sw-sme-btn: #3a63a8;
+  --sw-sme-btn-hover: #4674bd;
+  /* The navy arrow was drawn in the panel's own colour — invisible once the
+     page went dark. Both lift so the pair still reads as a matched set. */
+  --sw-arrow-navy: #93b2e4;
+  --sw-arrow-blue: #5f9bec;
+}
 
 /* Top — a SINGLE unified box holding both halves with the circle inside:
    For Individuals | circle | For SMEs, full-width horizontal row. */
@@ -11,7 +41,7 @@
      Individuals = navy/slate tint, SMEs = blue tint. Boundary lands on the
      divider line; the white circle covers the seam. Arrows + CTAs carry the
      saturated version of the same hues. */
-  background: linear-gradient(to right, #e1e5ef 0 50%, #d9e6fb 50% 100%);
+  background: linear-gradient(to right, var(--sw-ind) 0 50%, var(--sw-sme) 50% 100%);
   border: 1px solid var(--line);
   border-radius: 22px;
   box-shadow: var(--shadow-sm);
@@ -44,7 +74,7 @@
   top: 14px;
   bottom: 14px;
   width: 1px;
-  background: #a4b6d4;
+  background: var(--sw-rule);
   transform: translateX(-50%);
   z-index: 0;
 }
@@ -56,14 +86,20 @@
   max-height: 200px;
   /* A crisp white badge with a ring so it reads as a distinct hub sitting on
      the divider line between the two halves. */
-  background: #fff;
-  border: 1.5px solid #cdd9ec;
+  background: var(--surface);
+  border: 1.5px solid var(--sw-ring);
   box-shadow: var(--shadow-sm);
   z-index: 1;
 }
 .sw .segments__circle span { font-size: clamp(15px, 1.5vw, 20px); max-width: 62%; line-height: 1.3; }
 /* Size the arrows relative to the circle so they always sweep OUTSIDE its edge
    (a fixed +px inset ends up inside once the circle scales up). */
+/* Colours live here, not on the SVG, so they can move with the theme. */
+.sw .segments__arrow--navy { stroke: var(--sw-arrow-navy); }
+.sw .segments__arrow--blue { stroke: var(--sw-arrow-blue); }
+.sw .segments__arrowhead--navy { fill: var(--sw-arrow-navy); }
+.sw .segments__arrowhead--blue { fill: var(--sw-arrow-blue); }
+
 .sw .segments__arrows {
   inset: auto;
   top: 50%;
@@ -84,10 +120,10 @@
 }
 .sw .segments__col--ind .btn:hover { background: var(--blue-600); }
 .sw .segments__col--sme .btn {
-  background: var(--navy-800);
+  background: var(--sw-sme-btn);
   box-shadow: 0 8px 20px rgba(18, 41, 77, 0.24);
 }
-.sw .segments__col--sme .btn:hover { background: var(--navy-900); }
+.sw .segments__col--sme .btn:hover { background: var(--sw-sme-btn-hover); }
 
 /* Bottom — Why Choose, heading centered, reasons in a 4-across row */
 .sw__why {
@@ -118,11 +154,11 @@
   width: 40px; height: 40px;
   border-radius: 10px;
   margin: 0;
-  background: #fff;
+  background: var(--surface);
   display: grid; place-items: center;
   font-size: 18px;
 }
-.sw .why__item-body h3 { font-size: 14.5px; color: var(--navy-900); }
+.sw .why__item-body h3 { font-size: 14.5px; color: var(--ink); }
 .sw .why__item-body p { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
 
 /* Responsive */
@@ -135,7 +171,7 @@
   /* Stacked vertically — split the two light tints top (navy) / bottom (blue). */
   .sw .segments__stack {
     flex-direction: column;
-    background: linear-gradient(to bottom, #e1e5ef 0 50%, #d9e6fb 50% 100%);
+    background: linear-gradient(to bottom, var(--sw-ind) 0 50%, var(--sw-sme) 50% 100%);
   }
   .sw .segments__mid { margin: -14px auto; align-self: center; }
   /* Columns are stacked now — a vertical centre line no longer applies. */

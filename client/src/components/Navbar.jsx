@@ -5,6 +5,7 @@ import { useAdvisorRow } from '../hooks/useAdvisorRow.js';
 import { isAdminEmail } from '../lib/roles.js';
 import { CTA_PRIMARY } from '../lib/copy.js';
 import { Avatar } from './DefaultAvatar.jsx';
+import ThemeToggle from './ThemeToggle.jsx';
 
 const LINKS = [
   ['#how', 'How it works'],
@@ -86,6 +87,7 @@ export default function Navbar({ onGetStarted, onSignIn }) {
           {LINKS.map(([href, label]) => <a key={href} href={href}>{label}</a>)}
         </nav>
         <div className="nav__actions">
+          <ThemeToggle className="nav__theme" />
           {user ? (
             <UserMenu user={user} onSignOut={signOut} />
           ) : (

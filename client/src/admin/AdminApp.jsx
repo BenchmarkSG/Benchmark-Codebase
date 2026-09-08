@@ -206,10 +206,13 @@ function LoginGate() {
 }
 
 function Section({ config, country }) {
+  const confirm = useConfirm();
   const [rows, setRows] = useState(null);
   const [error, setError] = useState('');
   const [showDueOnly, setShowDueOnly] = useState(false);
   const [query, setQuery] = useState('');
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkMsg, setBulkMsg] = useState(null); // { tone: 'ok'|'err', text }
 
   const load = useCallback(async () => {
     setRows(null); setError('');
@@ -245,6 +248,50 @@ function Section({ config, country }) {
     setRows((rs) => rs.map((r) => (r[config.pk] === row[config.pk] ? { ...r, updated_at: nowIso } : r)));
   };
 
+  // Bulk verify. Scoped to what's on screen — the current search and the
+  // due-only toggle — and only ever touches rows that are actually stale, so
+  // re-stamping fresh rows can't quietly reset their clocks. One PATCH per
+  // chunk: the ids travel in the query string, and a few hundred of them in a
+  // single .in() would blow past the server's URL limit.
+  const verifyAllVisible = async (due) => {
+    const ok = await confirm({
+      title: `Mark ${due.length} ${due.length === 1 ? 'row' : 'rows'} as verified?`,
+      body: `This stamps ${due.length} ${config.title.toLowerCase()} ${due.length === 1 ? 'row' : 'rows'} as checked today `
+        + 'without changing any rate. Only do this once you have actually compared them against the source — '
+        + 'the freshness dates are what tell you, and the daily review reminder, which data can still be trusted.',
+      confirmLabel: `Verify ${due.length}`, cancelLabel: 'Cancel',
+    });
+    if (!ok) return;
+
+    setBulkBusy(true); setBulkMsg(null);
+    const nowIso = new Date().toISOString();
+    const ids = due.map((r) => r[config.pk]);
+    const done = [];
+    try {
+      for (let i = 0; i < ids.length; i += 100) {
+        const chunk = ids.slice(i, i + 100);
+        const { error: e } = await supabase.from(config.table).update({ updated_at: nowIso }).in(config.pk, chunk);
+        if (e) throw rlsError(e);
+        done.push(...chunk);
+      }
+      setBulkMsg({ tone: 'ok', text: `✓ ${done.length} marked verified.` });
+    } catch (e) {
+      // Report what did land — an admin needs to know the state they're in, not
+      // just that something failed partway. Deliberately not setError(): that
+      // early-returns over the whole table and would strand them.
+      setBulkMsg({
+        tone: 'err',
+        text: done.length
+          ? `${friendlyError(e)} — ${done.length} of ${ids.length} were verified before this failed.`
+          : friendlyError(e),
+      });
+    } finally {
+      const stamped = new Set(done);
+      setRows((rs) => rs.map((r) => (stamped.has(r[config.pk]) ? { ...r, updated_at: nowIso } : r)));
+      setBulkBusy(false);
+    }
+  };
+
   if (error) return <div className="adm-error" role="alert">{error}</div>;
   if (!rows) return <div className="adm-loading"><span className="dash__spinner" aria-hidden="true" /> Loading…</div>;
 
@@ -253,6 +300,8 @@ function Section({ config, country }) {
   const term = query.trim().toLowerCase();
   const visibleRows = !term ? dueFiltered : dueFiltered.filter((r) =>
     config.columns.some((c) => String((c.get ? c.get(r) : r[c.key]) ?? '').toLowerCase().includes(term)));
+  // What "Verify all shown" acts on: on screen right now AND actually overdue.
+  const visibleDue = config.verifiable ? visibleRows.filter(isDue) : [];
 
   const emptyLabel = rows.length === 0
     ? (config.emptyText || 'No rows yet.')
@@ -276,10 +325,28 @@ function Section({ config, country }) {
           <span className={`adm-freshbar__count ${dueCount ? 'is-due' : ''}`}>
             {dueCount} of {rows.length} due for review (not verified in &gt;{STALE_DAYS} days)
           </span>
-          <label className="adm-freshbar__toggle">
-            <input type="checkbox" checked={showDueOnly} onChange={(e) => setShowDueOnly(e.target.checked)} />
-            Show only due for review
-          </label>
+          <div className="adm-freshbar__right">
+            <label className="adm-freshbar__toggle">
+              <input type="checkbox" checked={showDueOnly} onChange={(e) => setShowDueOnly(e.target.checked)} />
+              Show only due for review
+            </label>
+            {/* Counts the rows the current search and toggle actually show, so
+                what the button says is what the button does. */}
+            {visibleDue.length > 0 && (
+              <button
+                type="button"
+                className="adm-btn adm-btn--verify"
+                disabled={bulkBusy}
+                onClick={() => verifyAllVisible(visibleDue)}
+                title={`Mark the ${visibleDue.length} overdue ${visibleDue.length === 1 ? 'row' : 'rows'} shown below as verified today`}
+              >
+                {bulkBusy ? 'Verifying…' : `✓ Verify all shown (${visibleDue.length})`}
+              </button>
+            )}
+          </div>
+          {bulkMsg && (
+            <p className={`adm-freshbar__msg adm-freshbar__msg--${bulkMsg.tone}`} role="status">{bulkMsg.text}</p>
+          )}
         </div>
       )}
       <p className="adm-section__count">

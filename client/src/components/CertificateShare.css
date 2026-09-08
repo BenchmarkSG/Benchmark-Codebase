@@ -2,7 +2,12 @@
    floating row of buttons, so the two read as one object. Each variant borrows
    the palette of the certificate it hangs off. */
 
-.cert-wrap { position: relative; }
+.cert-wrap {
+  position: relative;
+  /* Matches the pinned tokens inside the certificates themselves. */
+  --muted: #5b6b82;
+  --ink: #0b1f3a;
+}
 /* Square off the joint so there's no seam between document and strip. */
 .cert-wrap .ccert,
 .cert-wrap .icert { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }

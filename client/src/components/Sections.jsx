@@ -124,16 +124,18 @@ export function Segments({ onGetStarted, onCompare }) {
           <div className="segments__circle">
             <svg className="segments__arrows" viewBox="0 0 148 148" fill="none" aria-hidden="true">
               <defs>
-                {/* Arrows swapped: left = navy, right = blue */}
+                {/* Arrows swapped: left = navy, right = blue. Colours come from
+                    CSS (see SegmentsWhy.css) because the navy one is the same
+                    navy as the panel behind it once the page goes dark. */}
                 <marker id="ah-blue" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto">
-                  <path d="M0 0 L7 3.5 L0 7 Z" fill="#2f7bd8" />
+                  <path className="segments__arrowhead segments__arrowhead--blue" d="M0 0 L7 3.5 L0 7 Z" />
                 </marker>
                 <marker id="ah-navy" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto">
-                  <path d="M0 0 L7 3.5 L0 7 Z" fill="#12294d" />
+                  <path className="segments__arrowhead segments__arrowhead--navy" d="M0 0 L7 3.5 L0 7 Z" />
                 </marker>
               </defs>
-              <path d="M24 46 A58 58 0 0 0 30 104" stroke="#12294d" strokeWidth="3" strokeLinecap="round" markerEnd="url(#ah-navy)" />
-              <path d="M124 102 A58 58 0 0 0 118 44" stroke="#2f7bd8" strokeWidth="3" strokeLinecap="round" markerEnd="url(#ah-blue)" />
+              <path className="segments__arrow segments__arrow--navy" d="M24 46 A58 58 0 0 0 30 104" strokeWidth="3" strokeLinecap="round" markerEnd="url(#ah-navy)" />
+              <path className="segments__arrow segments__arrow--blue" d="M124 102 A58 58 0 0 0 118 44" strokeWidth="3" strokeLinecap="round" markerEnd="url(#ah-blue)" />
             </svg>
             <span>Compare What Matters Most to You</span>
           </div>

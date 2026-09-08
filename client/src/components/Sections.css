@@ -36,14 +36,14 @@
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 24px;
-  background: #fff;
+  background: var(--surface);
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 .products__card:focus-visible { outline: 2px solid var(--blue-500); outline-offset: 2px; }
 .products__card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); border-color: #cdd8ec; }
-.products__card h3 { font-size: 18px; color: var(--navy-900); }
+.products__card h3 { font-size: 18px; color: var(--ink); }
 .products__card p { color: var(--muted); font-size: 14px; margin-top: 6px; }
-.products__link { display: inline-block; margin-top: 16px; color: var(--blue-600); font-weight: 700; font-size: 14px; }
+.products__link { display: inline-block; margin-top: 16px; color: var(--accent); font-weight: 700; font-size: 14px; }
 
 /* Real savings */
 .savings__grid { margin-top: 34px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
@@ -57,26 +57,26 @@
   width: 340px;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--surface);
   box-shadow: var(--shadow-sm);
 }
 .savings__marquee .savings__card--blue { background: var(--blue-50); }
 .savings__marquee .savings__card--red { background: var(--blue-50); }
-.savings__marquee .savings__card--navy { background: #f3f6fb; }
+.savings__marquee .savings__card--navy { background: var(--surface-2); }
 .savings__card--blue { background: var(--blue-50); }
 .savings__card--red { background: var(--blue-50); text-align: center; }
-.savings__card--navy { background: #f3f6fb; }
+.savings__card--navy { background: var(--surface-2); }
 .savings__icon { font-size: 36px; line-height: 1; }
-.savings__tag { font-weight: 800; color: var(--navy-900); margin-top: 12px; font-size: 15px; }
+.savings__tag { font-weight: 800; color: var(--ink); margin-top: 12px; font-size: 15px; }
 /* Reserved single-line description zone so the headline metric starts at the
    same height on every card. Descriptions are kept to one line. */
 .savings__desc { min-height: 22px; }
 .savings__line { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
 .savings__metric { margin-top: 16px; }
-.savings__big { font-size: 30px; font-weight: 800; color: var(--blue-600); }
+.savings__big { font-size: 30px; font-weight: 800; color: var(--accent); }
 .savings__big-sub { font-size: 13px; color: var(--muted); font-weight: 600; }
 /* Pin quotes to the card bottom with a reserved height so they line up too. */
-.savings__quote { font-size: 12.5px; font-style: italic; color: var(--navy-700); margin-top: auto; padding-top: 14px; min-height: 34px; }
+.savings__quote { font-size: 12.5px; font-style: italic; color: var(--ink-3); margin-top: auto; padding-top: 14px; min-height: 34px; }
 .savings__foot { text-align: center; color: var(--muted); font-size: 13px; margin-top: 22px; }
 
 /* Segments */
@@ -92,23 +92,23 @@
 .segments__head { display: flex; align-items: center; gap: 12px; }
 .segments__avatar {
   width: 40px; height: 40px; border-radius: 50%;
-  background: #fff; display: grid; place-items: center; font-size: 20px;
+  background: var(--surface); display: grid; place-items: center; font-size: 20px;
   border: 1px solid var(--line);
 }
-.segments__head h3 { font-size: 20px; color: var(--navy-900); }
+.segments__head h3 { font-size: 20px; color: var(--ink); }
 .segments__col p { color: var(--muted); font-size: 14px; margin-top: 12px; }
 .segments__col ul {
   list-style: none; padding: 0; margin: 16px 0;
   display: grid; grid-template-columns: 1fr; gap: 6px;
-  font-size: 12.5px; font-weight: 600; color: var(--navy-800);
+  font-size: 12.5px; font-weight: 600; color: var(--ink-2);
 }
-.segments__col li::before { content: '✓ '; color: var(--blue-600); font-weight: 800; }
+.segments__col li::before { content: '✓ '; color: var(--accent); font-weight: 800; }
 .segments__mid { display: grid; place-items: center; }
 .segments__circle {
   position: relative;
   width: 132px; height: 132px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--line);
   box-shadow: var(--shadow-sm);
   display: grid;
@@ -119,7 +119,7 @@
   position: relative;
   z-index: 1;
   font-weight: 800;
-  color: var(--navy-900);
+  color: var(--ink);
   font-size: 14px;
   line-height: 1.25;
   max-width: 96px;
@@ -139,7 +139,7 @@
   width: 56px; height: 56px; border-radius: 16px; margin: 0 auto 14px;
   background: var(--blue-50); display: grid; place-items: center; font-size: 24px;
 }
-.why__card h3 { font-size: 16px; color: var(--navy-900); }
+.why__card h3 { font-size: 16px; color: var(--ink); }
 .why__card p { color: var(--muted); font-size: 13.5px; margin-top: 6px; }
 
 /* Founding */
@@ -150,10 +150,10 @@
 }
 .founding__item {
   display: flex; gap: 12px; align-items: flex-start;
-  background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 16px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px;
 }
 .founding__item span { font-size: 20px; }
-.founding__item strong { color: var(--navy-900); }
+.founding__item strong { color: var(--ink); }
 .founding__item div { font-size: 14px; color: var(--muted); }
 .founding__cta { margin-top: 22px; background: var(--red-600); box-shadow: 0 8px 20px rgba(216,30,41,0.28); }
 .founding__cta:hover { background: #b91820; }
@@ -164,7 +164,7 @@
 .faq__item {
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: #fff;
+  background: var(--surface);
   overflow: hidden;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -181,15 +181,15 @@
   padding: 18px 20px;
   font-size: 16px;
   font-weight: 700;
-  color: var(--navy-900);
+  color: var(--ink);
 }
-.faq__q:hover { color: var(--blue-600); }
+.faq__q:hover { color: var(--accent); }
 .faq__icon {
   flex: 0 0 auto;
   width: 26px; height: 26px;
   border-radius: 50%;
   background: var(--blue-50);
-  color: var(--blue-600);
+  color: var(--accent);
   display: grid; place-items: center;
   font-size: 18px; font-weight: 800;
   line-height: 1;
@@ -206,16 +206,16 @@
 
 /* Final CTA banner — light background */
 .finalcta {
-  background: #fff;
+  background: var(--surface);
   padding: 64px 0;
   text-align: center;
 }
 .finalcta__title {
   font-size: clamp(26px, 3.4vw, 38px);
   font-weight: 800;
-  color: var(--navy-900);
+  color: var(--ink);
 }
-.finalcta__sub { color: var(--navy-700); font-size: 17px; margin-top: 12px; }
+.finalcta__sub { color: var(--ink-3); font-size: 17px; margin-top: 12px; }
 .finalcta__note {
   color: var(--muted);
   font-size: 14.5px;
@@ -239,11 +239,11 @@
 .finalcta__btn:hover { background: #b91820; }
 .finalcta__btn-alt {
   background: transparent;
-  color: var(--navy-800);
+  color: var(--ink-2);
   border: 1.5px solid var(--navy-600);
   padding: 15px 30px;
 }
-.finalcta__btn-alt:hover { background: var(--bg-soft); border-color: var(--navy-800); }
+.finalcta__btn-alt:hover { background: var(--bg-soft); border-color: var(--ink-2); }
 
 /* Footer */
 .footer { background: var(--navy-900); color: #cbd6e8; padding: 54px 0 26px; }

@@ -81,7 +81,7 @@
   content: ''; width: 9px; height: 9px; border-radius: 50%;
   background: rgba(255, 255, 255, 0.4); transition: all 0.2s ease;
 }
-.hero__dot.is-active::before { background: #fff; width: 22px; border-radius: 6px; }
+.hero__dot.is-active::before { background: var(--surface); width: 22px; border-radius: 6px; }
 
 /* Right column — calculator card */
 .hero__media { position: relative; }

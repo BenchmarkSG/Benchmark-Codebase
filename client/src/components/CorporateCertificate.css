@@ -4,6 +4,18 @@
    site. Centred throughout, because that's what makes a certificate a
    certificate rather than a card. */
 .ccert {
+  /* A certificate is a printed document, not a UI surface — it looks the same
+     in dark mode as it does on paper, and the PNG export renders it light
+     regardless. Re-anchor the inherited tokens so the site theme can't leak in
+     and leave pale text on white paper. */
+  --ink: #0b1f3a;
+  --ink-2: #12294d;
+  --ink-3: #1a3763;
+  --muted: #5b6b82;
+  --line: #e4e9f2;
+  --surface: #ffffff;
+  color-scheme: light;
+
   --gold: #c9a227;
   --gold-lt: #e6cb74;
   --gold-dk: #9c7b12;
