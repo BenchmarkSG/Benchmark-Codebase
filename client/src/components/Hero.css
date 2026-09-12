@@ -18,7 +18,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 54px;
   align-items: center;
-  padding-top: 88px;
+  padding-top: 40px;
   padding-bottom: 88px;
 }
 /* Allow both columns to shrink below their content's intrinsic width so a
@@ -92,14 +92,14 @@
   .hero .hero__grid {
     grid-template-columns: 1fr;
     gap: 30px;
-    padding-top: 44px;
+    padding-top: 32px;
     padding-bottom: 48px;
   }
   .hero__textcarousel { min-height: 250px; }
   .hero__media { max-width: 520px; margin: 0 auto; width: 100%; }
 }
 @media (max-width: 520px) {
-  .hero .hero__grid { padding-top: 34px; padding-bottom: 38px; }
+  .hero .hero__grid { padding-top: 26px; padding-bottom: 38px; }
   .hero__title { font-size: clamp(30px, 8.5vw, 40px); }
   .hero__lead { font-size: 15.5px; }
   .hero__textcarousel { min-height: 280px; }
