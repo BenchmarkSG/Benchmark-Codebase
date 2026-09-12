@@ -11,6 +11,8 @@ import { SITE_URL } from '../lib/site.js';
 import { useModalA11y } from '../hooks/useModalA11y.js';
 import { useConfirm } from './ConfirmProvider.jsx';
 import { stashJourney, clearJourney } from '../lib/checkoutReturn.js';
+import { markUnlocked } from '../lib/unlocks.js';
+import { getAccessToken } from '../lib/supabase.js';
 
 /* Screen 3 — the "reveal + act on it" screen. Three vertical tiers: negotiate
    yourself ($1), get a coaching call ($99), or hire an expert ($199). The paid
@@ -352,6 +354,10 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
     const sig = `${bid || ''}:${tier}`;
     if (unlockRef.current === sig) return;
     unlockRef.current = sig;
+    // Remember it locally too. The row below is the durable record, but it isn't
+    // read back by the page someone lands on after closing this modal — without
+    // this, a stray click on ✕ puts a full-price button back in front of them.
+    markUnlocked(context, tier);
     if (bid) updateBenchmark(bid, { stage }).catch(() => {});
     if (tier === 'reveal') {
       // Resolve the user directly — the React `user` can lag on a Stripe return.
@@ -641,7 +647,9 @@ Kind regards,
         product: context?.product || null,
         segment: context?.segment || 'individual',
         email: user?.email || undefined,
-      });
+        // Lets the server refuse a reveal this benchmark already has.
+        benchmarkId: context?.benchmarkId || undefined,
+      }, await getAccessToken());
       // Only ever navigate to a genuine Stripe Checkout URL (defends against a
       // compromised/misconfigured API returning an open-redirect target).
       if (!isStripeCheckoutUrl(url)) throw new Error('Unexpected checkout URL');
@@ -658,6 +666,15 @@ Kind regards,
     } catch (err) {
       clearJourney();
       setBusy(false);
+      // Already owned: the server declined to sell it twice. Show what they
+      // bought rather than an error they can do nothing about.
+      if (err?.code === 'already_purchased') {
+        markUnlocked(context, tier);
+        setPaidTier(tier);
+        setPayError('');
+        setView(VIEW_FOR_TIER[tier] || 'options');
+        return;
+      }
       // With Stripe LIVE, a failed checkout call must never fall through to a
       // free unlock — that would give the paid product away on a network blip.
       if (paymentsEnabled) {

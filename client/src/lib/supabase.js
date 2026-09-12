@@ -17,3 +17,17 @@ export const supabase = isSupabaseConfigured
       },
     })
   : null;
+
+/* The signed-in user's access token, for the few API calls the server has to
+   attribute to a real account — the checkout route verifies it before selling a
+   reveal, so it can check the benchmark hasn't already been unlocked. Null when
+   signed out or unconfigured; never throws. */
+export async function getAccessToken() {
+  if (!supabase) return null;
+  try {
+    const { data } = await supabase.auth.getSession();
+    return data?.session?.access_token || null;
+  } catch {
+    return null;
+  }
+}

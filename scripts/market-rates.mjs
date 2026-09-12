@@ -41,7 +41,9 @@ const MAS_DATE_FIELD = process.env.MAS_DATE_FIELD || 'end_of_period';
 const MAS_MAP = [
   { column: 'banks_fixed_deposits_12m', product: 'fixed_deposit',   unit: '% p.a.' },
   { column: 'prime_lending_rate',       product: 'housing_loan',    unit: '% p.a.' },
-  { column: 'prime_lending_rate',       product: 'personal_loan',   unit: '% p.a.' },
+  // No personal_loan mapping: the prime lending rate is a housing proxy, and a
+  // second product borrowing it would understate personal-loan pricing by a
+  // wide margin (see the MY note in bnmSource).
   { column: 'banks_savings_deposits',   product: 'current_account', unit: '% p.a.' },
 ];
 
@@ -81,8 +83,10 @@ async function bnmSource() {
   const medEff = median(eff);
   const rows = [];
   if (medEff != null) {
+    // Housing ONLY. BNM's indicative effective lending rate is defined for a
+    // standard housing loan; publishing the same median under personal_loan
+    // told a borrower on a 7% personal loan that the market typical was 3.36%.
     rows.push(ref('MY', 'housing_loan', medEff, '% p.a.', 'BNM', 'indicative effective lending rate (median of banks)'));
-    rows.push(ref('MY', 'personal_loan', medEff, '% p.a.', 'BNM', 'indicative effective lending rate (median of banks)'));
   }
   if (opr?.data?.new_opr_level != null) {
     rows.push(ref('MY', 'overdraft', opr.data.new_opr_level, '% p.a.', 'BNM', 'OPR (policy rate)', opr.data.date || null));

@@ -120,7 +120,8 @@ button.adm-val--editable:hover::after { opacity: 0.7; }
 }
 .adm-emptyrow { padding: 22px 14px !important; text-align: center; color: var(--muted); white-space: normal !important; }
 .adm-input { width: 96px; padding: 6px 8px; border: 1px solid var(--blue); border-radius: 7px; font-size: 13px; }
-.adm-input[type="text"] { width: 140px; }
+.adm-input[type="text"], select.adm-input { width: 140px; }
+select.adm-input { background: var(--surface); color: inherit; }
 
 .adm-actions-col { text-align: right; width: 1%; }
 .adm-rowactions { display: flex; gap: 6px; justify-content: flex-end; }
@@ -225,7 +226,7 @@ button.adm-val--editable:hover::after { opacity: 0.7; }
   }
   .adm-table td.adm-actions-col, .adm-table td.adm-prop__change { justify-content: flex-start; }
   .adm-rowactions { justify-content: flex-end; flex: 1; }
-  .adm-input, .adm-input[type="text"] { width: 100%; }
+  .adm-input, .adm-input[type="text"], select.adm-input { width: 100%; }
   .adm-errorrow td::before, .adm-emptyrow::before { content: none; }
 }
 

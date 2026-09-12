@@ -6,19 +6,28 @@ const BASE = '/api';
 // pay button looks like. Always bound the wait.
 const TIMEOUT_MS = 15000;
 
-async function post(path, body, { timeout = TIMEOUT_MS } = {}) {
+async function post(path, body, { timeout = TIMEOUT_MS, token = null } = {}) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeout);
   try {
     const r = await fetch(`${BASE}${path}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       body: JSON.stringify(body),
       signal: ctrl.signal,
     });
     if (!r.ok) {
       const err = await r.json().catch(() => ({}));
-      throw new Error(err.error || 'Request failed');
+      // Carry the machine-readable parts through: callers need to tell "already
+      // bought this" (recoverable, reopen it) from "checkout is broken".
+      const e = new Error(err.error || 'Request failed');
+      e.status = r.status;
+      e.code = err.code || null;
+      e.benchmarkId = err.benchmarkId || null;
+      throw e;
     }
     return await r.json();
   } catch (err) {
@@ -52,7 +61,9 @@ export const scoreQuestionnaire = (id, answers) => post('/questionnaire/score', 
 
 // Stripe Checkout: create a session (server redirects to the hosted page) and
 // verify it on return. `createCheckout` throws if payments aren't configured.
-export const createCheckout = (payload) => post('/checkout', payload);
+// `token` is the caller's Supabase access token. The server requires it for the
+// reveal tier so it can refuse to sell a benchmark that's already unlocked.
+export const createCheckout = (payload, token) => post('/checkout', payload, { token });
 export const getCheckoutSession = (id) =>
   fetch(`${BASE}/checkout/session?id=${encodeURIComponent(id)}`)
     .then((r) => (r.ok ? r.json() : null))

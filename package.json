@@ -21,6 +21,11 @@
     "pool:my:dry": "node scripts/bnm-pool.mjs --dry",
     "import:pool": "node scripts/import-pool.mjs",
     "import:pool:dry": "node scripts/import-pool.mjs --dry",
+    "import:template": "node scripts/make-import-template.mjs",
+    "scrape:pool": "node scripts/scrape-pool.mjs",
+    "scrape:remit": "node scripts/scrape-remit.mjs",
+    "import:remit": "node scripts/import-remit.mjs",
+    "inspect:page": "node scripts/inspect-page.mjs",
     "create:admin": "node scripts/create-admin.mjs"
   },
   "dependencies": {
@@ -33,6 +38,7 @@
     "stripe": "^17.7.0"
   },
   "devDependencies": {
-    "concurrently": "^9.1.0"
+    "concurrently": "^9.1.0",
+    "playwright": "^1.63.0"
   }
 }

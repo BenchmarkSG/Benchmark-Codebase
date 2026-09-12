@@ -4,8 +4,11 @@ import assert from 'node:assert/strict';
 import {
   PRODUCTS, QUESTIONNAIRES, getProduct, getQuestionnaire,
   benchmarkValues, buildBenchmarkResult, crossBorderCostPct, scoreQuestionnaire,
+  monthlyPayment, totalInterest, remittanceCostPct,
   isProductInCountry, productsForCountry,
 } from '../benchmark.js';
+import { isRevealPaid, bearerToken, checkRevealPurchase } from '../purchases.js';
+import { isSupabaseConfigured } from '../supabase.js';
 
 test('PRODUCTS: catalog exposes the go-live products with schemas', () => {
   const ids = PRODUCTS.map((p) => p.id);
@@ -206,4 +209,169 @@ test('buildBenchmarkResult: percentage products are unaffected', () => {
   });
   assert.equal(r.metricMode, 'percent');
   assert.equal(r.annualSaving, 2000); // (4.5 - 2.5)% of 100,000
+});
+
+// --- amortisation -----------------------------------------------------------
+// A term loan repays principal, so a rate gap does not earn (delta × principal)
+// every year for the life of the loan. These pin the real numbers from the
+// Malaysia mortgage case: MYR 500,000 over 20 years, 4.00% against a pool best
+// of 3.10% (Public Bank, from BNM).
+
+test('monthlyPayment: standard annuity formula', () => {
+  // 500,000 at 4% over 240 months.
+  assert.equal(Math.round(monthlyPayment(500000, 4, 240)), 3030);
+  assert.equal(Math.round(monthlyPayment(500000, 3.1, 240)), 2798);
+  assert.equal(monthlyPayment(500000, 0, 240), 500000 / 240); // zero-rate branch
+  assert.equal(monthlyPayment(0, 4, 240), 0);
+  assert.equal(monthlyPayment(500000, 4, 0), 0);
+});
+
+test('totalInterest: full-term interest under amortisation', () => {
+  assert.equal(Math.round(totalInterest(500000, 4, 240)), 227176);
+  assert.equal(Math.round(totalInterest(500000, 3.1, 240)), 171540);
+});
+
+test('benchmarkValues: a tenor turns the flat saving into an amortised one', () => {
+  const opts = { yourRate: 4.0, amount: 500000, rateType: 'apr' };
+  const flat = benchmarkValues([3.1, 3.4, 4.5], opts);
+  const amort = benchmarkValues([3.1, 3.4, 4.5], { ...opts, tenorMonths: 240, amortising: true });
+
+  assert.equal(flat.amortised, false);
+  assert.equal(flat.annualSaving, 4500);        // (4.0-3.1)% of 500,000, every year
+  assert.equal(flat.totalSaving, null);
+
+  assert.equal(amort.amortised, true);
+  assert.equal(amort.totalSaving, 55636);       // real saving across the schedule
+  assert.equal(amort.monthlySaving, 232);       // difference in the actual payment
+  assert.equal(amort.monthlyPaymentNow, 3030);
+  assert.equal(amort.monthlyPaymentBest, 2798);
+  assert.equal(amort.termMonths, 240);
+  // The flat figure, taken across 20 years, would claim 90,000 — 62% too much.
+  assert.ok(flat.annualSaving * 20 > amort.totalSaving * 1.6);
+});
+
+test('benchmarkValues: no tenor keeps the long-standing flat behaviour', () => {
+  const b = benchmarkValues([3.1, 4.5], { yourRate: 4.0, amount: 500000, rateType: 'apr', amortising: true });
+  assert.equal(b.amortised, false);
+  assert.equal(b.annualSaving, 4500);
+  assert.equal(b.totalSaving, null);
+});
+
+test('benchmarkValues: a revolving product ignores the tenor', () => {
+  // An overdraft is not amortising — the balance does not step down, so the
+  // flat differential is the honest figure even when a tenor is supplied.
+  const b = benchmarkValues([6.0, 9.0], { yourRate: 9.0, amount: 100000, rateType: 'apr', tenorMonths: 240 });
+  assert.equal(b.amortised, false);
+  assert.equal(b.annualSaving, 3000);
+});
+
+test('benchmarkValues: a borrower already beating the pool saves nothing', () => {
+  const b = benchmarkValues([6.3, 7.0], { yourRate: 6.0, amount: 2500000, rateType: 'apr', tenorMonths: 240, amortising: true });
+  assert.equal(b.totalSaving, 0);      // never a negative "saving"
+  assert.equal(b.monthlySaving, 0);
+  assert.equal(b.status, 'ahead');
+});
+
+test('buildBenchmarkResult: a housing loan with a tenor reports the full-term saving', () => {
+  const r = buildBenchmarkResult({
+    product: 'housing_loan', country: 'MY', currency: 'MYR',
+    values: [3.1, 3.4, 4.5], items: [{ bank: 'Public Bank Berhad', value: 3.1 }],
+    yourRate: 4.0, amount: 500000, tenor: 240,
+  });
+  assert.equal(r.amortised, true);
+  assert.equal(r.totalSaving, 55636);
+  assert.equal(r.monthlySaving, 232);
+  assert.equal(r.bestBank, 'Public Bank Berhad');
+});
+
+test('buildBenchmarkResult: reports how the best rate was published', () => {
+  // Bank A prints a range (8.00–9.50 → midpoint 8.75), B a figure, C a floor.
+  const items = [
+    { bank: 'A', value: 8.75, basis: 'range', low: 8, high: 9.5 },
+    { bank: 'B', value: 9.1, basis: 'exact', low: null, high: null },
+    { bank: 'C', value: 9.5, basis: 'from', low: null, high: null },
+  ];
+  const r = buildBenchmarkResult({
+    product: 'housing_loan', country: 'IN', currency: 'INR',
+    values: items.map((i) => i.value), items, yourRate: 10, amount: 5000000,
+  });
+  assert.equal(r.bestBank, 'A');
+  assert.equal(r.benchmarkRate, 8.75);
+  assert.equal(r.benchmarkBasis, 'range');
+  assert.equal(r.benchmarkLow, 8);
+  assert.equal(r.benchmarkHigh, 9.5);
+  assert.equal(r.approxPool, true);
+});
+
+test('buildBenchmarkResult: a floor wins as "from"; an all-exact pool is not approximate', () => {
+  const items = [{ bank: 'X', value: 7.5, basis: 'from', low: null, high: null }, { bank: 'Y', value: 8, basis: 'exact', low: null, high: null }];
+  const r = buildBenchmarkResult({ product: 'personal_loan', country: 'IN', currency: 'INR', values: [7.5, 8], items, yourRate: 11, amount: 500000 });
+  assert.equal(r.bestBank, 'X');
+  assert.equal(r.benchmarkBasis, 'from');
+  assert.equal(r.approxPool, true);
+
+  const exact = [{ bank: 'P', value: 3.1 }, { bank: 'Q', value: 3.4 }]; // legacy items carry no basis
+  const e = buildBenchmarkResult({ product: 'housing_loan', country: 'MY', currency: 'MYR', values: [3.1, 3.4], items: exact, yourRate: 4, amount: 500000 });
+  assert.equal(e.benchmarkBasis, 'exact');
+  assert.equal(e.benchmarkLow, null);
+  assert.equal(e.approxPool, false);
+});
+
+test('remittanceCostPct: fees are sized on the amount actually sent', () => {
+  // S$20 fee, 0.6% spread, quoted against a S$1,300 notional.
+  const row = { fx_spread_pct: 0.6, upfront_fee: 20, intermediary_fee: 0, lifting_fee: 0, amount: 1300, fee_currency: 'SGD' };
+  assert.equal(remittanceCostPct(row, { sentAmount: 1000, sendCurrency: 'SGD' }), 2.6);   // 0.6 + 20/1000
+  assert.equal(remittanceCostPct(row, { sentAmount: 10000, sendCurrency: 'SGD' }), 0.8);  // 0.6 + 20/10000
+  // No sent amount → the row's own notional.
+  assert.equal(remittanceCostPct(row), Math.round((0.6 + (20 / 1300) * 100) * 100) / 100);
+  // Fee in another currency than the one sent → cannot be sized, row notional again.
+  assert.equal(remittanceCostPct({ ...row, fee_currency: 'USD' }, { sentAmount: 1000, sendCurrency: 'SGD' }), Math.round((0.6 + (20 / 1300) * 100) * 100) / 100);
+  // All fees count.
+  assert.equal(remittanceCostPct({ ...row, intermediary_fee: 25, lifting_fee: 5 }, { sentAmount: 1000, sendCurrency: 'SGD' }), 5.6);
+});
+
+// ---- Duplicate-purchase guard (server/purchases.js) -------------------------
+// The reveal is sold once per saved benchmark; closing the modal and clicking
+// again must not charge a second time.
+test('isRevealPaid: every stage past "new" means the reveal is already bought', () => {
+  for (const s of ['revealed', 'email', 'call', 'expert', 'negotiated']) {
+    assert.equal(isRevealPaid(s), true, `${s} should count as paid`);
+  }
+  // 'new' hasn't been paid for. 'dismissed' only means the row was hidden from
+  // the dashboard and says nothing either way — neither may block a sale.
+  assert.equal(isRevealPaid('new'), false);
+  assert.equal(isRevealPaid('dismissed'), false);
+  assert.equal(isRevealPaid(null), false);
+  assert.equal(isRevealPaid(undefined), false);
+  assert.equal(isRevealPaid(''), false);
+});
+
+test('isRevealPaid: tolerates the casing/padding a stored value can pick up', () => {
+  assert.equal(isRevealPaid(' Revealed '), true);
+  assert.equal(isRevealPaid('EXPERT'), true);
+  assert.equal(isRevealPaid('revealing'), false); // not a real stage — never guess
+});
+
+test('bearerToken: reads the Authorization header, or nothing at all', () => {
+  assert.equal(bearerToken({ headers: { authorization: 'Bearer abc.def.ghi' } }), 'abc.def.ghi');
+  assert.equal(bearerToken({ headers: { authorization: 'bearer abc' } }), 'abc'); // scheme is case-insensitive
+  assert.equal(bearerToken({ headers: { authorization: '  Bearer   abc  ' } }), 'abc');
+  assert.equal(bearerToken({ headers: { authorization: 'Basic abc' } }), '');
+  assert.equal(bearerToken({ headers: {} }), '');
+  assert.equal(bearerToken({}), '');
+  assert.equal(bearerToken(undefined), '');
+});
+
+test('checkRevealPurchase: an unverifiable caller is never sold a reveal', async () => {
+  const refusal = await checkRevealPurchase({ token: '', benchmarkId: 'abc' });
+  if (isSupabaseConfigured) {
+    // A reveal is always tied to an account, so a request carrying no valid
+    // token is refused rather than charged.
+    assert.equal(refusal?.status, 401);
+    assert.equal(refusal?.body?.code, 'auth_required');
+  } else {
+    // Demo / self-hosted build: there's no row to check against, so the route
+    // behaves as it always did instead of blocking every sale.
+    assert.equal(refusal, null);
+  }
 });

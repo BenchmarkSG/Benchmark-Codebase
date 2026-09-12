@@ -60,6 +60,10 @@ const crossBorderInputs = () => [
    annualiser:  multiplies a per-period rate to an annual figure
    metricMode:  'percent' (default) | 'amount' — is the compared number a rate,
                 or a sum of money already expressed per year?
+   amortising:  the balance is repaid over the tenor, so a rate difference does
+                NOT apply to the full principal for the whole term. Set on term
+                loans only — an overdraft or trade facility revolves at (roughly)
+                full drawn balance, and a deposit's balance doesn't fall either.
    onlyCountries: ALLOWLIST of markets where the product is lawful/meaningful.
                 An allowlist, not a denylist, because the reason a product is
                 restricted is usually regulatory: current-account credit interest
@@ -70,21 +74,21 @@ export const PRODUCTS = [
   {
     id: 'housing_loan', label: 'Housing loan', blurb: 'Home loan rates & conditions', category: 'loan',
     segments: ['individual'], family: 'rate', rateType: 'apr', unit: '% p.a.',
-    currencyMode: 'local', annualiser: 1, metricKey: 'rate', amountKey: 'amount',
+    currencyMode: 'local', annualiser: 1, metricKey: 'rate', amountKey: 'amount', amortising: true,
     inputs: [bank('Your Bank/Finance Company'), amount('Outstanding amount'), tenor(), rate('Your interest rate (% p.a.)'), rateBasis()],
     tip: 'Home-loan rates are highly repriceable — lenders quote board rates but settle far lower to retain good borrowers.',
   },
   {
     id: 'personal_loan', label: 'Personal loan', blurb: 'Interest rates & processing fees', category: 'loan',
     segments: ['individual'], family: 'rate', rateType: 'apr', unit: '% p.a.',
-    currencyMode: 'local', annualiser: 1, metricKey: 'rate', amountKey: 'amount',
+    currencyMode: 'local', annualiser: 1, metricKey: 'rate', amountKey: 'amount', amortising: true,
     inputs: [bank('Your Bank/Finance Company'), amount('Outstanding amount'), tenor(), rate('Your interest rate (% p.a.)'), rateBasis()],
     tip: 'Advertised “from” rates rarely match realised EIR — benchmark what borrowers with your profile actually pay.',
   },
   {
     id: 'vehicle_loan', label: 'Vehicle loan', blurb: 'Car & vehicle financing rates', category: 'loan',
     segments: ['individual'], family: 'rate', rateType: 'apr', unit: '% p.a.',
-    currencyMode: 'local', annualiser: 1, metricKey: 'rate', amountKey: 'amount',
+    currencyMode: 'local', annualiser: 1, metricKey: 'rate', amountKey: 'amount', amortising: true,
     inputs: [bank('Your Bank/Finance Company'), amount('Outstanding amount'), tenor(), rate('Your interest rate (% p.a.)'), rateBasis()],
     tip: 'Dealer-arranged financing is often costlier than refinancing directly with a bank.',
   },
@@ -218,21 +222,60 @@ export function crossBorderCostPct({ sent, received, midRate }) {
   return round2((1 - r / expected) * 100);
 }
 
-// Pick the best-priced bank from [{ bank, value }] items: lowest for a cost
-// (apr), highest for a return (yield).
-function pickBestBank(items, rateType) {
+// Pick the best-priced item from [{ bank, value, basis? }]: lowest for a cost
+// (apr), highest for a return (yield). Returns the whole item so the caller
+// can report both who it is and how that rate was published.
+export function pickBestItem(items, rateType) {
   const finite = (items || []).filter((i) => i && i.bank && Number.isFinite(Number(i.value)));
   if (!finite.length) return null;
-  const best = finite.reduce((a, b) =>
+  return finite.reduce((a, b) =>
     rateType === 'yield' ? (Number(b.value) > Number(a.value) ? b : a) : (Number(b.value) < Number(a.value) ? b : a));
-  return best.bank;
+}
+
+/* All-in cost of one bank's outward transfer, as a % of the amount sent:
+   the FX spread over mid-market plus the published fees spread over the
+   notional. Fees are applied to the customer's OWN sent amount when it is
+   known and the fees are quoted in that currency — a S$20 fee is 2% of
+   S$1,000 and 0.2% of S$10,000, so the row's stored notional is only a
+   fallback. Fees in another currency cannot be sized without a rate, so
+   the row's own notional (which the fee was quoted against) is used. */
+export function remittanceCostPct(row, { sentAmount = 0, sendCurrency = null } = {}) {
+  const fees = Number(row.upfront_fee || 0) + Number(row.intermediary_fee || 0) + Number(row.lifting_fee || 0);
+  const spread = Number(row.fx_spread_pct || 0);
+  const own = Number(sentAmount) > 0 && (!sendCurrency || !row.fee_currency || row.fee_currency === sendCurrency);
+  const notional = own ? Number(sentAmount) : Number(row.amount) || 0;
+  const feePct = notional > 0 ? (fees / notional) * 100 : 0;
+  return Math.round((spread + feePct) * 100) / 100;
+}
+
+/* Level-payment (annuity) amortisation. A term loan's balance falls every month,
+   so a rate difference does NOT earn (delta × principal) every year — over 20
+   years it earns roughly half that. Quoting the flat figure across the tenor
+   overstates the saving by ~60% on a typical mortgage. */
+export function monthlyPayment(principal, annualPct, months) {
+  const P = Number(principal) || 0, n = Math.round(Number(months) || 0);
+  if (P <= 0 || n <= 0) return 0;
+  const r = (Number(annualPct) || 0) / 100 / 12;
+  return r === 0 ? P / n : (P * r) / (1 - Math.pow(1 + r, -n));
+}
+
+/** Total interest paid over the full term under level-payment amortisation. */
+export function totalInterest(principal, annualPct, months) {
+  const P = Number(principal) || 0, n = Math.round(Number(months) || 0);
+  if (P <= 0 || n <= 0) return 0;
+  return monthlyPayment(P, annualPct, n) * n - P;
 }
 
 /**
  * Benchmark a list of comparable values. rateType 'apr' (lower better) |
  * 'yield' (higher better). Returns null if there are no values.
+ *
+ * `tenorMonths` + `amortising` switch the saving from a flat annual
+ * differential to a properly amortised one. Both must be present — without a
+ * tenor the flat figure is the only defensible answer, and that is the
+ * long-standing behaviour every caller without a tenor still gets.
  */
-export function benchmarkValues(values, { yourRate, amount = 0, annualiser = 1, rateType = 'apr', metricMode = 'percent' } = {}) {
+export function benchmarkValues(values, { yourRate, amount = 0, annualiser = 1, rateType = 'apr', metricMode = 'percent', tenorMonths = 0, amortising = false } = {}) {
   const asc = (values || []).map(Number).filter(Number.isFinite).sort((a, b) => a - b);
   if (!asc.length) return null;
 
@@ -248,9 +291,27 @@ export function benchmarkValues(values, { yourRate, amount = 0, annualiser = 1, 
   // A percentage metric has to be applied to the balance to become money. An
   // amount metric IS the money already, so the notional plays no part — multiply
   // by it and a ₹12,000 fee gap on a ₹5,000,000 balance reads as ₹600m saved.
-  const annualSaving = metricMode === 'amount'
+  const flatAnnualSaving = metricMode === 'amount'
     ? Math.max(0, delta * annualiser)
     : Math.max(0, (delta / 100) * notional * annualiser);
+
+  // A term loan with a known tenor gets the real number: the difference in
+  // total interest across the schedule, and the difference in the monthly
+  // payment the borrower actually writes. Anything else keeps the flat figure.
+  const term = Math.round(Number(tenorMonths) || 0);
+  const amortised = amortising && metricMode === 'percent' && term > 0 && notional > 0;
+  let annualSaving = flatAnnualSaving;
+  let monthlySaving = flatAnnualSaving / 12;
+  let totalSaving = null, monthlyPaymentNow = null, monthlyPaymentBest = null;
+  if (amortised) {
+    monthlyPaymentNow = monthlyPayment(notional, your, term);
+    monthlyPaymentBest = monthlyPayment(notional, best, term);
+    totalSaving = Math.max(0, totalInterest(notional, your, term) - totalInterest(notional, best, term));
+    monthlySaving = Math.max(0, monthlyPaymentNow - monthlyPaymentBest);
+    // Averaged across the term, so "per year" stays true for the whole tenor
+    // rather than only for the first one.
+    annualSaving = totalSaving / (term / 12);
+  }
 
   // Where the user stands in the pool (only meaningful once they entered a rate).
   const betterThan = asc.filter((v) => (isYield ? v < your : v > your)).length;
@@ -262,7 +323,14 @@ export function benchmarkValues(values, { yourRate, amount = 0, annualiser = 1, 
   return {
     best: round2(best), median: round2(median), marketTypical: round2(marketTypical),
     yourRate: round2(your), poolSize: asc.length,
-    annualSaving: Math.round(annualSaving), monthlySaving: Math.round(annualSaving / 12),
+    annualSaving: Math.round(annualSaving), monthlySaving: Math.round(monthlySaving),
+    // Present only for an amortising product with a tenor — the full-term
+    // saving, and the two payments it is the difference of.
+    amortised,
+    termMonths: amortised ? term : null,
+    totalSaving: amortised ? Math.round(totalSaving) : null,
+    monthlyPaymentNow: amortised ? Math.round(monthlyPaymentNow) : null,
+    monthlyPaymentBest: amortised ? Math.round(monthlyPaymentBest) : null,
     direction: isYield ? 'higher' : 'lower',
     hasYourRate, beatsBest, beatsAll, percentileBeaten, status,
   };
@@ -272,13 +340,15 @@ export function benchmarkValues(values, { yourRate, amount = 0, annualiser = 1, 
  * Assemble the masked benchmark response for a product from its market values.
  * `extra` carries product-family specifics (e.g. cross-border settlement time).
  */
-export function buildBenchmarkResult({ product, country, currency, values, items, yourRate, amount, extra = {} }) {
+export function buildBenchmarkResult({ product, country, currency, values, items, yourRate, amount, tenor, dataQuality = null, extra = {} }) {
   const meta = getProduct(product);
   if (!meta) return { error: 'Unknown product' };
   const b = benchmarkValues(values, {
     yourRate, amount, annualiser: meta.annualiser, rateType: meta.rateType, metricMode: meta.metricMode,
+    tenorMonths: tenor, amortising: meta.amortising === true,
   });
   if (!b) return { error: 'No benchmark data for this selection yet.' };
+  const bestItem = pickBestItem(items, meta.rateType);
 
   return {
     product: meta.label,
@@ -293,10 +363,32 @@ export function buildBenchmarkResult({ product, country, currency, values, items
     median: b.median,
     poolSize: b.poolSize,
     benchmarkMasked: true,
+    // 'real' — every rate in the pool came from a regulator feed or a published
+    // rate sheet. 'indicative'/'mixed' — at least one is generated, so the UI
+    // must say so rather than presenting it as a market benchmark.
+    dataQuality,
     benchmarkLabel: `Best of ${b.poolSize} providers (hidden)`,
-    bestBank: pickBestBank(items, meta.rateType),
+    bestBank: bestItem?.bank ?? null,
+    // How the best rate was published (see supabase/rate_basis.sql):
+    //   'exact' — a single figure;  'range' — benchmarkRate is the MIDPOINT of
+    //   benchmarkLow–benchmarkHigh and the UI shows "~";  'from' — a floor the
+    //   lender advertises ("from 7.50%"), shown as "from". Never invented: the
+    //   basis is whatever the bank printed.
+    benchmarkBasis: bestItem?.basis || 'exact',
+    benchmarkLow: bestItem?.low ?? null,
+    benchmarkHigh: bestItem?.high ?? null,
+    // True when any rate in the pool is a midpoint or a floor — the median and
+    // market-typical figures are then approximate too, and the UI says so.
+    approxPool: (items || []).some((i) => i && i.basis && i.basis !== 'exact'),
     annualSaving: b.annualSaving,
     monthlySaving: b.monthlySaving,
+    // Term loans only: the saving over the whole schedule, plus the payments it
+    // comes from. Null elsewhere so the UI can tell "not applicable" from zero.
+    amortised: b.amortised,
+    termMonths: b.termMonths,
+    totalSaving: b.totalSaving,
+    monthlyPaymentNow: b.monthlyPaymentNow,
+    monthlyPaymentBest: b.monthlyPaymentBest,
     status: b.status,
     hasYourRate: b.hasYourRate,
     beatsBest: b.beatsBest,

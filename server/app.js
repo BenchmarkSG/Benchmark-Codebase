@@ -9,6 +9,7 @@ import {
 import * as ratesRepo from './ratesRepo.js';
 import * as fxModule from './fx.js';
 import * as payments from './payments.js';
+import { checkRevealPurchase, bearerToken } from './purchases.js';
 import * as email from './email.js';
 
 // Session ids we've already emailed a confirmation for. Fast-path per-process
@@ -97,8 +98,18 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
   // ---- Stripe payments (JourneyModal tiers). No-ops without STRIPE_SECRET_KEY. --
   app.post('/api/checkout', strictLimiter, asyncRoute(async (req, res) => {
     if (!payments.isPaymentsConfigured) return res.status(503).json({ error: 'Payments not configured' });
-    const { tier, advisorId, product, segment, email, currency } = req.body || {};
+    const { tier, advisorId, product, segment, email, currency, benchmarkId } = req.body || {};
     if (!payments.getTier(tier)) return res.status(400).json({ error: 'Unknown tier' });
+    // The reveal is sold once per benchmark. Closing the modal and pressing the
+    // button again must not charge twice, and the UI can't be what guarantees
+    // that — so the repeat sale is refused here, against the row itself.
+    if (tier === 'reveal') {
+      const refusal = await checkRevealPurchase({
+        token: bearerToken(req),
+        benchmarkId: cleanMeta(benchmarkId, 64) || null,
+      });
+      if (refusal) return res.status(refusal.status).json(refusal.body);
+    }
     // Only trust the Origin if it's allow-listed; never the Host header. The
     // success/cancel base otherwise comes from server-set PUBLIC_BASE_URL.
     const reqOrigin = req.headers.origin || '';
@@ -162,7 +173,7 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
   // Instant benchmark. Rate products compare a single rate; cross-border derives
   // the all-in cost from the mid-market FX rate.
   app.post('/api/benchmark', asyncRoute(async (req, res) => {
-    const { country = 'SG', product, currency, variant, yourRate, amount } = req.body || {};
+    const { country = 'SG', product, currency, variant, yourRate, amount, tenor } = req.body || {};
     const meta = getProduct(product);
     if (!meta) return res.status(400).json({ error: 'Unknown product' });
     // The client hides products that don't apply to the chosen market, but the
@@ -176,7 +187,7 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
 
     const data = await repo.getProductValues(country, product, currency, variant);
     if (!data) return res.status(503).json({ error: 'Rate database not configured. See PRODUCT_DATA.md.' });
-    const result = buildBenchmarkResult({ product, country, currency, values: data.values, items: data.items, yourRate, amount });
+    const result = buildBenchmarkResult({ product, country, currency, values: data.values, items: data.items, yourRate, amount, tenor, dataQuality: data.dataQuality });
     if (result.error) return res.status(404).json({ error: result.error });
     await attachMarketReference(repo, result, country, product);
     res.json(result);
@@ -223,7 +234,11 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
    received, priced against the live mid-market rate, then benchmark it. */
 async function handleCrossBorder(req, res, { repo, fx }, meta, country) {
   const { send_currency, receive_currency, sent_amount, received_amount, amount, time_taken_hours } = req.body || {};
-  const data = await repo.getProductValues(country, meta.id, null);
+  // The pool is priced for THIS transfer: same receive currency, fees sized
+  // on the amount actually sent (a flat S$20 is 2% of S$1,000).
+  const data = await repo.getProductValues(country, meta.id, null, null, {
+    counterparty: receive_currency || null, sentAmount: Number(sent_amount) || 0, sendCurrency: send_currency || null,
+  });
   if (!data) return res.status(503).json({ error: 'Rate database not configured. See PRODUCT_DATA.md.' });
 
   let yourCostPct;
@@ -235,7 +250,7 @@ async function handleCrossBorder(req, res, { repo, fx }, meta, country) {
 
   const result = buildBenchmarkResult({
     product: meta.id, country, currency: send_currency || null,
-    values: data.values, items: data.items,
+    values: data.values, items: data.items, dataQuality: data.dataQuality,
     yourRate: yourCostPct, amount, // amount = annual transfer volume
     extra: { yourCostPct: yourCostPct ?? null, settlementHours: Number(time_taken_hours) || null },
   });

@@ -46,51 +46,8 @@ const unit = (seed) => {
 const round = (n, d = 2) => Math.round(n * 10 ** d) / 10 ** d;
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
-// --- reference: countries -----------------------------------------------------
-const COUNTRIES = [
-  { code: 'SG', name: 'Singapore', currency: 'SGD', currency_symbol: 'S$', display_order: 1 },
-  { code: 'IN', name: 'India', currency: 'INR', currency_symbol: '₹', display_order: 2 },
-  { code: 'MY', name: 'Malaysia', currency: 'MYR', currency_symbol: 'RM', display_order: 3 },
-  { code: 'ID', name: 'Indonesia', currency: 'IDR', currency_symbol: 'Rp', display_order: 4 },
-  { code: 'TH', name: 'Thailand', currency: 'THB', currency_symbol: '฿', display_order: 5 },
-];
-
-// --- reference: top-15 banks per country -------------------------------------
-// Per-country provider directory. category drives both the display grouping and
-// the pricing tilt. 'fintech' entries are directory-only (see DIRECTORY_ONLY):
-// they appear as a provider option but aren't put in the benchmark rate pool.
-const BANKS = {
-  SG: [['DBS','local'],['POSB','local'],['OCBC','local'],['UOB','local'],['Standard Chartered','european'],['Citibank','foreign'],['HSBC','european'],['Maybank','foreign'],['Bank of China','foreign'],['CIMB','foreign'],['RHB','foreign'],['Trust Bank','digital'],['GXS Bank','digital'],['MariBank','digital'],['State Bank of India','indian']],
-
-  // India — top public-sector, private, and fintechs
-  IN: [
-    ['State Bank of India','public'],['Punjab National Bank','public'],['Bank of Baroda','public'],['Canara Bank','public'],['Union Bank of India','public'],['Bank of India','public'],['Indian Bank','public'],['Central Bank of India','public'],['Indian Overseas Bank','public'],['UCO Bank','public'],
-    ['HDFC Bank','private'],['ICICI Bank','private'],['Axis Bank','private'],['Kotak Mahindra Bank','private'],['IndusInd Bank','private'],['Yes Bank','private'],['IDFC First Bank','private'],['Federal Bank','private'],['RBL Bank','private'],['Bandhan Bank','private'],
-    ['Paytm','fintech'],['PhonePe','fintech'],['Google Pay','fintech'],['Razorpay','fintech'],['CRED','fintech'],['BharatPe','fintech'],['Groww','fintech'],['Zerodha','fintech'],['Slice','fintech'],['Jupiter','fintech'],
-    ['Standard Chartered','european'],['HSBC','european'],['Citibank','foreign'],['DBS Bank India','foreign'],
-  ],
-
-  // Malaysia — established banks + the new digital banks
-  MY: [
-    ['Maybank','local'],['CIMB','local'],['Public Bank','local'],['RHB','local'],['Hong Leong Bank','local'],['AmBank','local'],['Bank Islam','local'],['Affin Bank','local'],['Alliance Bank','local'],['Bank Rakyat','local'],
-    ['GXBank','digital'],['Boost Bank','digital'],['AEON Bank','digital'],['KAF Digital Bank','digital'],['Ryt Bank','digital'],
-    ['OCBC','foreign'],['UOB','foreign'],['Bank of China','foreign'],['Standard Chartered','european'],['HSBC','european'],
-  ],
-
-  // Indonesia — top banks + digital / neobanks
-  ID: [
-    ['Bank Mandiri','local'],['Bank Central Asia','local'],['Bank Rakyat Indonesia','local'],['Bank Negara Indonesia','local'],['Bank Tabungan Negara','local'],['CIMB Niaga','local'],['Bank Danamon','local'],['Panin Bank','local'],['OCBC NISP','local'],['Permata Bank','local'],
-    ['Bank Jago','digital'],['SeaBank','digital'],['Allo Bank','digital'],['blu by BCA Digital','digital'],['Jenius (BTPN)','digital'],['Bank Neo Commerce','digital'],['LINE Bank','digital'],['TMRW by UOB','digital'],['Superbank','digital'],['Krom Bank','digital'],
-    ['Maybank Indonesia','foreign'],['Standard Chartered','european'],['HSBC','european'],
-  ],
-
-  // Thailand — commercial banks + digital / virtual banks
-  TH: [
-    ['Bangkok Bank','local'],['Kasikornbank','local'],['Siam Commercial Bank','local'],['Krungthai Bank','local'],['Bank of Ayudhya','local'],['TMBThanachart','local'],['Kiatnakin Phatra','local'],['CIMB Thai','local'],['Government Savings Bank','local'],['UOB Thailand','foreign'],
-    ['LINE BK','digital'],['Dime!','digital'],['SCBX Virtual Bank','digital'],['Krungthai-Gulf Virtual Bank','digital'],['TrueMoney','fintech'],
-    ['Standard Chartered','european'],['HSBC','european'],['ICBC Thai','foreign'],
-  ],
-};
+// Countries + per-country provider roster (shared with the import-template tool).
+import { COUNTRIES, BANKS } from './lib/roster.mjs';
 
 // Category pricing tilt: how a bank tends to price vs the country base (± p.a.).
 const CAT_ADJ = { local: 0.35, foreign: -0.15, european: -0.25, japanese: -0.35, indian: 0.15, digital: -0.6, public: 0.2, private: 0.3, fintech: -0.5 };

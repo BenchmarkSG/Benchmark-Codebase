@@ -324,7 +324,7 @@
 .res__product { font-weight: 800; color: var(--ink); font-size: 15px; }
 .res__overpay {
   text-align: center; margin-top: 16px;
-  background: linear-gradient(180deg, var(--blue-50), #fff);
+  background: var(--blue-50);
   border: 1px solid #c3d8f5; border-radius: 16px;
   padding: 18px 16px 22px;
 }
@@ -345,28 +345,26 @@
   margin-top: 20px; font-size: 30px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em;
 }
 
-/* Visual "you vs best" comparison chart — proportional bars tell the story. */
-/* One shared 3-column grid (label | track | value) so BOTH bars start and end
-   on the same lines regardless of label/value width. Rows are display:contents
-   so their children land directly in these shared columns. */
-.res__cmp { margin-top: 22px; display: grid; grid-template-columns: minmax(96px, max-content) 1fr auto; align-items: center; column-gap: 12px; row-gap: 12px; }
+/* "You vs best" — two rows of label + figure. One shared 2-column grid (rows
+   are display:contents) so both figures line up whatever the label width, and
+   the pair is centred as a block rather than pushed out to the card's edges.
+   Neutral surface on both figures: the numbers carry the comparison. */
+.res__cmp {
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: max-content max-content;
+  justify-content: center;
+  align-items: center;
+  column-gap: 14px;
+  row-gap: 10px;
+}
 .res__cmp-row { display: contents; }
 .res__cmp-label { font-size: 13px; font-weight: 700; color: var(--ink-2); text-align: left; }
-.res__cmp-track { height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
-.res__cmp-fill {
-  display: block; height: 100%; border-radius: 999px;
-  transform-origin: left center; animation: res-cmp-grow 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-.res__cmp-fill--you { background: linear-gradient(90deg, #ef7c86, var(--red-600)); }
-.res__cmp-fill--best { background: linear-gradient(90deg, #6fd3a3, #12945a); }
 .res__cmp-val {
   min-width: 62px; text-align: center;
   border-radius: 9px; padding: 6px 10px; font-size: 15px; font-weight: 800;
   border: 1px solid var(--line); background: var(--surface); color: var(--ink);
 }
-.res__cmp-val--you { color: var(--red-600); border-color: #f3c3c7; background: var(--err-bg); }
-.res__cmp-val--best { color: #12945a; border-color: #b6e6ca; background: var(--ok-bg); }
-@keyframes res-cmp-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
 .res__tagline { margin-top: 16px; text-align: center; font-size: 17px; line-height: 1.35; font-weight: 800; color: var(--ink-2); }
 
@@ -458,16 +456,19 @@
 }
 .res__standing--muted { color: var(--muted); background: var(--blue-50); border-color: #d5e2f5; }
 
-.res__marketref {
+/* Shown only when the pool contains generated rates (see RATES_REAL_ONLY).
+   Warn tokens, so it stays legible in both themes. */
+.res__unsourced {
   margin-top: 10px;
   font-size: 12px;
-  color: var(--ink-3);
-  background: var(--surface-2);
-  border: 1px solid #dbe6f6;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--warn-ink);
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-line);
   border-radius: 10px;
   padding: 9px 11px;
 }
-.res__marketref strong { color: var(--ink); }
 
 .res__repay { margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .res__repay > div { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 11px; }
@@ -509,3 +510,12 @@
 .calcbox__field select,
 .calcbox__field input,
 .calcbox__textarea { width: 100%; min-width: 0; max-width: 100%; }
+
+/* What a "~" or a "from" on the best rate means — shown only when one is. */
+.res__basis {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-3);
+  text-align: center;
+}

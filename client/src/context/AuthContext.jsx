@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase.js';
+import { clearUnlocks } from '../lib/unlocks.js';
 
 const AuthContext = createContext(null);
 
@@ -96,11 +97,14 @@ export function AuthProvider({ children }) {
     [redirectTo]
   );
 
-  const signOut = useCallback(() => supabase.auth.signOut(), []);
+  // Drop the session's record of what was purchased on the way out — the next
+  // account to sign in on this browser must not inherit someone else's unlocks.
+  // The purchases themselves live in saved_benchmarks, not here.
+  const signOut = useCallback(() => { clearUnlocks(); return supabase.auth.signOut(); }, []);
 
   // Sign out of every device/browser (revokes all refresh tokens). Offered in
   // account settings after a password change or a suspected compromise.
-  const signOutEverywhere = useCallback(() => supabase.auth.signOut({ scope: 'global' }), []);
+  const signOutEverywhere = useCallback(() => { clearUnlocks(); return supabase.auth.signOut({ scope: 'global' }); }, []);
 
   // Change the account email. Supabase sends a confirmation link to the NEW
   // address (and, when "secure email change" is on, the old one too); the change

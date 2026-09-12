@@ -13,6 +13,20 @@ function PencilIcon() {
 
 const rawValue = (col, row) => (col.get ? col.get(row) : row[col.key]);
 
+// Dropdown choices for a 'select' column. A value already on the row that isn't
+// in the list (legacy data, a value added straight in SQL) is kept at the top
+// rather than dropped — otherwise opening the editor would silently rewrite it
+// to whatever happened to be first.
+function selectOptions(col, current) {
+  const opts = (col.options || []).map((o) => (
+    typeof o === 'string' ? { value: o, label: o } : { value: o.value, label: o.label ?? o.value }
+  ));
+  const has = opts.some((o) => o.value === current);
+  return !has && current !== null && current !== undefined && current !== ''
+    ? [{ value: current, label: `${current} (current)` }, ...opts]
+    : opts;
+}
+
 const displayValue = (col, row) => {
   const v = rawValue(col, row);
   if (col.type === 'boolean') return v ? 'Yes' : 'No';
@@ -35,7 +49,8 @@ function FreshnessChip({ value }) {
 }
 
 /* Generic table with per-row inline editing.
-   columns: [{ key, label, type?: 'number'|'boolean'|'text', editable?, step?, get? }]
+   columns: [{ key, label, type?: 'number'|'boolean'|'text'|'select', editable?, step?, get?, options? }]
+   'select' renders a dropdown from `options` — plain strings, or { value, label }.
    onSave(row, patch) must persist and resolve; throws to surface an error. */
 export default function EditableTable({ columns, rows, rowKey, onSave, onVerify, emptyLabel = 'Nothing to show yet.' }) {
   const [editing, setEditing] = useState(null);
@@ -124,6 +139,17 @@ export default function EditableTable({ columns, rows, rowKey, onSave, onVerify,
                       {isEditing && c.editable ? (
                         c.type === 'boolean' ? (
                           <input type="checkbox" aria-label={c.label} checked={!!draft[c.key]} onChange={(e) => setField(c, e.target.checked)} />
+                        ) : c.type === 'select' ? (
+                          <select
+                            className="adm-input"
+                            aria-label={c.label}
+                            value={draft[c.key] ?? ''}
+                            onChange={(e) => setField(c, e.target.value)}
+                          >
+                            {selectOptions(c, draft[c.key]).map((o) => (
+                              <option key={o.value} value={o.value}>{o.label}</option>
+                            ))}
+                          </select>
                         ) : (
                           <input
                             className="adm-input"

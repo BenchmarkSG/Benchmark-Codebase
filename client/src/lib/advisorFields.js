@@ -31,6 +31,12 @@ export const ADVISOR_SPECIALIZATIONS = [
   'Technical advisory',
 ];
 
+// Application review states. These are exactly the values advisors.status
+// allows (supabase/advisors.sql: pending | approved | rejected), so the admin
+// portal offers a dropdown rather than a free-text box — a typo here would
+// leave an advisor invisible to every query that filters on 'approved'.
+export const ADVISOR_STATUSES = ['pending', 'approved', 'rejected'];
+
 // Human label for a `serves` code (used in the admin view).
 export const SERVES_LABELS = Object.fromEntries(
   ADVISOR_SEGMENTS.map((s) => [s.value, s.label])

@@ -174,9 +174,12 @@ body.jny-open .needhelp { display: none; }
 .jny__back { border: none; background: transparent; color: var(--accent); font-weight: 700; font-size: 13.5px; padding: 10px 6px 12px; margin-left: -6px; cursor: pointer; min-height: 40px; }
 .jny-sub__title { font-size: 18px; font-weight: 800; color: var(--ink); }
 .jny-sub__sub { font-size: 13.5px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+/* --accent, not --blue-700: the brand scale is fixed (a --blue-700 price on the
+   dark theme's near-navy pill is unreadable), while --accent is the semantic
+   "blue as TEXT" token and lifts to a legible tint in dark mode. */
 .jny-pill {
   display: inline-block; margin-right: 6px;
-  background: var(--blue-50); color: var(--blue-700);
+  background: var(--blue-50); color: var(--accent);
   font-weight: 800; font-size: 12px; padding: 2px 9px; border-radius: 999px;
 }
 
@@ -366,7 +369,7 @@ body.jny-open .needhelp { display: none; }
 .jny-expert__avatar--img { object-fit: cover; }
 .jny-expert__body { flex: 1; min-width: 0; }
 .jny-expert__name { font-size: 15px; font-weight: 800; color: var(--ink); }
-.jny-expert__role { font-size: 12px; color: var(--blue-700); font-weight: 600; margin-top: 1px; }
+.jny-expert__role { font-size: 12px; color: var(--accent); font-weight: 600; margin-top: 1px; }
 .jny-expert__blurb { font-size: 12.5px; color: var(--muted); margin-top: 4px; line-height: 1.45; }
 .jny-expert__pick {
   flex: 0 0 auto; border: none; cursor: pointer;

@@ -4,6 +4,7 @@ import { getReference, calcBenchmark, formatMoney, getBanks, getRevealPrice } fr
 import { BANK_LOGOS } from './BankLogos.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { saveBenchmark } from '../lib/dashboardApi.js';
+import { unlockedTierFor } from '../lib/unlocks.js';
 
 // A–Z by name so people can scan the picker for their own bank. `base`
 // sensitivity keeps case/accents from splitting otherwise-equal names, and
@@ -294,15 +295,20 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
   // Reveal: hand the reveal flow both the result context AND the save payload so
   // it can persist this benchmark (as 'revealed') to the dashboard — reusing the
   // existing saved row if the user already hit "Save".
-  function revealCurrent() {
-    if (!result || !product) return undefined;
-    return onReveal?.({
+  function revealContext() {
+    if (!result || !product) return null;
+    return {
       ...result,
       currency: result.currency || localCcy,
       segment,
       benchmarkId: savedId || undefined,
-      saveRow: currentSaveRow(),
-    });
+    };
+  }
+
+  function revealCurrent() {
+    const ctx = revealContext();
+    if (!ctx) return undefined;
+    return onReveal?.({ ...ctx, saveRow: currentSaveRow() });
   }
 
   // "Ahead of the market" cross-sell: there's no better bank to reveal, so instead
@@ -449,6 +455,7 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
               {!result ? <Placeholder /> : (
                 <Result result={result} product={product} compact={compact} localCcy={localCcy}
                   onReveal={revealCurrent}
+                  unlockedTier={unlockedTierFor(revealContext())}
                   onCrossSell={crossSellNext} canCrossSell={segmentProducts.length > 1}
                   onDetailedFeedback={() => onDetailedFeedback({ ...result, currency: result.currency || localCcy, segment })}
                   isAuthed={!!user} saveState={saveState} onSave={saveCurrent} />
@@ -468,7 +475,7 @@ function standingText(result) {
   return `better than ${result.percentileBeaten}% of the ${result.poolSize} providers we benchmark`;
 }
 
-function Result({ result, product, compact, localCcy, onReveal, onCrossSell, canCrossSell, onDetailedFeedback, isAuthed, saveState, onSave }) {
+function Result({ result, product, compact, localCcy, onReveal, onCrossSell, canCrossSell, onDetailedFeedback, isAuthed, saveState, onSave, unlockedTier = null }) {
   const [revealErr, setRevealErr] = useState('');
   const [revealBusy, setRevealBusy] = useState(false);
   // Not signed in? onReveal opens the sign-in modal and stashes this result, so
@@ -501,15 +508,15 @@ function Result({ result, product, compact, localCcy, onReveal, onCrossSell, can
   // The server says which, so the client never has to infer it from the product.
   const moneyMetric = result.metricMode === 'amount';
   const fmtMetric = (v) => (moneyMetric ? formatMoney(Number(v), ccy) : `${v}%`);
+  // How the best rate was published. A lender that prints "8.00%–9.50%" is
+  // represented by the midpoint and marked "~"; one that prints "from 7.50%"
+  // keeps the floor and is labelled "from". A plain figure was published as
+  // such. When any rate in the pool is a midpoint or a floor, the typical
+  // figure is approximate too, so it wears the "~" as well.
+  const bestBasis = result.benchmarkBasis || 'exact';
+  const fmtBest = (v) => (bestBasis === 'range' ? `~${fmtMetric(v)}` : bestBasis === 'from' ? `from ${fmtMetric(v)}` : fmtMetric(v));
+  const fmtPool = (v) => (result.approxPool ? `~${v}` : v);
   const ahead = result.status === 'ahead';
-
-  // Visual comparison of your rate vs the best — bar widths relative to the
-  // larger of the two.
-  const yr = Number(result.yourRate);
-  const br = Number(result.benchmarkRate);
-  const maxRate = Math.max(yr, br) || 1;
-  const youW = Number.isFinite(yr) ? Math.max(8, Math.round((yr / maxRate) * 100)) : 0;
-  const bestW = Number.isFinite(br) ? Math.max(8, Math.round((br / maxRate) * 100)) : 0;
   const saveLabel = saveState === 'saved' ? 'Saved to dashboard ✓'
     : saveState === 'saving' ? 'Saving…'
     : saveState === 'error' ? 'Couldn’t save — retry'
@@ -540,7 +547,7 @@ function Result({ result, product, compact, localCcy, onReveal, onCrossSell, can
             </div>
             <div className="res__ahead-mkt">
               <span>Market's best</span>
-              <strong>{fmtMetric(result.benchmarkRate)}</strong>
+              <strong>{fmtBest(result.benchmarkRate)}</strong>
             </div>
           </div>
           <p className="res__ahead-note">
@@ -563,23 +570,16 @@ function Result({ result, product, compact, localCcy, onReveal, onCrossSell, can
           <div className="res__cmp">
             <div className="res__cmp-row">
               <span className="res__cmp-label">{crossBorder ? 'Your all-in cost' : moneyMetric ? 'What you pay now' : 'Your bank’s rate'}</span>
-              <span className="res__cmp-track"><span className="res__cmp-fill res__cmp-fill--you" style={{ width: `${youW}%` }} /></span>
-              <span className="res__cmp-val res__cmp-val--you">{fmtMetric(result.yourRate)}</span>
+              <span className="res__cmp-val">{fmtMetric(result.yourRate)}</span>
             </div>
             <div className="res__cmp-row">
               <span className="res__cmp-label">Best available</span>
-              <span className="res__cmp-track"><span className="res__cmp-fill res__cmp-fill--best" style={{ width: `${bestW}%` }} /></span>
-              <span className="res__cmp-val res__cmp-val--best">{fmtMetric(result.benchmarkRate)}</span>
+              <span className="res__cmp-val">{fmtBest(result.benchmarkRate)}</span>
             </div>
           </div>
 
           <p className="res__tagline">Save the money your bank is making off you.</p>
 
-          {result.status === 'saving' && result.percentileBeaten > 0 && (
-            <p className="res__standing">
-              👍 You're already {standingText(result)} — but the best provider could still {higher ? 'earn' : 'save'} you more.
-            </p>
-          )}
           {result.status === 'estimate' && (
             <p className="res__standing res__standing--muted">
               Estimated from typical market rates — enter your own {crossBorder ? 'transfer details' : 'rate'} for an exact figure.
@@ -592,15 +592,34 @@ function Result({ result, product, compact, localCcy, onReveal, onCrossSell, can
         <div className="res__locked">⏱ Your transfer settles in ~{result.settlementHours}h.</div>
       )}
       {!compact && !ahead && (
-        <div className="res__locked">🔒 {result.benchmarkLabel}. Market-typical is {result.marketTypical} {result.unit}.</div>
+        <div className="res__locked">🔒 {result.benchmarkLabel}. Market-typical is {fmtPool(result.marketTypical)} {result.unit}.</div>
       )}
-      {!compact && result.tip && <p className="res__tip">💡 {result.tip}</p>}
-      {result.marketReference && (
-        <div className="res__marketref">
-          📊 {result.marketReference.source} market reference: <strong>{result.marketReference.value}{result.marketReference.unit || ''}</strong>
-          {result.marketReference.asOf ? ` · as of ${result.marketReference.asOf}` : ''}
+      {/* Say what a "~" or a "from" means the moment one is on screen — the
+          number is honest only if the reader knows what kind of number it is. */}
+      {(bestBasis !== 'exact' || result.approxPool) && (
+        <p className="res__basis">
+          {bestBasis === 'range' && (
+            <>~ marks the midpoint of the range this lender publishes
+              {result.benchmarkLow != null && result.benchmarkHigh != null && <> ({result.benchmarkLow}%–{result.benchmarkHigh}%)</>}
+              ; the rate you are offered depends on your profile. </>
+          )}
+          {bestBasis === 'from' && <>“From” is this lender's lowest advertised rate — what its best-profile borrowers get. </>}
+          {result.approxPool && <>Some rates in this pool are published as ranges or floors, so the typical figure is approximate.</>}
+        </p>
+      )}
+      {/* A pool is only a benchmark if the rates in it came from somewhere. The
+          server serves sourced rows by default (RATES_REAL_ONLY), so this only
+          appears if that's been switched off — but when it does, it must never
+          be possible to mistake a generated figure for a market rate. */}
+      {result.dataQuality && result.dataQuality !== 'real' && (
+        <div className="res__unsourced" role="note">
+          ⚠️ {result.dataQuality === 'mixed'
+            ? 'Some rates in this comparison are indicative, not sourced from published rates.'
+            : 'These rates are indicative — not sourced from published rates.'}{' '}
+          Treat as illustrative only.
         </div>
       )}
+      {!compact && result.tip && <p className="res__tip">💡 {result.tip}</p>}
 
       {ahead ? (
         /* No better bank to reveal — don't charge for it. Pivot to another product,
@@ -610,11 +629,19 @@ function Result({ result, product, compact, localCcy, onReveal, onCrossSell, can
         </button>
       ) : (
         <>
+          {/* Already paid for this benchmark? Then this button reopens it — it
+              never offers to sell the same reveal a second time. */}
           <button className="btn btn--block res__detail" onClick={handleReveal} disabled={revealBusy}>
-            {revealBusy ? 'Opening secure checkout…' : 'Reveal the Best Bank →'}
+            {revealBusy
+              ? (unlockedTier ? 'Opening…' : 'Opening secure checkout…')
+              : (unlockedTier ? 'View Your Best Bank →' : 'Reveal the Best Bank →')}
           </button>
           {revealErr && <p className="res__lead-err">{revealErr}</p>}
-          <p className="res__reveal-note">🔒 {revealLabel} charged securely. 100% cashback if not satisfied.</p>
+          <p className="res__reveal-note">
+            {unlockedTier
+              ? '✓ Already unlocked — reopening it is free.'
+              : `🔒 ${revealLabel} charged securely. 100% cashback if not satisfied.`}
+          </p>
         </>
       )}
 

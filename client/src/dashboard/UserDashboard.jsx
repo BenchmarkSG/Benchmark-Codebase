@@ -9,6 +9,8 @@ import { useConfirm } from '../components/ConfirmProvider.jsx';
 import { formatDate } from '../lib/formatDate.js';
 import JourneyModal from '../components/JourneyModal.jsx';
 import { readCheckoutReturn, stashJourney, clearJourney } from '../lib/checkoutReturn.js';
+import { markUnlocked } from '../lib/unlocks.js';
+import { getAccessToken } from '../lib/supabase.js';
 import AccountSettings from './AccountSettings.jsx';
 
 // A rate value with its unit (defaults to %), so "3.5" never renders unit-less.
@@ -211,11 +213,21 @@ export default function UserDashboard() {
       const { url } = await createCheckout({
         tier: 'reveal', currency: ctx.currency || 'SGD',
         product: ctx.product || null, segment: ctx.segment || 'individual', email: user?.email || undefined,
-      });
+        // Lets the server refuse a reveal this benchmark already has.
+        benchmarkId: ctx.benchmarkId || undefined,
+      }, await getAccessToken());
       if (!isStripeCheckoutUrl(url)) throw new Error('Unexpected checkout URL');
       window.location.assign(url);
     } catch (err) {
       clearJourney();
+      // Already unlocked (another tab got there first, or the row moved on since
+      // this list loaded): open what they own instead of charging again.
+      if (err?.code === 'already_purchased') {
+        markUnlocked(ctx, 'reveal');
+        openJourney({ ...r, stage: 'revealed' }, { afterAuth: true, view: 'options', unlockedTier: 'reveal' });
+        load();
+        return;
+      }
       // Only unlock for free when Stripe genuinely isn't configured — a network
       // blip must not give the paid reveal away.
       if (!/not configured/i.test(err?.message || '')) {

@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { supabase } from '../lib/supabase.js';
 import EditableTable from './EditableTable.jsx';
 import { INCOME_LABELS } from '../lib/profileFields.js';
-import { SERVES_LABELS } from '../lib/advisorFields.js';
+import { SERVES_LABELS, ADVISOR_STATUSES } from '../lib/advisorFields.js';
 import { isAdminEmail } from '../lib/roles.js';
 import AccountSettings from '../dashboard/AccountSettings.jsx';
 import { Avatar } from '../components/DefaultAvatar.jsx';
@@ -122,7 +122,9 @@ const SECTIONS = [
       { key: 'years_experience', label: 'Yrs' },
       { key: 'products', label: 'Products', get: (r) => (r.products || []).join(', ') },
       { key: 'photo_url', label: 'Photo', type: 'link' },
-      { key: 'status', label: 'Status', type: 'text', editable: true },
+      // pending | approved | rejected — the three values advisors.status allows
+      // (supabase/advisors.sql). A dropdown so a typo can't create a fourth.
+      { key: 'status', label: 'Status', type: 'select', options: ADVISOR_STATUSES, editable: true },
       { key: 'created_at', label: 'Applied', get: (r) => (r.created_at ? formatDate(r.created_at) : '') },
     ],
   },

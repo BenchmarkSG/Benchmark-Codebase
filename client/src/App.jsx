@@ -23,6 +23,8 @@ import { createCheckout } from './api.js';
 import { isStripeCheckoutUrl } from './lib/safeUrl.js';
 import { saveBenchmark, updateBenchmark } from './lib/dashboardApi.js';
 import { readCheckoutReturn, stashJourney, clearJourney, goToPage } from './lib/checkoutReturn.js';
+import { markUnlocked, unlockedTierFor } from './lib/unlocks.js';
+import { getAccessToken } from './lib/supabase.js';
 
 // After-auth resume intents live in lib/afterAuth.js (shared with AuthModal,
 // which clears a pending intent when the user dismisses sign-in without
@@ -72,6 +74,14 @@ export default function App() {
   }, []);
   const closeTiers = useCallback(() => { setTiersOpen(false); setResume(null); }, []);
 
+  // Reopen something already paid for, in read/manage mode — the same route the
+  // dashboard uses for an unlocked row, so no tier is offered for sale again.
+  const reopenUnlocked = useCallback((ctx, tier) => {
+    setContext(ctx);
+    setResume({ afterAuth: true, view: 'options', unlockedTier: tier });
+    setTiersOpen(true);
+  }, []);
+
   // Open the auth modal. If a `resumeIntent` is given (e.g. from inside the
   // journey), stash it so we can return the user to that exact screen post-auth.
   const requireAuth = useCallback((resumeIntent) => {
@@ -93,6 +103,11 @@ export default function App() {
     const ready = ctx || {};
     if (!user) { requireAuth({ kind: 'reveal', context: ready }); return; }
 
+    // Already bought — reopen it instead of selling it again. Closing the modal
+    // (or mis-clicking its ✕) must never cost a second payment.
+    const owned = unlockedTierFor(ready);
+    if (owned) { reopenUnlocked(ready, owned); return; }
+
     // Persist first so the reveal lands in their dashboard; reuse an existing row.
     let saved = ready;
     if (!saved.benchmarkId && saved.saveRow) {
@@ -107,22 +122,32 @@ export default function App() {
         product: saved.product || null,
         segment: saved.segment || 'individual',
         email: user.email,
-      });
+        // Lets the server refuse a reveal this benchmark already has.
+        benchmarkId: saved.benchmarkId || undefined,
+      }, await getAccessToken());
       if (!isStripeCheckoutUrl(url)) throw new Error('Unexpected checkout URL');
       window.location.assign(url);
     } catch (err) {
       clearJourney();
+      // The server refuses to sell a reveal twice. That's not an error to show —
+      // they own it, so record it locally and open what they paid for.
+      if (err?.code === 'already_purchased') {
+        markUnlocked(saved, 'reveal');
+        reopenUnlocked(saved, 'reveal');
+        return;
+      }
       // Only fall back to the free demo reveal when Stripe genuinely isn't
       // configured (the server 503s with this exact message). Any OTHER failure
       // — network blip, server error — must NOT give the paid product away:
       // rethrow so the result screen shows a retry error instead.
       if (!/not configured/i.test(err?.message || '')) throw err;
       if (saved.benchmarkId) updateBenchmark(saved.benchmarkId, { stage: 'revealed' }).catch(() => {});
+      markUnlocked(saved, 'reveal');
       setContext(saved);
       setResume({ tier: 'reveal', demo: true });
       setTiersOpen(true);
     }
-  }, [user, requireAuth]);
+  }, [user, requireAuth, reopenUnlocked]);
 
   // Once the user is authenticated (in-session sign-in, or after an email-confirm
   // / OAuth reload), reopen the journey exactly where they left off.

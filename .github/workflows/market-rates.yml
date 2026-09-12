@@ -55,3 +55,33 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run pool:my
+
+      # Scraped per-bank POOLS (bank rate sheets → product_rates; IN and SG
+      # fixed deposits today). scrape-pool.mjs writes a (country, product) pool
+      # only when every source feeding it parsed, so a bank redesign can never
+      # shrink a pool from an unattended run — and a broken loan source does
+      # not hold back that night's deposit refresh. Stale CSVs are cleared
+      # first so nothing left in the checkout gets re-imported as if fresh.
+      - name: Refresh scraped per-bank pools
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          # Some sources draw their tables in the browser; the scraper renders
+          # those in headless Chromium (playwright is a devDependency, installed
+          # by npm ci above — only the browser binary is missing on a runner).
+          npx playwright install --with-deps chromium
+          rm -f data/rate-templates/scraped-*.csv
+          npm run scrape:pool
+          # Import every country's file even if an earlier one fails — the
+          # importer exits non-zero when it has to hold a pool back (e.g. a
+          # range/floor pool before supabase/rate_basis.sql has been run), and
+          # that must not stop the next country's deposits from refreshing.
+          rc=0
+          for f in data/rate-templates/scraped-*.csv; do
+            [ -e "$f" ] || continue
+            # --merge: replace only the banks the scraper produced, so a bank
+            # someone entered by hand (one that blocks automation) survives.
+            npm run import:pool -- "$f" --merge || rc=1
+          done
+          exit $rc
