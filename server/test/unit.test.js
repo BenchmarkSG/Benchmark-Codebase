@@ -375,3 +375,87 @@ test('checkRevealPurchase: an unverifiable caller is never sold a reveal', async
     assert.equal(refusal, null);
   }
 });
+
+// ---- Floating rates (supabase/floating_rate.sql) ---------------------------
+// A Singapore mortgage is "3M SORA + 0.30%", not a fixed number. `rate` stays
+// the all-in comparable figure; the index and spread ride alongside so the UI
+// can show it is a formula, and which half the customer can negotiate.
+test('buildBenchmarkResult: carries the winning bank’s index and spread', () => {
+  const items = [
+    { bank: 'A', value: 2.45, basis: 'exact', index: '3M SORA', indexValue: 1.85, spread: 0.6 },
+    { bank: 'B', value: 2.15, basis: 'exact', index: '3M SORA', indexValue: 1.85, spread: 0.3 },
+  ];
+  const r = buildBenchmarkResult({
+    product: 'housing_loan', country: 'SG', currency: 'SGD',
+    values: items.map((i) => i.value), items, yourRate: 3.2, amount: 500000,
+  });
+  assert.equal(r.bestBank, 'B');
+  assert.equal(r.benchmarkIndex, '3M SORA');
+  assert.equal(r.benchmarkIndexValue, 1.85);
+  assert.equal(r.benchmarkSpread, 0.3);
+  assert.equal(r.floatingPool, true);
+  // The spread is what differs; the all-in figure must still be what's compared.
+  assert.equal(r.benchmarkRate, 2.15);
+});
+
+test('buildBenchmarkResult: a fixed pool reports no index at all', () => {
+  const items = [
+    { bank: 'A', value: 2.45, basis: 'exact' },
+    { bank: 'B', value: 2.15, basis: 'exact' },
+  ];
+  const r = buildBenchmarkResult({
+    product: 'housing_loan', country: 'SG', currency: 'SGD',
+    values: items.map((i) => i.value), items, yourRate: 3.2, amount: 500000,
+  });
+  assert.equal(r.benchmarkIndex, null);
+  assert.equal(r.benchmarkSpread, null);
+  assert.equal(r.floatingPool, false);
+});
+
+test('buildBenchmarkResult: floatingPool is true even when the best rate is fixed', () => {
+  // A mixed pool still moves, so the caveat has to appear — otherwise a
+  // fixed-rate winner would silently present the whole comparison as stable.
+  const items = [
+    { bank: 'Fixed', value: 2.10, basis: 'exact' },
+    { bank: 'Floating', value: 2.15, basis: 'exact', index: '3M SORA', indexValue: 1.85, spread: 0.3 },
+  ];
+  const r = buildBenchmarkResult({
+    product: 'housing_loan', country: 'SG', currency: 'SGD',
+    values: items.map((i) => i.value), items, yourRate: 3.2, amount: 500000,
+  });
+  assert.equal(r.bestBank, 'Fixed');
+  assert.equal(r.benchmarkIndex, null);   // the winner is fixed …
+  assert.equal(r.floatingPool, true);     // … but the pool is not
+});
+
+// ---- Flat rates (SG vehicle loans, decision 13 Sep 2026) -------------------
+// A flat rate charges interest on the ORIGINAL sum for the whole tenor, so on
+// the same loan it reads about half the size of an effective rate. Hong Leong
+// prints both: 2.68% flat is 5.81% EIR over 1 year and 5.14% over 7. The pool
+// compares flat, and every screen that shows the number has to say so.
+test('buildBenchmarkResult: a flat pool is labelled as flat', () => {
+  const items = [
+    { bank: 'Hong Leong Finance', value: 2.68, basis: 'exact', rateType: 'flat' },
+    { bank: 'Other', value: 2.88, basis: 'exact', rateType: 'flat' },
+  ];
+  const r = buildBenchmarkResult({
+    product: 'vehicle_loan', country: 'SG', currency: 'SGD',
+    values: items.map((i) => i.value), items, yourRate: 3.5, amount: 60000, tenor: 60,
+  });
+  assert.equal(r.bestBank, 'Hong Leong Finance');
+  assert.equal(r.flatPool, true);
+  assert.equal(r.poolRateType, 'flat');
+});
+
+test('buildBenchmarkResult: an effective-rate pool is not flagged flat', () => {
+  const items = [
+    { bank: 'A', value: 5.24, basis: 'exact', rateType: 'apr' },
+    { bank: 'B', value: 5.81, basis: 'exact', rateType: 'apr' },
+  ];
+  const r = buildBenchmarkResult({
+    product: 'vehicle_loan', country: 'IN', currency: 'INR',
+    values: items.map((i) => i.value), items, yourRate: 7, amount: 60000, tenor: 60,
+  });
+  assert.equal(r.flatPool, false);
+  assert.equal(r.poolRateType, 'apr');
+});

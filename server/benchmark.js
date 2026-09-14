@@ -380,6 +380,21 @@ export function buildBenchmarkResult({ product, country, currency, values, items
     // True when any rate in the pool is a midpoint or a floor — the median and
     // market-typical figures are then approximate too, and the UI says so.
     approxPool: (items || []).some((i) => i && i.basis && i.basis !== 'exact'),
+    // Floating pricing (supabase/floating_rate.sql). A Singapore mortgage is
+    // "3M SORA + 0.30%", an Indian one "RLLR + spread": benchmarkRate is that
+    // sum TODAY, and it moves when the index does. Null on a fixed rate.
+    benchmarkIndex: bestItem?.index ?? null,
+    benchmarkIndexValue: bestItem?.indexValue ?? null,
+    benchmarkSpread: bestItem?.spread ?? null,
+    // True when any rate in the pool tracks an index — the whole comparison is
+    // then a snapshot, and the UI says so rather than implying it is fixed.
+    floatingPool: (items || []).some((i) => i && i.index),
+    // 'flat' when the pool is quoted the way Singapore car loans are: interest
+    // on the original sum for the whole tenor, roughly half the effective rate
+    // for the same money. The importer refuses to mix bases in one pool, so
+    // this describes every rate in it, not just the winner.
+    poolRateType: (items || []).find((i) => i && i.rateType)?.rateType ?? null,
+    flatPool: (items || []).some((i) => i && i.rateType === 'flat'),
     annualSaving: b.annualSaving,
     monthlySaving: b.monthlySaving,
     // Term loans only: the saving over the whole schedule, plus the payments it

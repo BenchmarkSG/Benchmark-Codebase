@@ -131,6 +131,10 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
   const [productId, setProductId] = useState(savedCalc?.productId ?? null);
   const [values, setValues] = useState(savedCalc?.values || {});
   const [result, setResult] = useState(savedCalc?.result || null);
+  // The provider named when this result was computed. Kept apart from `values`
+  // because the desktop layout shows the form alongside the result — changing
+  // the dropdown afterwards must not relabel numbers it didn't produce.
+  const [resultBank, setResultBank] = useState(savedCalc?.values?.bank || '');
   // Lets the product-selection effect below keep restored values on its first
   // run instead of clobbering them with defaults.
   const keepRestored = useRef(!!savedCalc);
@@ -301,6 +305,9 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
       ...result,
       currency: result.currency || localCcy,
       segment,
+      // The machine-readable product id. `result.product` is the display label;
+      // leads and the admin booking list want the id that matches the catalog.
+      productId: product.id,
       benchmarkId: savedId || undefined,
     };
   }
@@ -355,7 +362,9 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
         const m = values[product.metricKey];
         payload.yourRate = m === '' || m == null ? undefined : Number(m);
       }
-      setResult(await calcBenchmark(payload));
+      const data = await calcBenchmark(payload);
+      setResultBank(values.bank || '');
+      setResult(data);
     } catch (err) {
       setError(err.message || 'Something went wrong calculating your benchmark.');
     } finally {
@@ -454,6 +463,7 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
             <div className="calcbox__result">
               {!result ? <Placeholder /> : (
                 <Result result={result} product={product} compact={compact} localCcy={localCcy}
+                  yourBank={resultBank}
                   onReveal={revealCurrent}
                   unlockedTier={unlockedTierFor(revealContext())}
                   onCrossSell={crossSellNext} canCrossSell={segmentProducts.length > 1}
@@ -475,7 +485,7 @@ function standingText(result) {
   return `better than ${result.percentileBeaten}% of the ${result.poolSize} providers we benchmark`;
 }
 
-function Result({ result, product, compact, localCcy, onReveal, onCrossSell, canCrossSell, onDetailedFeedback, isAuthed, saveState, onSave, unlockedTier = null }) {
+function Result({ result, product, compact, localCcy, yourBank = '', onReveal, onCrossSell, canCrossSell, onDetailedFeedback, isAuthed, saveState, onSave, unlockedTier = null }) {
   const [revealErr, setRevealErr] = useState('');
   const [revealBusy, setRevealBusy] = useState(false);
   // Not signed in? onReveal opens the sign-in modal and stashes this result, so
@@ -508,6 +518,14 @@ function Result({ result, product, compact, localCcy, onReveal, onCrossSell, can
   // The server says which, so the client never has to infer it from the product.
   const moneyMetric = result.metricMode === 'amount';
   const fmtMetric = (v) => (moneyMetric ? formatMoney(Number(v), ccy) : `${v}%`);
+  // Name the user's own provider back to them when they picked one. The field
+  // is optional and carries an "Other / not listed" entry, neither of which
+  // names a bank — those keep the generic wording.
+  const namedBank = yourBank && yourBank !== 'Other' ? yourBank : '';
+  const yourLabel = crossBorder ? 'Your all-in cost'
+    : moneyMetric ? 'What you pay now'
+    : namedBank ? `Your Bank (${namedBank}) Rate`
+    : 'Your bank’s rate';
   // How the best rate was published. A lender that prints "8.00%–9.50%" is
   // represented by the midpoint and marked "~"; one that prints "from 7.50%"
   // keeps the floor and is labelled "from". A plain figure was published as
@@ -569,11 +587,11 @@ function Result({ result, product, compact, localCcy, onReveal, onCrossSell, can
 
           <div className="res__cmp">
             <div className="res__cmp-row">
-              <span className="res__cmp-label">{crossBorder ? 'Your all-in cost' : moneyMetric ? 'What you pay now' : 'Your bank’s rate'}</span>
+              <span className="res__cmp-label">{yourLabel}</span>
               <span className="res__cmp-val">{fmtMetric(result.yourRate)}</span>
             </div>
             <div className="res__cmp-row">
-              <span className="res__cmp-label">Best available</span>
+              <span className="res__cmp-label">Best Bank Available Rate</span>
               <span className="res__cmp-val">{fmtBest(result.benchmarkRate)}</span>
             </div>
           </div>
@@ -596,7 +614,16 @@ function Result({ result, product, compact, localCcy, onReveal, onCrossSell, can
       )}
       {/* Say what a "~" or a "from" means the moment one is on screen — the
           number is honest only if the reader knows what kind of number it is. */}
-      {(bestBasis !== 'exact' || result.approxPool) && (
+      {/* A flat rate is not an effective rate — on the same loan it reads about
+          half as large. Say so before the reader compares it with their own. */}
+      {result.flatPool && (
+        <p className="res__basis res__basis--warn">
+          These are <strong>flat rates</strong>: interest on the original amount for the whole
+          tenor, which is how car loans are advertised here. On the same loan a flat rate looks
+          about half the size of an effective rate — compare it with your own flat rate, not your EIR.
+        </p>
+      )}
+      {(bestBasis !== 'exact' || result.approxPool || result.floatingPool) && (
         <p className="res__basis">
           {bestBasis === 'range' && (
             <>~ marks the midpoint of the range this lender publishes
@@ -604,6 +631,14 @@ function Result({ result, product, compact, localCcy, onReveal, onCrossSell, can
               ; the rate you are offered depends on your profile. </>
           )}
           {bestBasis === 'from' && <>“From” is this lender's lowest advertised rate — what its best-profile borrowers get. </>}
+          {/* A floating rate is a formula, not a promise. Show the two parts, so
+              the reader can see which half their bank can actually move. */}
+          {result.benchmarkIndex && (
+            <>This is a floating rate: <strong>{result.benchmarkIndex} + {result.benchmarkSpread}%</strong>
+              {result.benchmarkIndexValue != null && <>, and {result.benchmarkIndex} is {result.benchmarkIndexValue}% today</>}
+              . It moves when the index does — the spread is the part you negotiate. </>
+          )}
+          {!result.benchmarkIndex && result.floatingPool && <>Some rates in this pool track an index, so they move over time. </>}
           {result.approxPool && <>Some rates in this pool are published as ranges or floors, so the typical figure is approximate.</>}
         </p>
       )}

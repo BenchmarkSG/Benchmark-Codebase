@@ -25,6 +25,32 @@ const isDue = (r) => {
 };
 const FRESHNESS_COL = { key: 'updated_at', label: 'Last verified', type: 'freshness' };
 
+// leads.source → the option the user actually clicked in the reveal modal.
+const OPTION_LABELS = { call: 'Option 2 · Call', expert: 'Option 3 · Expert' };
+// The five values leads.stage allows (supabase/dashboards.sql).
+const LEAD_STAGES = ['new', 'contacted', 'negotiating', 'closed_won', 'closed_lost'];
+
+// Date + time, in the admin's own zone. Slots are the one place in the portal
+// where the hour matters, so formatDate (date-only) isn't enough.
+const SLOT_FMT = new Intl.DateTimeFormat('en-GB', {
+  day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false,
+});
+
+/* Three distinct states, and they mean different things to whoever is
+   monitoring: no slot picked yet, a slot picked but not yet resolved to a time
+   (Calendly only hands the browser an opaque URI — scripts/sync-calendly.mjs
+   fills the real one), and a known time. Never guess at the middle one. */
+function slotLabel(r) {
+  if (r.slot_start) {
+    const d = new Date(r.slot_start);
+    return Number.isNaN(d.getTime()) ? '—' : SLOT_FMT.format(d);
+  }
+  if (r.booked_at) return `Booked ${formatDate(r.booked_at)} · time syncing…`;
+  // Leads filed before slots were tracked: we know they booked, not when.
+  if (r.booked) return 'Booked · time not captured';
+  return 'Not booked yet';
+}
+
 // Which tables the portal can edit, and how each row is shown/edited.
 // NOTE: overdraft and loan/trade-finance rates now live in the unified
 // `product_rates` table (the "Product rates" section). The old `overdraft_rates`
@@ -109,8 +135,39 @@ const SECTIONS = [
     ],
   },
   {
+    // Who took Option 2 (coaching call) or Option 3 (expert), which specialist
+    // they picked, and the slot they booked. Rows are `leads`; the reveal-tier
+    // rows (source 'reveal') are filtered out — those aren't bookings.
+    key: 'bookings', title: 'Bookings (Options 2 & 3)', table: 'leads', pk: 'id',
+    select: 'id, source, advisor_id, advisor_name, segment, product_label, annual_saving, '
+      + 'full_name, email, phone, stage, booked, booked_at, slot_start, calendly_event_uri, created_at',
+    // Everything supabase/bookings.sql adds. Until that's run the tab still
+    // works, minus the advisor snapshot and the slot.
+    selectFallback: 'id, source, advisor_id, segment, product_label, annual_saving, '
+      + 'full_name, email, phone, stage, booked, created_at',
+    migrationNote: 'Run supabase/bookings.sql in the Supabase SQL editor to fill in the Advisor and Time slot columns.',
+    where: (q) => q.in('source', ['call', 'expert']),
+    order: 'created_at', desc: true,
+    emptyText: 'No calls or expert bookings yet.',
+    columns: [
+      { key: 'created_at', label: 'Paid', get: (r) => (r.created_at ? formatDate(r.created_at) : '—') },
+      { key: 'source', label: 'Option', get: (r) => OPTION_LABELS[r.source] || r.source },
+      { key: 'full_name', label: 'User' },
+      { key: 'email', label: 'Email' },
+      { key: 'phone', label: 'Phone' },
+      // Snapshotted at selection: advisor_id is null for coaching calls and for
+      // the sample specialists, so the id alone can't name who they picked.
+      { key: 'advisor_name', label: 'Advisor', get: (r) => r.advisor_name || (r.source === 'call' ? 'FeeOptima specialist' : '—') },
+      { key: 'product_label', label: 'Product' },
+      { key: 'annual_saving', label: 'Saving/yr', get: (r) => (r.annual_saving == null ? '—' : Math.round(r.annual_saving).toLocaleString()) },
+      { key: 'slot_start', label: 'Time slot', get: (r) => slotLabel(r) },
+      { key: 'stage', label: 'Pipeline', type: 'select', options: LEAD_STAGES, editable: true },
+      { key: 'calendly_event_uri', label: 'Calendly', type: 'link' },
+    ],
+  },
+  {
     key: 'advisors', title: 'Advisor applications', table: 'advisors', pk: 'id',
-    select: 'id, full_name, email, phone, serves, specialization, company, years_experience, products, photo_url, status, created_at',
+    select: 'id, full_name, email, phone, serves, specialization, company, years_experience, products, photo_url, calendly_url, status, created_at',
     order: 'created_at', desc: true, emptyText: 'No advisor applications yet.',
     columns: [
       { key: 'full_name', label: 'Name / Company' },
@@ -122,6 +179,12 @@ const SECTIONS = [
       { key: 'years_experience', label: 'Yrs' },
       { key: 'products', label: 'Products', get: (r) => (r.products || []).join(', ') },
       { key: 'photo_url', label: 'Photo', type: 'link' },
+      // Editable here because it's the fastest place to fix the gap this column
+      // exists to expose: without a link, this advisor's bookings fall through
+      // to the house Calendly account. supabase/advisor_calendly.sql refuses an
+      // `approved` row that hasn't got one.
+      { key: 'calendly_url', label: 'Scheduling link', type: 'text', editable: true,
+        get: (r) => r.calendly_url || '⚠ none — bookings go to the house link' },
       // pending | approved | rejected — the three values advisors.status allows
       // (supabase/advisors.sql). A dropdown so a typo can't create a fourth.
       { key: 'status', label: 'Status', type: 'select', options: ADVISOR_STATUSES, editable: true },
@@ -215,23 +278,47 @@ function Section({ config, country }) {
   const [query, setQuery] = useState('');
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkMsg, setBulkMsg] = useState(null); // { tone: 'ok'|'err', text }
+  const [notice, setNotice] = useState('');    // e.g. a migration that hasn't been run
 
   const load = useCallback(async () => {
-    setRows(null); setError('');
-    let q = supabase.from(config.table).select(config.select);
-    if (config.byCountry && country) q = q.eq(config.byCountry, country);
-    if (config.order) q = q.order(config.order, { ascending: !config.desc });
-    q = q.limit(ROW_LIMIT);
-    const { data, error } = await q;
+    setRows(null); setError(''); setNotice('');
+    const run = (select) => {
+      let q = supabase.from(config.table).select(select);
+      if (config.where) q = config.where(q);
+      if (config.byCountry && country) q = q.eq(config.byCountry, country);
+      if (config.order) q = q.order(config.order, { ascending: !config.desc });
+      return q.limit(ROW_LIMIT);
+    };
+    let { data, error } = await run(config.select);
+    // A section can ship ahead of its migration. Rather than showing the admin a
+    // raw Postgres error on a tab that otherwise works, drop to the columns that
+    // do exist and say plainly what's missing.
+    if (error && config.selectFallback && /does not exist|42703|PGRST204/i.test(error.message)) {
+      ({ data, error } = await run(config.selectFallback));
+      if (!error) setNotice(config.migrationNote || 'Some columns are missing — a migration is pending.');
+    }
     if (error) setError(error.message);
     else setRows(data);
   }, [config, country]);
 
   useEffect(() => { load(); }, [load]);
 
-  const rlsError = (error) => (/row-level security/i.test(error.message)
-    ? new Error('Write blocked by RLS — run supabase/admin.sql and sign in as the admin.')
-    : error);
+  // Turn the two constraint names an admin can realistically trip into plain
+  // English. A raw Postgres violation here reads as "the portal is broken"
+  // rather than "you skipped a step".
+  const rlsError = (error) => {
+    const msg = error.message || '';
+    if (/row-level security/i.test(msg)) {
+      return new Error('Write blocked by RLS — run supabase/admin.sql and sign in as the admin.');
+    }
+    if (/advisors_approved_needs_calendly_chk/.test(msg)) {
+      return new Error('Add this advisor’s Calendly link before approving them — without one, their bookings land in the house calendar instead of theirs.');
+    }
+    if (/advisors_calendly_url_chk/.test(msg)) {
+      return new Error('That isn’t a Calendly booking link. It has to look like https://calendly.com/name/event — clients book through Calendly’s embedded widget, which only drives calendly.com URLs.');
+    }
+    return error;
+  };
 
   const onSave = async (row, patch) => {
     const { error } = await supabase.from(config.table).update(patch).eq(config.pk, row[config.pk]);
@@ -322,6 +409,7 @@ function Section({ config, country }) {
         />
         {rows.length >= ROW_LIMIT && <span className="adm-controls__note">Showing first {ROW_LIMIT} — refine with search.</span>}
       </div>
+      {notice && <div className="adm-notice" role="status">{notice}</div>}
       {config.verifiable && (
         <div className="adm-freshbar">
           <span className={`adm-freshbar__count ${dueCount ? 'is-due' : ''}`}>
@@ -360,6 +448,10 @@ function Section({ config, country }) {
         columns={config.columns}
         rows={visibleRows}
         rowKey={(r) => r[config.pk]}
+        // Generated rows (scripts/seed-rates.mjs) are never served to users, but
+        // they sit in the same table as sourced ones. Tint them so nobody reads
+        // an invented figure as a real rate while checking coverage here.
+        rowClass={(r) => (r.is_indicative ? 'adm-row--indicative' : '')}
         onSave={onSave}
         onVerify={config.verifiable ? onVerify : undefined}
         emptyLabel={emptyLabel}

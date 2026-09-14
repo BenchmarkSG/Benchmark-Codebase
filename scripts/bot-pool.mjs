@@ -8,8 +8,17 @@
  *
  *   /LoanRate/v2/loan_rate/        per bank → MLR→housing_loan, MRR→personal_loan,
  *                                             MOR→overdraft
- *   /DepositRate/v2/deposit_rate/  per bank → 12M fixed→fixed_deposit,
- *                                             savings→current_account (credit-interest proxy)
+ *   /DepositRate/v2/deposit_rate/  per bank → 12M fixed→fixed_deposit
+ *
+ * NOT current_account. Thai current accounts (บัญชีกระแสรายวัน) are cheque
+ * accounts and pay no credit interest, which is why BOT's per-bank deposit
+ * publication has no current/demand-deposit field at all — only savings and
+ * fixed 3/6/12/24m. This script used to map the individual SAVINGS rate onto
+ * current_account as a "proxy"; that dressed a 0.10–1.00% personal savings rate
+ * up as SME current-account credit interest, which no Thai SME can earn. The
+ * catalog only offers current_account in SG (benchmark.js `onlyCountries`), so
+ * the rows were never shown — but they were wrong, and one line in the catalog
+ * would have exposed them. Removed 12 Sep 2026.
  *
  * Scope & safety:
  *   • Domestic commercial banks only (foreign bank branches are excluded — they
@@ -35,7 +44,7 @@ const BOT_BASE = process.env.BOT_API_BASE || 'https://gateway.api.bot.or.th';
 const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const COUNTRY = 'TH', CURRENCY = 'THB';
-const POOL_PRODUCTS = ['housing_loan', 'personal_loan', 'overdraft', 'fixed_deposit', 'current_account'];
+const POOL_PRODUCTS = ['housing_loan', 'personal_loan', 'overdraft', 'fixed_deposit'];
 
 const num = (v) => { const n = Number(v); return v === '' || v == null || !Number.isFinite(n) ? null : n; };
 const round3 = (n) => Math.round(n * 1000) / 1000;
@@ -90,9 +99,9 @@ async function buildRows() {
     add('overdraft', 'mor');
   }
 
-  // Deposit: 12-month fixed → fixed_deposit; savings → current_account (credit
-  // interest — individual savings used as a proxy for account credit interest).
-  // Both are yields (higher is better), taken as the midpoint of the min–max band.
+  // Deposit: 12-month fixed → fixed_deposit. A yield (higher is better), taken as
+  // the midpoint of the min–max band. The savings rate BOT also publishes is
+  // deliberately NOT mapped to anything — see the note at the top of this file.
   const dep = latestDomesticRows((await botGet('/DepositRate/v2/deposit_rate/', win))?.result?.data?.data_detail);
   const mid = (lo, hi) => (lo != null && hi != null ? (lo + hi) / 2 : (hi ?? lo));
   for (const r of dep.rows) {
@@ -100,7 +109,6 @@ async function buildRows() {
     if (!bank) continue;
     const yieldRow = (product, v) => { if (v != null && v > 0) out.push({ country_code: COUNTRY, product, bank, currency: CURRENCY, rate: round3(v), rate_type: 'yield', is_indicative: false }); };
     yieldRow('fixed_deposit', mid(num(r.fix_12_mths_min), num(r.fix_12_mths_max)));
-    yieldRow('current_account', mid(num(r.saving_min), num(r.saving_max)));
   }
 
   return { out, loanPeriod: loan.period, depPeriod: dep.period };

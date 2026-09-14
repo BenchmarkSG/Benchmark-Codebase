@@ -6,7 +6,7 @@ import { useAdvisorRow } from '../hooks/useAdvisorRow.js';
 import { formatMoney } from '../api.js';
 import { ADVISOR_SEGMENTS, ADVISOR_PRODUCTS, ADVISOR_SPECIALIZATIONS } from '../lib/advisorFields.js';
 import { listAssignedLeads, updateLead, updateMyAdvisor } from '../lib/dashboardApi.js';
-import { safeHttpUrl } from '../lib/safeUrl.js';
+import { safeHttpUrl, calendlyUrl } from '../lib/safeUrl.js';
 import { formatDate } from '../lib/formatDate.js';
 import { friendlyError } from '../lib/friendlyError.js';
 import AccountSettings from './AccountSettings.jsx';
@@ -480,6 +480,13 @@ function ProfileEditor({ advisor, onSaved }) {
 
   const save = async (e) => {
     e.preventDefault();
+    // Not optional: this link IS how clients reach you. Clearing it would drop
+    // your bookings into the house scheduling link instead of your calendar.
+    const cal = calendlyUrl(form.calendly_url);
+    if (!cal) {
+      setError('Add your Calendly scheduling link (e.g. https://calendly.com/your-name/intro) — clients book their call through it.');
+      return;
+    }
     setBusy(true); setError(''); setSaved(false);
     try {
       await updateMyAdvisor(advisor.id, {
@@ -488,7 +495,7 @@ function ProfileEditor({ advisor, onSaved }) {
         serves: form.serves,
         specialization: form.specialization || null,
         description: form.description.trim() || null,
-        calendly_url: form.calendly_url.trim() || null,
+        calendly_url: cal,
         products,
       });
       setSaved(true);
@@ -518,8 +525,9 @@ function ProfileEditor({ advisor, onSaved }) {
             {ADVISOR_SPECIALIZATIONS.map((s) => <option key={s} value={s}>{s}</option>)}
           </select></label>
       </div>
-      <label className="aprof__field"><span>Calendly / scheduling link</span>
-        <input value={form.calendly_url} onChange={set('calendly_url')} placeholder="https://calendly.com/you/intro" /></label>
+      <label className="aprof__field"><span>Calendly scheduling link <em className="aprof__req" aria-hidden="true">*</em></span>
+        <input type="url" required value={form.calendly_url} onChange={set('calendly_url')} placeholder="https://calendly.com/you/intro" />
+        <small className="aprof__hint">Clients book straight into your calendar through this. Without it we can’t show you in the expert picker.</small></label>
       <label className="aprof__field"><span>Bio</span>
         <textarea rows={3} value={form.description} onChange={set('description')} placeholder="Your background, notable deals, how you help clients." /></label>
 

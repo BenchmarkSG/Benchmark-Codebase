@@ -49,10 +49,12 @@ function FreshnessChip({ value }) {
 }
 
 /* Generic table with per-row inline editing.
+   rowClass(row) optionally tags a <tr> — used to mark generated rows, so an
+   invented figure can never be mistaken for a sourced one at a glance.
    columns: [{ key, label, type?: 'number'|'boolean'|'text'|'select', editable?, step?, get?, options? }]
    'select' renders a dropdown from `options` — plain strings, or { value, label }.
    onSave(row, patch) must persist and resolve; throws to surface an error. */
-export default function EditableTable({ columns, rows, rowKey, onSave, onVerify, emptyLabel = 'Nothing to show yet.' }) {
+export default function EditableTable({ columns, rows, rowKey, onSave, onVerify, emptyLabel = 'Nothing to show yet.', rowClass }) {
   const [editing, setEditing] = useState(null);
   const [draft, setDraft] = useState({});
   const [busyKey, setBusyKey] = useState(null); // per-row, so one save doesn't disable every row
@@ -133,7 +135,7 @@ export default function EditableTable({ columns, rows, rowKey, onSave, onVerify,
             const rowBusy = busyKey === k;
             return (
               <Fragment key={k}>
-                <tr className={savedKey === k ? 'adm-saved' : ''}>
+                <tr className={[savedKey === k ? 'adm-saved' : '', rowClass?.(row) || ''].filter(Boolean).join(' ')}>
                   {columns.map((c) => (
                     <td key={c.key} data-label={c.label}>
                       {isEditing && c.editable ? (

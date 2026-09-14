@@ -1,0 +1,41 @@
+name: Sync booked slots
+
+# Turns the Calendly event URIs captured in the browser into real start times on
+# public.leads, so the admin portal's "Bookings (Options 2 & 3)" tab shows the
+# slot a user actually picked.
+#
+# Calendly's widget only tells the page THAT a booking happened — the time has to
+# be read back from Calendly's API. Without CALENDLY_TOKEN the script no-ops
+# cleanly (exit 0) and the run still passes, so this can be merged before the
+# integration is set up.
+
+on:
+  schedule:
+    - cron: '15 */6 * * *' # every 6 hours — a slot booked today may be tomorrow
+  workflow_dispatch: {}    # allow manual runs from the Actions tab
+
+concurrency:
+  group: calendly-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22          # 22+ required: @supabase/supabase-js needs native WebSocket
+          cache: npm
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Resolve booked slots
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # Calendly personal access token. Unset → the script skips cleanly.
+          CALENDLY_TOKEN: ${{ secrets.CALENDLY_TOKEN }}
+        run: npm run sync:calendly

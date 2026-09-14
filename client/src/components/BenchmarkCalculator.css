@@ -352,7 +352,7 @@
 .res__cmp {
   margin-top: 22px;
   display: grid;
-  grid-template-columns: max-content max-content;
+  grid-template-columns: auto max-content;
   justify-content: center;
   align-items: center;
   column-gap: 14px;
@@ -512,6 +512,13 @@
 .calcbox__textarea { width: 100%; min-width: 0; max-width: 100%; }
 
 /* What a "~" or a "from" on the best rate means — shown only when one is. */
+.res__basis--warn {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-line);
+  color: var(--warn-ink);
+  border-radius: 10px;
+  padding: 9px 11px;
+}
 .res__basis {
   margin: 8px 0 0;
   font-size: 12px;

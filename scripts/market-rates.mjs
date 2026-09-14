@@ -10,6 +10,7 @@
  *   SG  MAS  — aggregate Domestic Interest Rates          (no key; occasional maintenance)
  *   MY  BNM  — per-bank base/lending rates + OPR           (no key)         api.bnm.gov.my
  *   TH  BOT  — per-bank loan (MOR/MLR/MRR) + deposit rates  (needs BOT_API_KEY) gateway.api.bot.or.th
+ *   US  NY Fed — SOFR, the USD overnight benchmark              (no key)  markets.newyorkfed.org
  *   IN  RBI  — no official public rate API  → directory only
  *   ID  BI/OJK — no official public rate API → directory only
  *
@@ -170,8 +171,52 @@ async function botSource() {
     : { status: `down: no rows (${detail})`, rows: [] };
 }
 
+// ============================ US — NY Fed (SOFR) ===========================
+/* SOFR — the secured overnight financing rate, the USD benchmark that replaced
+   USD LIBOR. Published every US business day by the New York Fed, keyless. Use
+   this rather than FRED: api.stlouisfed.org answers 400 without an API key, and
+   a credential we have to register and rotate is a worse dependency than one we
+   don't.
+
+   Stored under country 'US' because the rate is not market-specific — a
+   Singapore SME's USD balance and an Indian one's compare against the same
+   number, so it is one row read explicitly, not a copy per country. `product`
+   is current_account: that is the balance this benchmarks. It is an INDEX, not
+   an offer — no bank pays SOFR on a current account — so it belongs on the
+   reference line, never in a per-bank pool. */
+const NYFED_SOFR = 'https://markets.newyorkfed.org/api/rates/secured/sofr/last/5.json';
+
+async function sofrSource() {
+  let json;
+  try {
+    const res = await fetch(NYFED_SOFR, { headers: { Accept: 'application/json' } });
+    if (!res.ok) return { status: `down: HTTP ${res.status}`, rows: [] };
+    json = await res.json();
+  } catch (e) {
+    return { status: `down: ${e.message}`, rows: [] };
+  }
+  // Newest first in practice, but sort rather than trust it — and take the last
+  // five so a US holiday (no publication) still yields the most recent figure.
+  const obs = (json?.refRates || [])
+    .filter((r) => r?.type === 'SOFR' && Number.isFinite(Number(r.percentRate)))
+    .sort((a, b) => String(b.effectiveDate).localeCompare(String(a.effectiveDate)));
+  if (!obs.length) return { status: 'down: no SOFR observations returned', rows: [] };
+
+  const r = obs[0];
+  return {
+    status: `ok (SOFR ${r.percentRate}% on ${r.effectiveDate}, $${r.volumeInBillions}bn volume)`,
+    rows: [ref('US', 'current_account', Number(r.percentRate), '% p.a.', 'NY Fed',
+      'SOFR — secured overnight financing rate', r.effectiveDate)],
+  };
+}
+
 // ============================ Registry =====================================
-const SOURCES = { SG: { name: 'MAS', fn: masSource }, MY: { name: 'BNM', fn: bnmSource }, TH: { name: 'BOT', fn: botSource } };
+const SOURCES = {
+  SG: { name: 'MAS', fn: masSource },
+  MY: { name: 'BNM', fn: bnmSource },
+  TH: { name: 'BOT', fn: botSource },
+  US: { name: 'NY Fed', fn: sofrSource },
+};
 const NO_API = {
   IN: 'RBI — no official public rate API (directory only; scrape/license for rates)',
   ID: 'BI / OJK — no official public rate API (directory only; scrape/license for rates)',

@@ -14,6 +14,7 @@ What *is* automatable is **central-bank data**, and it varies by country:
 | 🇸🇬 Singapore | **MAS** | ✅ (no key) | Aggregate Domestic Interest Rates (FD, prime lending, savings). Occasional maintenance. |
 | 🇲🇾 Malaysia | **BNM** | ✅ (no key) | **Per-bank** base rate / BLR / indicative effective lending rate + OPR. |
 | 🇹🇭 Thailand | **BOT** | ✅ (needs key) | Per-bank loan rates — **MOR→overdraft, MLR→housing, MRR→personal** — + 12M deposit → FD, and policy rate. Gateway `gateway.api.bot.or.th`; register an app at `portal.api.bot.or.th` and subscribe it to **Interest Rates**. |
+| 🇺🇸 USD (NY Fed) | **NY Fed** | ✅ (no key) | **SOFR**, the USD overnight benchmark that replaced USD LIBOR — every US business day from `markets.newyorkfed.org`. The reference for a USD balance, since no local regulator publishes one. |
 | 🇮🇳 India | RBI | ❌ | No official public rate API — directory only (scrape/license for rates). |
 | 🇮🇩 Indonesia | BI / OJK | ❌ | No official public rate API — directory only. |
 | — FX mid-market | ECB (Frankfurter) | ✅ | Cross-border product, [server/fx.js](server/fx.js). No key. |
@@ -39,8 +40,10 @@ so the compared-against set is real data, not synthetic:
 
 - **🇹🇭 Thailand — `scripts/bot-pool.mjs`** (`npm run pool:th`). Each bank's BOT
   loan & deposit rates → MLR→`housing_loan`, MRR→`personal_loan`, MOR→`overdraft`,
-  12M fixed→`fixed_deposit`, savings→`current_account` (credit-interest proxy).
-  Domestic commercial banks only (~18). Needs `BOT_API_KEY`. **5 of 9 products.**
+  12M fixed→`fixed_deposit`. Domestic commercial banks only (~17). Needs
+  `BOT_API_KEY`. **4 of 8 products.** BOT's savings rate is deliberately not
+  mapped: it used to feed `current_account`, but Thai current accounts pay no
+  credit interest (see DATA_GAPS.md, 12 Sep 2026).
 - **🇲🇾 Malaysia — `scripts/bnm-pool.mjs`** (`npm run pool:my`). Each bank's BNM
   indicative effective lending rate → `housing_loan` (~34 banks). Keyless. (BR/BLR
   are reference floors, not products, so they're not mapped; MY personal/OD/FD have
@@ -96,6 +99,9 @@ blip just skips that country and leaves the DB untouched — the run still succe
   `https://gateway.api.bot.or.th`. The app must be subscribed to the **Interest Rates**
   product (Loan + Deposit + Policy Rate endpoints).
 - MY: none — BNM needs no key.
+- US: none — the NY Fed SOFR endpoint is keyless. (FRED, `api.stlouisfed.org`,
+  answers **400** without an API key, so it is deliberately not used: a
+  credential to register and rotate is a worse dependency than one we don't need.)
 
 ### Keeping it fresh (GitHub Action)
 [`.github/workflows/market-rates.yml`](.github/workflows/market-rates.yml) runs

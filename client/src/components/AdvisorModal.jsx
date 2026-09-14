@@ -6,10 +6,12 @@ import { useModalA11y } from '../hooks/useModalA11y.js';
 import { useConfirm } from './ConfirmProvider.jsx';
 import { friendlyError } from '../lib/friendlyError.js';
 import { firstInvalidField, validationMessage } from '../lib/validateForm.js';
+import { calendlyUrl } from '../lib/safeUrl.js';
 
 const EMPTY = {
   full_name: '', email: '', phone: '', serves: '',
   years_experience: '', company: '', specialization: '',
+  calendly_url: '',
   description: '', contact_consent: false, accepted_terms: false,
 };
 
@@ -32,7 +34,7 @@ export default function AdvisorModal({ open, onClose }) {
     if (busy) return;
     const dirty = !done && (
       form.full_name || form.email || form.phone || form.company || form.serves ||
-      form.years_experience || form.specialization || form.description ||
+      form.years_experience || form.specialization || form.calendly_url || form.description ||
       products.length || photo || form.contact_consent || form.accepted_terms
     );
     if (dirty && !(await confirm({
@@ -70,6 +72,16 @@ export default function AdvisorModal({ open, onClose }) {
     if (!isSupabaseConfigured) return setError('Applications aren’t available yet — Supabase isn’t configured.');
     const bad = firstInvalidField(formRef.current);
     if (bad) { setError(validationMessage(bad)); bad.focus(); return; }
+    // Required, and required to be a Calendly link specifically: clients book
+    // through Calendly's embedded widget, and it only drives calendly.com URLs.
+    // Without one, every booking for this advisor silently fell through to the
+    // house scheduling link and landed in the wrong calendar.
+    const cal = calendlyUrl(form.calendly_url);
+    if (!cal) {
+      setError('Please enter your Calendly scheduling link (e.g. https://calendly.com/your-name/intro). Clients book their call through it.');
+      formRef.current?.querySelector('[name="calendly_url"]')?.focus();
+      return;
+    }
     if (!form.accepted_terms) return setError('Please accept the Terms & Conditions to continue.');
     setBusy(true);
     try {
@@ -93,6 +105,7 @@ export default function AdvisorModal({ open, onClose }) {
         years_experience: form.years_experience === '' ? null : Number(form.years_experience),
         company: form.company.trim() || null,
         specialization: form.specialization || null,
+        calendly_url: cal,
         description: form.description.trim() || null,
         photo_url,
         contact_consent: form.contact_consent,
@@ -175,6 +188,19 @@ export default function AdvisorModal({ open, onClose }) {
                   <option value="">Select an area…</option>
                   {ADVISOR_SPECIALIZATIONS.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
+              </label>
+
+              <label className="adv__field">
+                <span>Calendly scheduling link <em className="adv__req" aria-hidden="true">*</em></span>
+                <input
+                  type="url" name="calendly_url" required
+                  value={form.calendly_url} onChange={set('calendly_url')}
+                  placeholder="https://calendly.com/your-name/intro"
+                />
+                <small className="adv__filehint">
+                  Clients book their call straight into your calendar through this link — we can’t match you without it.
+                  Free to set up at <a href="https://calendly.com" target="_blank" rel="noopener noreferrer">calendly.com</a>.
+                </small>
               </label>
 
               <fieldset className="adv__field adv__fieldset">

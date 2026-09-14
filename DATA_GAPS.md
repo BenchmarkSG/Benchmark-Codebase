@@ -24,13 +24,20 @@ invention.
 Set `RATES_REAL_ONLY=false` to serve indicative rows again during the transition —
 they are then labelled `indicative` in the response, never unmarked.
 
-**Coverage as of 12 Sep 2026: 15 of 50 country×product pools serve real data**
-— 🇹🇭 Thailand (5 products, BOT), 🇲🇾 Malaysia (housing loan, BNM; fixed
+**Coverage as of 12 Sep 2026: 14 of 42 country×product pools serve real data**
+— 🇹🇭 Thailand (4 products, BOT), 🇲🇾 Malaysia (housing loan, BNM; fixed
 deposit, 5 banks), 🇸🇬 Singapore (fixed deposit, 10 banks; personal loan, 7),
 🇮🇳 India (fixed deposit, 10 banks; housing loan, 9; personal loan, 9; vehicle
-loan, 6), 🇮🇩 Indonesia (housing and personal loans, 5 banks each). The loan pools carry ranges and floors — see the
-next section. Everything else returns "no data yet" — see the scraped-sources
-section for what is reachable and what is not.
+loan, 6), 🇮🇩 Indonesia (housing and personal loans, 5 banks each). 164 real rows.
+The loan pools carry ranges and floors — see the next section. Everything else
+returns "no data yet" — see the scraped-sources section for what is reachable
+and what is not.
+
+> The denominator is **42, not 5×10=50**: `current_account` is SG-only and
+> `current_account_fees` is IN-only (`onlyCountries` in the catalog), so eight of
+> the fifty grid cells are products those markets don't have. Counting them made
+> coverage look worse than it is and invited exactly the mistake fixed on
+> 12 Sep — loading rows for a product a country doesn't offer.
 
 ## Loans published as ranges and floors (11 Sep 2026)
 
@@ -97,6 +104,43 @@ dated 2019, and both it and BankBazaar disagree with the banks on several rows):
   the EIR is. MoneySmart's comparison table was checked and *not* used: it
   disagrees with DBS (2.84 vs the bank's 3.22) and shows an exclusive promo for
   GXS (1.84 vs the bank's 5.45).
+
+## Floating rates: index + spread (13 Sep 2026)
+
+Most loan pricing here is a formula, not a number. A Singapore mortgage is
+quoted **"3M SORA + 0.30%"**, an Indian retail loan as **RLLR + spread**,
+Thailand's as MLR/MRR, Indonesia's SBDK as a base rate the customer's margin
+sits on. Storing only the all-in figure threw away the half that differs between
+banks — and implied the rate was permanent.
+
+- **Storage** — [supabase/floating_rate.sql](supabase/floating_rate.sql) adds
+  `rate_index` (what it tracks, named as the lender names it), `index_value`
+  (the level used for `rate`) and `spread` (the bank's margin). All three or
+  none, and `rate = index_value + spread` is enforced by a check constraint, so
+  the pool can never disagree with the formula shown beside it. `rate` keeps
+  carrying the comparable number, so every existing reader is unaffected.
+- **Loading** — `import-pool.mjs` takes the three columns. Leave `rate` blank and
+  it is computed from the parts; fill it and a mismatch is rejected.
+- **Serving** — items carry `index` / `indexValue` / `spread`;
+  `buildBenchmarkResult` returns `benchmarkIndex`, `benchmarkIndexValue`,
+  `benchmarkSpread` and `floatingPool` (true if ANY rate in the pool floats, even
+  when the winner is fixed — the comparison still moves).
+- **On screen** — "This is a floating rate: 3M SORA + 0.30%, and 3M SORA is 1.85%
+  today. It moves when the index does — the spread is the part you negotiate."
+
+> ⚠️ **The schema is live; Singapore home loans still have no source.** Checked
+> 13 Sep 2026: DBS and UOB publish no package pricing on their rate pages, and
+> none of the three aggregators suggested carries per-bank rates in a readable
+> form — **MoneySense** is a government education site with no rate section,
+> **Redbrick** serves the same blog listing for every URL including
+> `/package-new-loan/`, and **MoneySmart**'s "Best Home Loan Rates 2026" table has
+> columns for loan type, lock-in and fees but **no rate column** (its only figure
+> is HDB's 2.6%). MoneySmart was also already rejected for personal loans, where
+> its numbers disagreed with the banks' own pages. Until a source exists, SG
+> housing stays empty — the schema is ready for it, and is already the right
+> model for IN/ID/TH/MY base-rate pricing.
+
+---
 
 ## Loading real rates — the fast path
 
@@ -366,15 +410,24 @@ via [bnm-pool.mjs](scripts/bnm-pool.mjs) (~34 banks). BR/BLR are reference floor
 
 ---
 
-## 🇹🇭 Thailand — the richest per-bank pool (5 of 9 products)
+## 🇹🇭 Thailand — the richest per-bank pool (4 of 8 products)
 
 **Fully automated, per-bank (like Malaysia):** BOT publishes each bank's rates, so
-these **five** now populate the real `product_rates` **pool** daily via
+these **four** now populate the real `product_rates` **pool** daily via
 `scripts/bot-pool.mjs` — not just the reference line:
-**MLR→housing_loan, MRR→personal_loan, MOR→overdraft, 12M→fixed_deposit,
-savings→current_account** (domestic commercial banks). `current_account` uses the
-individual savings rate as a credit-interest proxy. Only the products below remain
-gaps.
+**MLR→housing_loan, MRR→personal_loan, MOR→overdraft, 12M→fixed_deposit**
+(domestic commercial banks). Only the products below remain gaps.
+
+> **current_account removed (12 Sep 2026).** This script used to map BOT's
+> individual **savings** rate onto `current_account` as a "credit-interest proxy",
+> writing 16 rows a night. Thai current accounts (บัญชีกระแสรายวัน) are cheque
+> accounts that pay no credit interest — which is why BOT's per-bank deposit
+> endpoint has no current/demand-deposit field at all, only `saving_*` and
+> `fix_3/6/12/24_mths_*`. A 0.10–1.00% personal savings rate is not SME
+> current-account credit interest. The catalog confines `current_account` to SG,
+> so the rows were never served, but one line would have exposed them. They are
+> deleted, the mapping is gone, and `import-pool.mjs` now rejects any row for a
+> product its country doesn't offer. Re-check with `npm run prune:pool -- --dry`.
 
 | Product | Segment | Why it can't be auto-fetched | Recommended way out |
 |---------|---------|------------------------------|---------------------|

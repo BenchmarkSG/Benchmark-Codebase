@@ -440,10 +440,29 @@ const SOURCES = [
   { country: 'SG', product: 'personal_loan', bank: 'GXS Bank', render: true,
     url: 'https://www.gxs.com.sg/flexiloan',
     text: /Instalment Loan Low interest rates from [\d.]+% p\.a\. \(EIR ([\d.]+% p\.a\.)\)/i, basis: 'from', label: 'GXS FlexiLoan EIR' },
+
+  /* SG vehicle loans — FLAT rates (decision, 13 Sep 2026).
+     Singapore car loans are advertised flat: interest on the original sum for
+     the whole tenor. HLF prints both bases side by side, which is exactly why
+     flat is the comparable one — the flat rate is 2.68% at every tenor, while
+     the effective rate runs 5.81% (1y) down to 5.14% (7y). One number versus
+     seven. The 5-year row is read because it is a typical car-loan tenor; any
+     row carries the same flat figure. rateType 'flat' rides with the number so
+     it can never be shown against an effective rate. */
+  { country: 'SG', product: 'vehicle_loan', bank: 'Hong Leong Finance', render: true,
+    url: 'https://www.hlf.com.sg/personal/loans/new-car-loans.php',
+    header: /Period \(years\).*Interest Rates.*Effective Rate/i, row: /^5 /, col: 1,
+    rateType: 'flat', label: 'HLF new car 5y flat' },
 ];
 
 const CCY = { SG: 'SGD', IN: 'INR', MY: 'MYR', ID: 'IDR', TH: 'THB' };
 const RATE_TYPE = { fixed_deposit: 'yield', current_account: 'yield' };
+/* Most rates are an annualised cost ('apr') or a return ('yield'). A Singapore
+   car loan is neither: it is quoted FLAT — interest on the original sum for the
+   whole tenor, roughly half the effective rate. A source says so explicitly, and
+   the label follows the number all the way to the screen so nobody compares a
+   flat rate against an effective one. */
+const rateTypeOf = (s) => s.rateType || RATE_TYPE[s.product] || 'apr';
 
 const only = (process.argv.find((a) => /^[A-Z]{2}$/i.test(a)) || '').toUpperCase();
 const wanted = SOURCES.filter((s) => !only || s.country === only);
@@ -484,7 +503,7 @@ for (const src of wanted) {
   try {
     if (!pages.has(src.url)) pages.set(src.url, await fetchHtml(src));
     const { value, basis, low, high, evidence } = pick(pages.get(src.url), src);
-    ok.push({ ...src, rate: value, basis, low, high });
+    ok.push({ ...src, rate: value, basis, low, high, rateType: rateTypeOf(src) });
     console.log(`  ✓ ${src.country} ${src.product.padEnd(14)} ${src.bank.padEnd(22)} ${formatRate(value, basis)}`);
     console.log(`      ${evidence}`);
   } catch (e) {
@@ -520,7 +539,7 @@ for (const [cc, rows] of byCountry) {
   // rate_basis / rate_low / rate_high: how the lender published it (see
   // lib/rate-text.mjs). A range lands as its midpoint with both bounds kept.
   const csv = ['country,product,bank,rate,currency,rate_type,rate_basis,rate_low,rate_high',
-    ...rows.map((r) => `${cc},${r.product},"${r.bank}",${r.rate},${CCY[cc]},${RATE_TYPE[r.product] || 'apr'},${r.basis},${r.low ?? ''},${r.high ?? ''}`)];
+    ...rows.map((r) => `${cc},${r.product},"${r.bank}",${r.rate},${CCY[cc]},${r.rateType},${r.basis},${r.low ?? ''},${r.high ?? ''}`)];
   const file = `${OUT_DIR}/scraped-${cc}.csv`;
   writeFileSync(file, `${csv.join('\n')}\n`);
   const pools = [...new Set(rows.map((r) => r.product))];

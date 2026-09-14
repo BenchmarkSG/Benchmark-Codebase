@@ -145,18 +145,33 @@ export async function getThresholds(country) {
    for rows written before the migration, is what they are. */
 const PR_COLS = 'bank, currency, rate, rate_type, variant, is_indicative';
 const PR_BASIS_COLS = `${PR_COLS}, rate_basis, rate_low, rate_high`;
-let basisColumnsMissing = false;
+const PR_FLOAT_COLS = `${PR_BASIS_COLS}, rate_index, index_value, spread`;
+
+/* Column sets, widest first. A database that predates supabase/rate_basis.sql or
+   supabase/floating_rate.sql has no such columns; rather than take every rate
+   endpoint down, the first 42703 (undefined column) drops this process to the
+   next-narrowest set for good, filling the absent fields with what they mean for
+   a row written before that migration — a single published figure, on a fixed
+   rate, which for those rows is exactly what it is. */
+const COL_SETS = [
+  { cols: PR_FLOAT_COLS, missing: {} },
+  { cols: PR_BASIS_COLS, needs: 'floating_rate.sql', missing: { rate_index: null, index_value: null, spread: null } },
+  { cols: PR_COLS, needs: 'rate_basis.sql', missing: { rate_basis: 'exact', rate_low: null, rate_high: null, rate_index: null, index_value: null, spread: null } },
+];
+let tier = 0;
+
 async function selectProductRates(build) {
-  if (!basisColumnsMissing) {
-    const { data, error } = await build(PR_BASIS_COLS);
-    if (!error) return data;
+  for (; tier < COL_SETS.length; tier++) {
+    const { cols, missing } = COL_SETS[tier];
+    const { data, error } = await build(cols);
+    if (!error) return (data || []).map((r) => ({ ...missing, ...r }));
     if (error.code !== '42703') throw error;
-    basisColumnsMissing = true;
-    console.warn('[rates] product_rates has no rate_basis column — treating every rate as exact until supabase/rate_basis.sql is run');
+    const next = COL_SETS[tier + 1];
+    console.warn(next
+      ? `[rates] product_rates is missing columns — run supabase/${next.needs}; serving without them until then`
+      : '[rates] product_rates is missing its core columns — run supabase/product_rates.sql');
   }
-  const { data, error } = await build(PR_COLS);
-  if (error) throw error;
-  return (data || []).map((r) => ({ ...r, rate_basis: 'exact', rate_low: null, rate_high: null }));
+  throw new Error('product_rates is missing expected columns — see PRODUCT_DATA.md');
 }
 
 export async function getGenericRates(country, product, currency, variant) {
@@ -201,7 +216,7 @@ function qualityOf(rows) {
 
 /* Returns the comparable values (with the bank behind each) for a product, or
    null when Supabase isn't configured.
-   Shape: { items:[{bank,value,basis,low,high}], values:[], dataQuality }.
+   Shape: { items:[{bank,value,basis,low,high,index,indexValue,spread,rateType}], values:[], dataQuality }.
    basis: 'exact' | 'range' (value is the midpoint of low–high) | 'from' (a floor). */
 export async function getProductValues(country, product, currency, variant, opts = {}) {
   if (!isSupabaseConfigured) return null;
@@ -225,6 +240,16 @@ export async function getProductValues(country, product, currency, variant, opts
     basis: r.rate_basis || 'exact',
     low: r.rate_low == null ? null : Number(r.rate_low),
     high: r.rate_high == null ? null : Number(r.rate_high),
+    // Floating rates (supabase/floating_rate.sql): what the loan tracks and the
+    // bank's margin over it. `value` stays the all-in comparable figure; these
+    // let the UI show that it is a formula, not a promise.
+    index: r.rate_index || null,
+    indexValue: r.index_value == null ? null : Number(r.index_value),
+    spread: r.spread == null ? null : Number(r.spread),
+    // 'apr' | 'yield' | 'flat'. Flat means interest on the ORIGINAL sum for the
+    // whole tenor — about half the effective rate for the same money — so it
+    // must be labelled wherever it is shown.
+    rateType: r.rate_type || null,
   })), rows || []);
 }
 

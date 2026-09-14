@@ -1,7 +1,7 @@
 # Rate data automation — status by country
 
-**As of 11 September 2026 (evening).** Read alongside [DATA_GAPS.md](DATA_GAPS.md), which
-carries the technical detail.
+**As of 12 September 2026.** Read alongside [DATA_GAPS.md](DATA_GAPS.md) for the technical
+detail and [AUTOMATION_COVERAGE.md](AUTOMATION_COVERAGE.md) for the flat per-product list.
 
 This answers one question: **for each market, where do our benchmark rates come
 from, and does that happen by itself?**
@@ -12,11 +12,11 @@ from, and does that happen by itself?**
 
 | Country | Products live | How the data arrives | Refreshes by itself? |
 |---------|:-------------:|----------------------|----------------------|
-| 🇹🇭 **Thailand** | **5 of 10** | Central bank API | ✅ Daily, 02:00 UTC |
-| 🇮🇩 **Indonesia** | 2 of 10 | Scraped from banks' published SBDK tables | ✅ Daily, 02:00 UTC |
-| 🇸🇬 **Singapore** | 2 of 10 | Scraped — bank pages + a verified comparison page | ✅ Daily, 02:00 UTC |
-| 🇮🇳 **India** | **4 of 10** | Scraped from banks' published rate sheets and loan pages | ✅ Daily, 02:00 UTC |
-| 🇲🇾 **Malaysia** | 2 of 10 | Central bank API + scraped bank deposit pages | ✅ Daily, 02:00 UTC |
+| 🇹🇭 **Thailand** | **4 of 8** | Central bank API | ✅ Daily, 02:00 UTC |
+| 🇮🇩 **Indonesia** | 2 of 8 | Scraped from banks' published SBDK tables | ✅ Daily, 02:00 UTC |
+| 🇸🇬 **Singapore** | 2 of 9 | Scraped — bank pages + a verified comparison page | ✅ Daily, 02:00 UTC |
+| 🇮🇳 **India** | **4 of 9** | Scraped from banks' published rate sheets and loan pages | ✅ Daily, 02:00 UTC |
+| 🇲🇾 **Malaysia** | 2 of 8 | Central bank API + scraped bank deposit pages | ✅ Daily, 02:00 UTC |
 
 **Every pool that is live now refreshes on its own.** Two days ago, India and
 Singapore had scrapers nobody ran; they are now on the same nightly job as
@@ -24,10 +24,13 @@ Thailand and Malaysia. "Products live" counts pools serving **real, sourced
 rates** — everything else returns *"No benchmark data for this selection yet."*
 rather than a number.
 
-**15 of 50 country×product pools are live, up from 6 three days ago.** Real
-rows: 180. The four newest — India housing, personal and vehicle loans,
-Singapore personal loans — carry ranges and floors; see "Loans published as
-ranges and floors" below.
+**14 of 42 country×product pools are live, up from 6 four days ago.** Real
+rows: 164. India housing, personal and vehicle loans and Singapore personal
+loans carry ranges and floors; see "Loans published as ranges and floors" below.
+
+The denominator is 42, not 5×10: `current_account` is offered only in 🇸🇬 and
+`current_account_fees` only in 🇮🇳, so eight of the fifty grid cells are products
+those markets don't have.
 
 ---
 
@@ -35,6 +38,7 @@ ranges and floors" below.
 
 | | Before | Now |
 |---|---|---|
+| 🇹🇭 Thailand current account | 16 rows, unseen | **Removed** — they were BOT's *individual savings* rate standing in for SME credit interest. Thai current accounts pay none, and BOT publishes no such rate. See below. |
 | 🇸🇬 Singapore fixed deposit | 2 banks | **10 banks** — DBS, OCBC, UOB, Maybank, CIMB, RHB, Bank of China, ICBC, Citibank, Hong Leong Finance |
 | 🇮🇳 India fixed deposit | 4 banks | **10 banks** — adds Axis, Kotak, IndusInd, Bank of Baroda, Central Bank, Indian Bank |
 | 🇮🇳 India housing / personal / vehicle loans | nothing | **9 / 9 / 6 banks**, read from the banks' own pages as ranges and floors |
@@ -104,8 +108,10 @@ the nightly job refreshes them with everything else.
 ### 🇹🇭 Thailand — central bank API
 
 Bank of Thailand publishes every domestic bank's loan and deposit rates.
-Housing loan, personal loan, overdraft, fixed deposit, current account — 15–17
-banks each. Foreign branches are excluded deliberately.
+Housing loan, personal loan, overdraft, fixed deposit — 15–17 banks each.
+Foreign branches are excluded deliberately. Current account is **not** one of
+them: BOT publishes no current-account rate, because Thai current accounts don't
+pay interest (see below).
 
 *Open question:* the housing pool uses **MLR**; Thai retail mortgages usually
 price off **MRR**. Worth confirming before launch.
@@ -193,6 +199,33 @@ automation outright), **Federal** and **Bank of India** (bot challenges),
 home loan), **Axis** personal and car loan pages (404), Central Bank ("under
 construction"), Indian Bank (404), Yes Bank and UCO (connection errors). These
 are the banks a person has to read for us — see the last section.
+
+---
+
+## Thailand's current account — settled 12 September
+
+`bot-pool.mjs` used to map BOT's per-bank **savings** rate onto `current_account`
+as a "credit-interest proxy", writing 16 rows a night. That was wrong:
+
+- Thai current accounts (บัญชีกระแสรายวัน) are cheque accounts and pay no
+  credit interest. BOT's per-bank deposit endpoint has no current/demand-deposit
+  field at all — only `saving_*` and `fix_3/6/12/24_mths_*`.
+- A 0.10–1.00% personal savings rate is not what an SME earns on a current
+  account, so the pool would have been a benchmark against a product that
+  doesn't exist.
+
+The catalog confines `current_account` to 🇸🇬, so those rows were never served —
+but one line widening that list would have put all of them on screen. Three
+things changed so it can't recur:
+
+| | |
+|---|---|
+| `bot-pool.mjs` | The savings→current_account mapping is gone; the job now writes 4 products. |
+| `import-pool.mjs` | Rejects any CSV row for a product its country doesn't offer. |
+| `prune-pool.mjs` | New. `npm run prune:pool -- --dry` lists rows for unoffered pairs; without the flag it deletes them. |
+
+The same sweep removed 30 stale indicative `current_account` rows for 🇲🇾 and 🇮🇩,
+left behind from before the product was confined to Singapore. 46 rows in total.
 
 ---
 

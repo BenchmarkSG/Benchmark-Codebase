@@ -123,6 +123,10 @@ button.adm-val--editable:hover::after { opacity: 0.7; }
 .adm-input[type="text"], select.adm-input { width: 140px; }
 select.adm-input { background: var(--surface); color: inherit; }
 
+/* Generated (is_indicative) rows — visibly not real data. */
+.adm-row--indicative > td { background: var(--warn-bg); }
+.adm-row--indicative > td:first-child { box-shadow: inset 3px 0 0 var(--warn-line); }
+
 .adm-actions-col { text-align: right; width: 1%; }
 .adm-rowactions { display: flex; gap: 6px; justify-content: flex-end; }
 .adm-pencil {
@@ -178,6 +182,13 @@ select.adm-input { background: var(--surface); color: inherit; }
 .adm-error {
   padding: 10px 12px; margin-bottom: 12px; border-radius: 8px;
   background: var(--err-bg); border: 1px solid var(--err-line); color: var(--err-ink); font-size: 12.5px;
+}
+
+/* Not an error — the tab works, something just isn't wired up yet (a pending
+   migration, say). Amber so it reads as "act on this", not "this is broken". */
+.adm-notice {
+  padding: 10px 12px; margin-bottom: 12px; border-radius: 8px;
+  background: var(--warn-bg); border: 1px solid var(--warn-line); color: var(--warn-ink); font-size: 12.5px;
 }
 
 /* ---- Responsive / mobile ---- */

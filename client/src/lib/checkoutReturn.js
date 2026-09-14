@@ -61,6 +61,9 @@ export function readCheckoutReturn(page) {
     sessionId: p.get('session_id') || null,
     expert: stash?.expert || null,
     context: stash?.context || null,
+    // The lead row opened before payment (expert tier), so the return doesn't
+    // file the same engagement a second time.
+    leadId: stash?.leadId || null,
     canceled: checkout === 'cancel',
   };
 }

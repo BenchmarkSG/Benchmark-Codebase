@@ -10,13 +10,20 @@ import CertificateShare from './CertificateShare.jsx';
 // The social share strip is shared and lives OUTSIDE the framed document — a
 // row of network buttons inside a certificate would undo the formality both
 // designs are working for, and it must never appear in the exported PNG.
-export default function Certificate({ segment = 'individual', caption, buildFile, ...props }) {
+// It caps the TOP edge and carries every share control, including the generic
+// "share / save it" one — which used to be a button pinned inside the document's
+// corner. Two share affordances on one card read as a bug, and the strip's
+// desktop path already saves the PNG and copies the caption.
+export default function Certificate({ segment = 'individual', caption, buildFile, onShare, shared, ...props }) {
   return (
     <div className="cert-wrap">
+      <CertificateShare
+        segment={segment} caption={caption} buildFile={buildFile}
+        onShare={onShare} shared={shared}
+      />
       {segment === 'sme'
         ? <CorporateCertificate {...props} />
         : <IndividualCertificate {...props} />}
-      <CertificateShare segment={segment} caption={caption} buildFile={buildFile} />
     </div>
   );
 }

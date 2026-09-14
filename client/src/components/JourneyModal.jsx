@@ -4,7 +4,7 @@ import { formatMoney, getReference, createCheckout, getCheckoutSession, getTierP
 import { safeHttpUrl, isStripeCheckoutUrl } from '../lib/safeUrl.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { supabase, isSupabaseConfigured } from '../lib/supabase.js';
-import { listAdvisorDirectory, listAdvisorAvailability, createLead, updateBenchmark, submitFeedback, getMyProfile } from '../lib/dashboardApi.js';
+import { listAdvisorDirectory, listAdvisorAvailability, createLead, recordBooking, updateBenchmark, submitFeedback, getMyProfile } from '../lib/dashboardApi.js';
 import Certificate from './Certificate.jsx';
 import { buildCertificateImage } from '../lib/certificateImage.js';
 import { SITE_URL } from '../lib/site.js';
@@ -100,7 +100,10 @@ function CalendlyEmbed({ url, prefill, onScheduled }) {
     }
     const onMsg = (e) => {
       // Exact origin (indexOf('calendly.com') would match https://calendly.com.evil.com).
-      if (e.origin === 'https://calendly.com' && e.data?.event === 'calendly.event_scheduled') cb.current?.();
+      // The payload carries only opaque URIs (event + invitee), never the start
+      // time — that has to be fetched from Calendly's API later. Hand them up so
+      // the booking can be stamped and resolved afterwards.
+      if (e.origin === 'https://calendly.com' && e.data?.event === 'calendly.event_scheduled') cb.current?.(e.data.payload);
     };
     window.addEventListener('message', onMsg);
     return () => { done = true; window.removeEventListener('message', onMsg); };
@@ -189,7 +192,7 @@ function FeedbackCard({ source, benchmarkId }) {
 // Booking panel: the Calendly embed if a URL is available, else a clear placeholder.
 // `onDone` is called with 'home' | 'dashboard' once a slot is booked — the modal
 // is a dead end otherwise, since the only way out is the × in the corner.
-function Scheduler({ url, prefill, note, onDone, feedback }) {
+function Scheduler({ url, prefill, note, onDone, feedback, onScheduled }) {
   const [scheduled, setScheduled] = useState(false);
   const safeUrl = safeHttpUrl(url); // block javascript:/data: from advisor-controlled links
   const linkUrl = safeUrl ? appendPrefill(safeUrl, prefill) : safeUrl;
@@ -198,7 +201,10 @@ function Scheduler({ url, prefill, note, onDone, feedback }) {
       {safeUrl ? (
         <>
           {scheduled && <div className="jny-note jny-note--ok">✓ Time booked — the calendar invite is on its way to your inbox.</div>}
-          <CalendlyEmbed url={safeUrl} prefill={prefill} onScheduled={() => setScheduled(true)} />
+          <CalendlyEmbed
+            url={safeUrl} prefill={prefill}
+            onScheduled={(payload) => { setScheduled(true); onScheduled?.(payload); }}
+          />
           {scheduled ? (
             // Booked — offer a way onward. The "open in a new tab" link is hidden
             // here: re-opening the scheduler after booking only invites a
@@ -278,6 +284,7 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
   const [checkoutUrl, setCheckoutUrl] = useState(''); // set once Stripe hands us a URL
   const [stalled, setStalled] = useState(false);      // redirect didn't take
   const bookedRef = useRef(null); // Stripe session already logged to the dashboard
+  const leadRef = useRef(null);   // the lead row for THIS engagement, stamped once a slot is booked
   const unlockRef = useRef(null); // benchmark stage already marked for this tier
   const cardRef = useRef(null);
   const confirm = useConfirm();
@@ -324,24 +331,48 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
     catch { return null; }
   };
 
-  // Persist a confirmed paid call to the user's dashboard. Idempotent per Stripe
-  // session so re-renders don't double-insert. advisor_id stays null — a coaching
-  // call isn't tied to a specific advisor.
-  const recordCallBooking = async (sessionId) => {
+  // Persist a confirmed paid tier (Option 2 call / Option 3 expert) so the admin
+  // portal can see who bought what. Idempotent per Stripe session so re-renders
+  // don't double-insert.
+  //
+  // `existingId` is the lead "Select Me" already created for a real advisor,
+  // carried across the Stripe redirect in the journey stash — the modal remounts
+  // on the way back, so an in-memory ref can't answer this and we'd otherwise
+  // file the same engagement twice. advisor_id is null for a coaching call and
+  // for the sample experts (their ids aren't advisor uuids), which is exactly
+  // why advisor_name is snapshotted alongside it.
+  const recordPaidBooking = async (tier, sessionId, existingId = null, adv = null) => {
     if (bookedRef.current === sessionId) return;
     bookedRef.current = sessionId;
+    if (existingId) { leadRef.current = existingId; return; }
     const u = await authUser();
     if (!u) { bookedRef.current = null; return; }
-    createLead({
-      source: 'call',
-      segment: context?.segment || 'individual',
-      product_label: context?.product || null,
-      annual_saving: context?.annualSaving ?? null,
-      full_name: u.user_metadata?.full_name || null,
-      email: u.email || null,
-      phone: u.user_metadata?.phone || null,
-      booked: true,
-    }).catch(() => { bookedRef.current = null; }); // allow a retry if the insert failed
+    try {
+      const row = await createLead({
+        source: tier === 'expert' ? 'expert' : 'call',
+        advisor_id: adv?.real ? adv.id : null,
+        advisor_name: adv?.name || null,
+        segment: context?.segment || 'individual',
+        product: context?.productId || null,
+        product_label: context?.product || null,
+        benchmark_id: context?.benchmarkId || null,
+        annual_saving: context?.annualSaving ?? null,
+        full_name: u.user_metadata?.full_name || null,
+        email: u.email || null,
+        phone: u.user_metadata?.phone || null,
+        booked: false, // flipped by record_booking() once a slot is actually picked
+      });
+      leadRef.current = row?.id || null;
+    } catch { bookedRef.current = null; } // allow a retry if the insert failed
+  };
+
+  // A slot was picked in the Calendly widget. Calendly's message carries only
+  // opaque URIs — scripts/sync-calendly.mjs turns the event URI into the actual
+  // start time later. Best-effort: the booking is already made either way.
+  const stampBooking = (payload) => {
+    const id = leadRef.current;
+    if (!id) return;
+    recordBooking(id, payload?.event?.uri || null, payload?.invitee?.uri || null).catch(() => {});
   };
 
   // On a confirmed purchase, mark the source benchmark's stage so the dashboard
@@ -529,8 +560,10 @@ Kind regards,
             setPayError('We couldn’t confirm your payment. Please try again.');
             return;
           }
-          // Payment confirmed — log the paid call + unlock the source benchmark.
-          if (resume.tier === 'call') recordCallBooking(resume.sessionId);
+          // Payment confirmed — log the paid engagement + unlock the source benchmark.
+          if (resume.tier === 'call' || resume.tier === 'expert') {
+            recordPaidBooking(resume.tier, resume.sessionId, resume.leadId, resume.expert);
+          }
           applyUnlock(resume.tier);
         });
       }
@@ -612,17 +645,23 @@ Kind regards,
     if (!adv?.real || sentTo === adv.id) return;
     if (!user) return; // a sign-in prompt is shown in the booking view
     try {
-      await createLead({
+      const row = await createLead({
         advisor_id: adv.id,
+        advisor_name: adv.name || null,
         source: 'expert',
         segment: context?.segment || 'individual',
+        product: context?.productId || null,
         product_label: context?.product || null,
+        benchmark_id: context?.benchmarkId || null,
         annual_saving: context?.annualSaving ?? null,
         full_name: user.user_metadata?.full_name || null,
         email: user.email,
         phone: user.user_metadata?.phone || null,
-        booked: true,
+        // Picking a specialist isn't a booking — record_booking() flips this
+        // once they actually choose a slot, which is what the admin list reads.
+        booked: false,
       });
+      leadRef.current = row?.id || null;
       setSentTo(adv.id);
     } catch { /* non-blocking */ }
   };
@@ -639,7 +678,7 @@ Kind regards,
       years: adv.years, blurb: adv.blurb, photo: adv.photo, accent: adv.accent, calendly_url: adv.calendly_url,
     } : null;
     try {
-      stashJourney({ tier, expert: snap, context });
+      stashJourney({ tier, expert: snap, context, leadId: leadRef.current });
       const { url } = await createCheckout({
         tier,
         currency: context?.currency || 'SGD', // bill in the currency we showed
@@ -793,25 +832,6 @@ Kind regards,
               </button>
             )}
           </div>
-          {ahead ? (
-            <p className="jny-reveal__headline">You&apos;re already ahead of the market — beating <strong>{standing}</strong>. 🎉</p>
-          ) : (
-            <>
-              {/* Headline + its underline shrink-wrap together so the rule stops
-                  at the end of the text, and the pair is centred on the panel.
-                  The amount sits OUTSIDE that band so it centres on the full
-                  panel width rather than on the headline's. */}
-              <div className="jny-reveal__summary">
-                <p className="jny-reveal__headline">
-                  {isYield ? 'Earn the money your bank isn’t paying you.' : 'Save the money your bank is making off you.'}
-                </p>
-                <div className="jny-reveal__rule jny-reveal__rule--thick" />
-              </div>
-              {savings
-                ? <div className="jny-reveal__amt">{fmtSaving(savings)}<span> {isYield ? 'extra / year' : 'per year'}</span></div>
-                : <div className="jny-reveal__amt jny-reveal__amt--sm">Pick how you’d like to act below</div>}
-            </>
-          )}
           {/* The unlocked bank itself. This is what the reveal was paid for, so
               it leads the screen — everything below is what you do about it. */}
           {bank && (
@@ -821,6 +841,26 @@ Kind regards,
               {context?.benchmarkRate != null && (
                 <span className="jny-unlock__rate">Best price · {withUnit(context.benchmarkRate)}</span>
               )}
+            </div>
+          )}
+          {ahead ? (
+            <p className="jny-reveal__headline">You&apos;re already ahead of the market — beating <strong>{standing}</strong>. 🎉</p>
+          ) : (
+            /* Headline, amount and the rule that underscores them shrink-wrap
+               together, so the rule stops where the widest line stops instead of
+               running the full panel width, and the band is centred as a whole. */
+            <div className="jny-reveal__summary">
+              <p className="jny-reveal__headline">
+                {isYield ? 'Earn the money your bank isn’t paying you.' : 'Save the money your bank is making off you.'}
+              </p>
+              {/* The amount and its rule shrink-wrap together inside the band,
+                  so the rule underlines the figure at exactly its width. */}
+              <div className="jny-reveal__amtline">
+                {savings
+                  ? <div className="jny-reveal__amt">{fmtSaving(savings)}<span> {isYield ? 'extra / year' : 'per year'}</span></div>
+                  : <div className="jny-reveal__amt jny-reveal__amt--sm">Pick how you’d like to act below</div>}
+                <div className="jny-reveal__rule jny-reveal__rule--thick" />
+              </div>
             </div>
           )}
         </div>
@@ -953,7 +993,7 @@ Kind regards,
               <>
                 {paidTier === 'call' && <div className="jny-note jny-note--ok">✓ Payment received — pick a time below.</div>}
                 <p className="jny-sub__sub"><span className="jny-pill">{priceOf('call', 'S$99')}</span> A FeeOptima specialist coaches you through the negotiation.</p>
-                <Scheduler url={CALENDLY_URL} prefill={bookingPrefill} onDone={finishTo} feedback={{ source: 'call', benchmarkId: context?.benchmarkId }} note="You and the specialist both receive the calendar invite from Calendly." />
+                <Scheduler url={CALENDLY_URL} prefill={bookingPrefill} onDone={finishTo} onScheduled={stampBooking} feedback={{ source: 'call', benchmarkId: context?.benchmarkId }} note="You and the specialist both receive the calendar invite from Calendly." />
               </>
             )}
           </div>
@@ -1037,7 +1077,7 @@ Kind regards,
                   <>
                     {paidTier === 'expert' && <div className="jny-note jny-note--ok">✓ Payment received — pick a time below.</div>}
                     <AwayNote windows={expert.away} name={expert.name} />
-                    <Scheduler url={(expert.real && expert.calendly_url) || CALENDLY_URL} prefill={bookingPrefill} onDone={finishTo} feedback={{ source: 'expert', benchmarkId: context?.benchmarkId }} note={expert.real ? `${expert.name} and you both receive the calendar invite from Calendly.` : 'Your matched expert and you both receive the calendar invite from Calendly.'} />
+                    <Scheduler url={(expert.real && expert.calendly_url) || CALENDLY_URL} prefill={bookingPrefill} onDone={finishTo} onScheduled={stampBooking} feedback={{ source: 'expert', benchmarkId: context?.benchmarkId }} note={expert.real ? `${expert.name} and you both receive the calendar invite from Calendly.` : 'Your matched expert and you both receive the calendar invite from Calendly.'} />
                   </>
                 )}
               </>

@@ -35,6 +35,19 @@ its form from the schema (no hard-coded fields).
 Each product's `inputs` array defines the exact fields, types (`bank`,
 `currency`, `amount`, `rate`, `tenor`, `enum`, `duration`), labels and options.
 
+**Not every product exists in every market.** `onlyCountries` confines one to the
+markets where the underlying product is real:
+
+| Product | Offered in | Why |
+|---|---|---|
+| `current_account` | 🇸🇬 only | Benchmarks SME **credit interest**. Indian banks may not pay it by law; Thai current accounts are cheque accounts that pay none (BOT publishes no current-account rate at all). Confirm a market's central bank permits credit interest before adding it here. |
+| `current_account_fees` | 🇮🇳 only | The Indian equivalent — with interest off the table, what an SME negotiates is the charges. Benchmarked as an annual sum, not a rate. |
+
+Everything else is offered in all five markets. Rows for a pair that isn't
+offered are invisible (the app never queries them) but wrong, and they go live
+the moment someone widens the list — so `import-pool.mjs` rejects them on load
+and `npm run prune:pool -- --dry` finds any already in the table.
+
 ## Cross-border cost
 `costPct = (1 − received ÷ (sent × midRate)) × 100` — positive = lost to
 spread + fees, negative = beat mid. `POST /api/benchmark` for a `crossborder`

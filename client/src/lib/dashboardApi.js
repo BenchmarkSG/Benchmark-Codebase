@@ -78,6 +78,26 @@ export async function createLead(row) {
   return data;
 }
 
+/* Stamp a lead as actually booked, with whatever Calendly told the browser.
+   Goes through a definer function rather than a plain UPDATE: leads' update
+   policy is advisor/admin-only on purpose (stage, saved_amount and fee_amount
+   are pipeline fields), and record_booking touches only the booking columns
+   after checking the row belongs to the caller.
+
+   Best-effort by design — the user has already booked in Calendly by the time
+   this runs, so a failure here must never surface as an error to them. */
+export async function recordBooking(leadId, eventUri = null, inviteeUri = null) {
+  if (!leadId) return false;
+  ensure();
+  const { error } = await supabase.rpc('record_booking', {
+    p_lead_id: leadId,
+    p_event_uri: eventUri,
+    p_invitee_uri: inviteeUri,
+  });
+  if (error) throw error;
+  return true;
+}
+
 export async function listMyLeads() {
   ensure();
   const user = await currentUser();

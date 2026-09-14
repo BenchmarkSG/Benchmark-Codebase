@@ -1,0 +1,76 @@
+country,product,bank,rate,currency,rate_type,rate_basis,rate_low,rate_high
+SG,housing_loan,"DBS",1.78,SGD,apr,fixed,1.60,2.50
+SG,housing_loan,"POSB",1.78,SGD,apr,fixed,1.60,2.50
+SG,housing_loan,"OCBC",1.50,SGD,apr,variable,1.50,3.00
+SG,housing_loan,"UOB",1.50,SGD,apr,variable,1.50,3.00
+SG,housing_loan,"Standard Chartered",1.50,SGD,apr,variable,1.50,3.00
+SG,housing_loan,"Citibank",1.50,SGD,apr,variable,1.50,3.00
+SG,housing_loan,"HSBC",1.50,SGD,apr,variable,1.50,3.00
+SG,housing_loan,"Maybank",1.50,SGD,apr,variable,1.50,3.00
+SG,housing_loan,"Bank of China",1.50,SGD,apr,variable,1.50,3.00
+SG,housing_loan,"CIMB",1.50,SGD,apr,variable,1.50,3.00
+SG,housing_loan,"RHB",1.50,SGD,apr,variable,1.50,3.00
+SG,housing_loan,"Trust Bank",N/A,SGD,apr,N/A,N/A,N/A
+SG,housing_loan,"GXS Bank",N/A,SGD,apr,N/A,N/A,N/A
+SG,housing_loan,"MariBank",N/A,SGD,apr,N/A,N/A,N/A
+SG,housing_loan,"State Bank of India",N/A,SGD,apr,N/A,N/A,N/A
+SG,personal_loan,"DBS",1.48,SGD,apr,from,1.48,3.22
+SG,personal_loan,"POSB",1.48,SGD,apr,from,1.48,3.22
+SG,personal_loan,"OCBC",1.98,SGD,apr,from,1.98,4.19
+SG,personal_loan,"UOB",1.00,SGD,apr,from,1.00,1.93
+SG,personal_loan,"Standard Chartered",0.90,SGD,apr,from,0.90,1.75
+SG,personal_loan,"Citibank",3.45,SGD,apr,from,3.45,6.50
+SG,personal_loan,"HSBC",1.30,SGD,apr,from,1.30,2.50
+SG,personal_loan,"Maybank",1.79,SGD,apr,from,1.79,3.29
+SG,personal_loan,"Bank of China",N/A,SGD,apr,N/A,N/A,N/A
+SG,personal_loan,"CIMB",1.00,SGD,apr,from,1.00,1.94
+SG,personal_loan,"RHB",N/A,SGD,apr,N/A,N/A,N/A
+SG,personal_loan,"Trust Bank",2.22,SGD,apr,from,2.22,2.43
+SG,personal_loan,"GXS Bank",2.99,SGD,apr,from,2.99,5.65
+SG,personal_loan,"MariBank",N/A,SGD,apr,N/A,N/A,N/A
+SG,personal_loan,"State Bank of India",N/A,SGD,apr,N/A,N/A,N/A
+SG,vehicle_loan,"DBS",2.78,SGD,apr,from,2.78,N/A
+SG,vehicle_loan,"POSB",N/A,SGD,apr,N/A,N/A,N/A
+SG,vehicle_loan,"OCBC",2.78,SGD,apr,from,2.78,N/A
+SG,vehicle_loan,"UOB",2.78,SGD,apr,from,2.78,N/A
+SG,vehicle_loan,"Standard Chartered",N/A,SGD,apr,N/A,N/A,N/A
+SG,vehicle_loan,"Citibank",N/A,SGD,apr,N/A,N/A,N/A
+SG,vehicle_loan,"HSBC",N/A,SGD,apr,N/A,N/A,N/A
+SG,vehicle_loan,"Maybank",2.78,SGD,apr,from,2.78,N/A
+SG,vehicle_loan,"Bank of China",N/A,SGD,apr,N/A,N/A,N/A
+SG,vehicle_loan,"CIMB",2.78,SGD,apr,from,2.78,N/A
+SG,vehicle_loan,"RHB",N/A,SGD,apr,N/A,N/A,N/A
+SG,vehicle_loan,"Trust Bank",N/A,SGD,apr,N/A,N/A,N/A
+SG,vehicle_loan,"GXS Bank",N/A,SGD,apr,N/A,N/A,N/A
+SG,vehicle_loan,"MariBank",N/A,SGD,apr,N/A,N/A,N/A
+SG,vehicle_loan,"State Bank of India",N/A,SGD,apr,N/A,N/A,N/A
+SG,fixed_deposit,"DBS",1.00,SGD,yield,pa,0.80,1.00
+SG,fixed_deposit,"POSB",1.00,SGD,yield,pa,0.80,1.00
+SG,fixed_deposit,"OCBC",1.40,SGD,yield,pa,1.25,1.40
+SG,fixed_deposit,"UOB",1.55,SGD,yield,pa,1.50,1.55
+SG,fixed_deposit,"Standard Chartered",1.70,SGD,yield,pa,1.70,2.00
+SG,fixed_deposit,"Citibank",2.00,SGD,yield,pa,0.70,2.00
+SG,fixed_deposit,"HSBC",1.05,SGD,yield,pa,1.05,2.00
+SG,fixed_deposit,"Maybank",1.55,SGD,yield,pa,1.55,1.55
+SG,fixed_deposit,"Bank of China",1.70,SGD,yield,pa,1.65,1.75
+SG,fixed_deposit,"CIMB",1.70,SGD,yield,pa,1.70,1.75
+SG,fixed_deposit,"RHB",1.65,SGD,yield,pa,1.65,1.75
+SG,fixed_deposit,"Trust Bank",N/A,SGD,yield,N/A,N/A,N/A
+SG,fixed_deposit,"GXS Bank",1.75,SGD,yield,pa,1.75,1.75
+SG,fixed_deposit,"MariBank",1.20,SGD,yield,pa,1.20,1.20
+SG,fixed_deposit,"State Bank of India",1.50,SGD,yield,pa,1.40,1.50
+SG,current_account,"DBS",0.05,SGD,yield,base,0.05,4.10
+SG,current_account,"POSB",0.05,SGD,yield,base,0.05,3.80
+SG,current_account,"OCBC",0.05,SGD,yield,base,0.05,3.30
+SG,current_account,"UOB",0.05,SGD,yield,base,0.05,3.00
+SG,current_account,"Standard Chartered",0.05,SGD,yield,base,0.05,2.00
+SG,current_account,"Citibank",0.01,SGD,yield,base,0.01,2.00
+SG,current_account,"HSBC",0.05,SGD,yield,base,0.05,3.05
+SG,current_account,"Maybank",0.01,SGD,yield,base,0.01,1.00
+SG,current_account,"Bank of China",0.05,SGD,yield,base,0.05,1.00
+SG,current_account,"CIMB",0.00,SGD,yield,base,0.00,0.00
+SG,current_account,"RHB",0.05,SGD,yield,base,0.05,1.00
+SG,current_account,"Trust Bank",0.00,SGD,yield,base,0.00,1.70
+SG,current_account,"GXS Bank",0.08,SGD,yield,base,0.08,1.08
+SG,current_account,"MariBank",0.00,SGD,yield,base,0.00,1.00
+SG,current_account,"State Bank of India",0.05,SGD,yield,base,0.05,0.50

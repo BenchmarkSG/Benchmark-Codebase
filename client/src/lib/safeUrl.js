@@ -19,6 +19,27 @@ export function safeHttpUrl(value) {
   }
 }
 
+/* A scheduling link the booking screen can actually render.
+ *
+ * The reveal modal embeds this with Calendly's own widget
+ * (window.Calendly.initInlineWidget), which only drives calendly.com URLs — a
+ * Cal.com or SavvyCal link would store fine and then show a blank booking step.
+ * So the host is part of what "valid" means here, not just the scheme.
+ *
+ * Returns the normalized https URL, or null. */
+export function calendlyUrl(value) {
+  const safe = safeHttpUrl(value);
+  if (!safe) return null;
+  try {
+    const u = new URL(safe);
+    if (!/(^|\.)calendly\.com$/i.test(u.hostname)) return null;
+    // calendly.com on its own is the marketing site, not anyone's booking page.
+    if (u.pathname.replace(/\/+$/, '').length < 2) return null;
+    u.protocol = 'https:';
+    return u.href;
+  } catch { return null; }
+}
+
 // True if the URL is on Stripe's checkout domain — used to gate the redirect
 // returned by our /api/checkout before window.location.assign().
 export function isStripeCheckoutUrl(value) {

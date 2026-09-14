@@ -43,6 +43,7 @@
  * --------------------------------------------------------------------------- */
 import { readFileSync } from 'node:fs';
 import { parseRate, formatRate } from './lib/rate-text.mjs';
+import { getProduct, isProductInCountry } from '../server/benchmark.js';
 import { createClient } from '@supabase/supabase-js';
 import 'dotenv/config';
 
@@ -56,6 +57,13 @@ const CCY = { SG: 'SGD', IN: 'INR', MY: 'MYR', ID: 'IDR', TH: 'THB' };
 const APR = new Set(['housing_loan', 'personal_loan', 'vehicle_loan', 'overdraft', 'short_term_finance', 'unfunded_facility']);
 const YIELD = new Set(['fixed_deposit', 'current_account']);
 const PRODUCTS = new Set([...APR, ...YIELD]);
+/* How the number is expressed. 'apr' is an annualised cost, 'yield' a return,
+   and 'flat' interest charged on the ORIGINAL sum for the whole tenor — the way
+   Singapore car loans are advertised, and roughly half the effective rate for
+   the same money. A pool may not mix them (see the check below): comparing a
+   flat rate against an effective one makes the flat lender look twice as cheap
+   as it is. */
+const RATE_TYPES = new Set(['apr', 'yield', 'flat']);
 
 const round3 = (n) => Math.round(n * 1000) / 1000;
 const BASES = new Set(['exact', 'range', 'from']);
@@ -97,15 +105,40 @@ function build(raw) {
     const country = String(r.country || '').toUpperCase().trim();
     const product = String(r.product || '').toLowerCase().trim();
     const bank = String(r.bank || '').replace(/\s+/g, ' ').trim();
-    const rateText = String(r.rate ?? '').trim();
+    let rateText = String(r.rate ?? '').trim();
     if (!CCY[country]) return errors.push(`line ${ln}: unknown country "${r.country}"`);
     if (!PRODUCTS.has(product)) return errors.push(`line ${ln}: unknown product "${r.product}"`);
+    // A product can be confined to certain markets (`onlyCountries` in the
+    // catalog) because it doesn't exist elsewhere — Thai current accounts pay no
+    // credit interest, Indian ones may not by law. Rows for a pair the app
+    // doesn't offer are invisible until someone widens the catalog, and then
+    // they're suddenly live and wrong. Refuse them at the door.
+    if (!isProductInCountry(getProduct(product), country)) {
+      return errors.push(`line ${ln}: ${product} isn't offered in ${country} (see onlyCountries in server/benchmark.js)`);
+    }
     if (!bank) return errors.push(`line ${ln}: missing bank`);
 
     // How the lender published the figure. Either the rate cell says it
     // ("8.00-9.50", "from 7.5") or the explicit columns do; they must agree.
     const basisCol = String(r.rate_basis || '').toLowerCase().trim() || undefined;
     if (basisCol && !BASES.has(basisCol)) return errors.push(`line ${ln}: rate_basis must be exact | range | from (got "${r.rate_basis}")`);
+    // Floating pricing: what the loan tracks and the bank's margin over it
+    // (supabase/floating_rate.sql). All three columns or none — half a formula
+    // is worse than none, because `rate` would then look fixed. When the rate
+    // cell is left empty the sum fills it, which is how a lender publishes it:
+    // the spread is the quoted part, the all-in figure is arithmetic.
+    const idxName = String(r.rate_index || '').trim();
+    const idxValue = numOrNaN(r.index_value), spread = numOrNaN(r.spread);
+    const floating = idxName !== '' || Number.isFinite(idxValue) || Number.isFinite(spread);
+    let floatRate = null;
+    if (floating) {
+      if (!idxName || !Number.isFinite(idxValue) || !Number.isFinite(spread)) {
+        return errors.push(`line ${ln}: a floating rate needs rate_index, index_value AND spread (got "${r.rate_index || ''}", ${r.index_value ?? ''}, ${r.spread ?? ''})`);
+      }
+      floatRate = round3(idxValue + spread);
+      if (rateText === '') rateText = String(floatRate);
+    }
+
     const lo = numOrNaN(r.rate_low), hi = numOrNaN(r.rate_high);
     let parsed;
     if (Number.isFinite(lo) || Number.isFinite(hi)) {
@@ -124,11 +157,23 @@ function build(raw) {
       try { parsed = parseRate(rateText, { basis: basisCol }); }
       catch (e) { return errors.push(`line ${ln}: rate — ${e.message}`); }
     }
+    // `rate` stays the comparable figure, so it must equal the parts it claims
+    // to be made of — otherwise the pool and the formula on screen disagree.
+    if (floating && Math.abs(parsed.value - floatRate) > 0.001) {
+      return errors.push(`line ${ln}: rate ${parsed.value} ≠ index_value + spread (${idxValue} + ${spread} = ${floatRate})`);
+    }
+
     const currency = String(r.currency || CCY[country]).toUpperCase().trim();
     const rate_type = String(r.rate_type || (YIELD.has(product) ? 'yield' : 'apr')).toLowerCase().trim();
+    if (!RATE_TYPES.has(rate_type)) {
+      return errors.push(`line ${ln}: rate_type must be ${[...RATE_TYPES].join(' | ')} (got "${r.rate_type}")`);
+    }
     const variant = r.variant ? String(r.variant).trim() : null;
     out.push({ country_code: country, product, bank, currency, rate: parsed.value, rate_type, variant, is_indicative: false,
-      rate_basis: parsed.basis, rate_low: parsed.low, rate_high: parsed.high });
+      rate_basis: parsed.basis, rate_low: parsed.low, rate_high: parsed.high,
+      rate_index: floating ? idxName : null,
+      index_value: floating ? round3(idxValue) : null,
+      spread: floating ? round3(spread) : null });
   });
   return { out, errors, blank };
 }
@@ -149,6 +194,19 @@ async function main() {
     const k = `${r.country_code}|${r.currency}|${r.product}`;
     (groups.get(k) || groups.set(k, []).get(k)).push(r);
   }
+  // A pool is one comparison, so every rate in it must mean the same thing. A
+  // flat rate beside an effective one would hand the win to whichever lender
+  // happened to quote flat, by a factor of about two.
+  const mixed = [...groups].filter(([, rs]) => new Set(rs.map((r) => r.rate_type)).size > 1);
+  if (mixed.length) {
+    console.error('✗ A pool cannot mix rate types — flat and effective rates are not comparable:');
+    for (const [k, rs] of mixed) {
+      const kinds = [...new Set(rs.map((r) => r.rate_type))].join(' + ');
+      console.error(`  ${k.replace(/\|/g, ' ')} — ${kinds}`);
+    }
+    process.exit(1);
+  }
+
   console.log(`→ ${out.length} valid rows across ${groups.size} (country,currency,product) group(s)${MERGE ? ' — merge: only the banks named here are replaced' : ' — each pool is replaced wholesale'}:`);
   for (const [k, rs] of groups) {
     const nb = rs.filter((r) => r.rate_basis !== 'exact').length;
@@ -170,21 +228,42 @@ async function main() {
   // back — checked BEFORE their rows are deleted, so a missing migration can
   // never empty a pool — while the exact-only pools in the same file still
   // load. The run then exits non-zero so a nightly job shows red.
-  const probe = await db.from('product_rates').select('rate_basis').limit(1);
-  const hasBasis = !(probe.error && probe.error.code === '42703');
-  if (probe.error && hasBasis) { console.error(`✗ probe: ${probe.error.message}`); process.exit(1); }
+  const probeCol = async (col) => {
+    const { error } = await db.from('product_rates').select(col).limit(1);
+    // PostgREST reports an unknown column as 42703, or PGRST204 from its cache.
+    if (error && (error.code === '42703' || error.code === 'PGRST204')) return false;
+    if (error) { console.error(`✗ probe ${col}: ${error.message}`); process.exit(1); }
+    return true;
+  };
+  const hasBasis = await probeCol('rate_basis');
+  const hasFloat = await probeCol('rate_index');
   if (!hasBasis) console.log('  ! product_rates has no rate_basis column yet — run supabase/rate_basis.sql in the Supabase SQL editor.');
-  const strip = ({ rate_basis, rate_low, rate_high, ...rest }) => rest;
+  if (!hasFloat) console.log('  ! product_rates has no rate_index column yet — run supabase/floating_rate.sql in the Supabase SQL editor.');
+
+  // Strip what the database can't store yet, so an un-migrated column never
+  // blocks the rows that don't need it. A row that DOES need it is held back
+  // instead of being written without the half that gives it meaning.
+  const strip = (r) => {
+    const out = { ...r };
+    if (!hasBasis) { delete out.rate_basis; delete out.rate_low; delete out.rate_high; }
+    if (!hasFloat) { delete out.rate_index; delete out.index_value; delete out.spread; }
+    return out;
+  };
   const heldBack = [];
 
   for (const [k, rows] of groups) {
     const [country_code, currency, product] = k.split('|');
-    if (!hasBasis && rows.some((r) => r.rate_basis !== 'exact')) {
+    const needsBasis = !hasBasis && rows.filter((r) => r.rate_basis !== 'exact').length;
+    const needsFloat = !hasFloat && rows.filter((r) => r.rate_index).length;
+    if (needsBasis || needsFloat) {
       heldBack.push(k);
-      console.error(`  ✗ ${k.replace(/\|/g, ' ')} — ${rows.filter((r) => r.rate_basis !== 'exact').length} row(s) are a range or a floor; held back until rate_basis.sql has run (nothing deleted)`);
+      const why = needsBasis
+        ? `${needsBasis} row(s) are a range or a floor; held back until rate_basis.sql has run`
+        : `${needsFloat} row(s) are floating (index + spread); held back until floating_rate.sql has run`;
+      console.error(`  ✗ ${k.replace(/\|/g, ' ')} — ${why} (nothing deleted)`);
       continue;
     }
-    const rs = hasBasis ? rows : rows.map(strip);
+    const rs = rows.map(strip);
     let del = db.from('product_rates').delete()
       .eq('country_code', country_code).eq('currency', currency).eq('product', product);
     // Merge: clear only the (bank, variant) pairs this file carries. A variant
@@ -203,7 +282,7 @@ async function main() {
   const written = out.length - heldBack.reduce((n, k) => n + groups.get(k).length, 0);
   console.log(`✓ Imported ${written} real per-bank rows across ${groups.size - heldBack.length} group(s).`);
   if (heldBack.length) {
-    console.error(`✗ ${heldBack.length} pool(s) held back — run supabase/rate_basis.sql, then re-import this file.`);
+    console.error(`✗ ${heldBack.length} pool(s) held back — run the migration named above, then re-import this file.`);
     process.exit(1);
   }
 }

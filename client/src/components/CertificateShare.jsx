@@ -3,9 +3,10 @@ import './CertificateShare.css';
 import { NETWORKS, NETWORKS_FOR, isHandheld, supportsFileShare, saveFile, copyText } from '../lib/socialShare.js';
 import { SITE_URL } from '../lib/site.js';
 
-// The share bar that sits flush under the certificate. Both designs use it;
-// the network list and the palette come from the segment (see socialShare.js
-// for why each button behaves the way it does).
+// The share bar that caps the certificate. Both designs use it; the network
+// list and the palette come from the segment (see socialShare.js for why each
+// button behaves the way it does). A fourth, network-less button hands the
+// whole thing to the OS share sheet — or saves the PNG on a laptop.
 
 /* Brand marks, drawn inline: an <img> per logo would be four network requests
    on a card built to render offline, and remote logo hosts are exactly the kind
@@ -46,7 +47,19 @@ function BrandIcon({ id }) {
   }
 }
 
-export default function CertificateShare({ segment = 'individual', caption = '', buildFile }) {
+/* The generic "share or save it" glyph — the same tray-up arrow the certificate
+   used to carry in its corner, so the control is recognisable in its new home. */
+function ShareIcon() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+      <path d="M12 15V4" /><path d="M8 8l4-4 4 4" />
+      <path d="M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" />
+    </svg>
+  );
+}
+
+export default function CertificateShare({ segment = 'individual', caption = '', buildFile, onShare, shared = false }) {
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState('');
   const timer = useRef(null);
@@ -98,6 +111,15 @@ export default function CertificateShare({ segment = 'individual', caption = '',
       : `Caption ${copied ? 'copied' : 'ready'} — post it in ${where}.`);
   };
 
+  // No network chosen: hand the whole thing to the OS share sheet, or on a
+  // laptop save the PNG and copy the caption. The caller owns that logic (it
+  // also drives the `shared` tick), so this only manages the busy state.
+  const shareGeneric = async () => {
+    if (!onShare) return;
+    setBusy('generic');
+    try { await onShare(); } finally { setBusy(''); }
+  };
+
   return (
     <div className={`certshare certshare--${segment === 'sme' ? 'sme' : 'individual'}`}>
       <span className="certshare__label">Share your certificate</span>
@@ -119,6 +141,18 @@ export default function CertificateShare({ segment = 'individual', caption = '',
             </button>
           );
         })}
+        {onShare && (
+          <button
+            type="button"
+            className="certshare__btn certshare__btn--generic"
+            onClick={shareGeneric}
+            disabled={busy === 'generic'}
+            title="Share or save the certificate"
+            aria-label={shared ? 'Certificate shared' : 'Share or save the certificate'}
+          >
+            {shared ? <span className="certshare__ok" aria-hidden="true">✓</span> : <ShareIcon />}
+          </button>
+        )}
       </div>
       {/* Assertive would interrupt a screen reader mid-certificate; this is a
           confirmation, not an alert. */}
