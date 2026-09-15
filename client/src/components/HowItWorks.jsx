@@ -35,7 +35,7 @@ const STEPS = [
     n: 3,
     Icon: IconDeal,
     title: 'Unlock Your Savings',
-    body: 'Download the report, get a negotiation playbook, or let our concierge renegotiate with your bank / switch smarter.',
+    body: 'Download the results, get a negotiation playbook, or select one of our advisors, negotiate on your behalf with your Bank.',
   },
 ];
 
@@ -45,7 +45,7 @@ export default function HowItWorks({ onGetStarted }) {
       <h2 className="section-title hiw__title">
         How <span className="accent-blue">Fee</span>Optima Works
       </h2>
-      <p className="hiw__sub">From your data to benchmarks to real, banked savings.</p>
+      <p className="hiw__sub">Compare your Bank against the Best in the market to unlock your savings.</p>
 
       <div className="hiw__steps">
         {STEPS.map(({ n, Icon, title, body }) => (

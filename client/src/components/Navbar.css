@@ -2,12 +2,130 @@
   position: sticky;
   top: 0;
   z-index: 40;
-  /* Translucent so the page shows through the blur. color-mix keeps that in
-     both themes without a second hardcoded colour. */
-  background: color-mix(in srgb, var(--surface) 90%, transparent);
-  backdrop-filter: saturate(180%) blur(10px);
-  border-bottom: 1px solid var(--line);
+  /* The hero's wash and its pattern, continued up through the header so the two
+     read as one section with nothing dividing them. Layer order matches
+     .hero + .hero__bg: pattern over gradient.
+
+     `background-attachment: fixed` is the part that does the work — both this
+     and the hero measure their backgrounds against the VIEWPORT, so the header
+     paints the genuine top slice of the hero's gradient and the diagonal
+     stripes carry through the join. Sized to each element's own box instead,
+     the tone steps and the stripes restart at the boundary (measured: a 68px
+     box resolves a 120deg gradient over ~1142px, the hero's over ~1458px).
+
+     It also keeps the bar opaque and stable once scrolled past the hero: the
+     viewport-anchored slice stays the same navy-to-blue, so the header simply
+     becomes chrome over the white sections below. */
+  background:
+    radial-gradient(720px 340px at 88% 6%, rgba(255, 255, 255, 0.10), transparent 70%),
+    radial-gradient(560px 300px at 6% 92%, rgba(216, 30, 41, 0.14), transparent 70%),
+    repeating-linear-gradient(115deg, rgba(255,255,255,0.04) 0 2px, transparent 2px 26px),
+    linear-gradient(120deg, var(--navy-900) 0%, var(--blue-700) 55%, var(--blue-600) 100%);
+  background-attachment: fixed;
+  /* No border: a rule here is exactly the line that made these look like two
+     stacked sections. */
 }
+
+/* ---- Foreground on the blue bar -------------------------------------------
+   The header's contents were built dark-on-light, so every one of them needs
+   turning over. Done explicitly rather than by re-anchoring the theme tokens on
+   .nav: those describe a dark *page*, and their surfaces (#141f33) would read as
+   dark blobs on a blue bar rather than the translucent chips wanted here. The
+   dropdowns below stay light for the same reason — they're panels over the
+   page, not part of the bar. */
+/* Both halves sit a step down from pure white/pale — enough to read as ink on
+   the blue rather than glare, while staying well clear of the bar's own tones. */
+.nav .nav__brand { color: #e6eefb; }
+/* "Fee" was the lighter half of the wordmark; on blue the relationship inverts,
+   so it takes a blue tint against the near-white. */
+.nav .nav__brand-accent { color: #8ab8ee; }
+/* The mark can't be reversed to white: its key, arc, arrow and circles overlap
+   and rely on blue-vs-green to read apart, so one flat colour turns them into a
+   tangle. It sits on its own white plate instead — the colours stay exactly as
+   drawn, and the plate is what the left end of the bar (navy-900) needs anyway.
+   border-box, so the padding eats into the height rather than adding to it. */
+.nav .nav__logo {
+  height: 48px;
+  padding: 6px;
+  background: #fff;
+  border-radius: 10px;
+}
+
+.nav .nav__links { color: rgba(255, 255, 255, 0.86); }
+.nav .nav__links a:hover { color: #fff; }
+
+/* Locale pickers — same translucent chip as the icon buttons, but a pill. The
+   native <select> is kept (no custom menu): it gets the platform's own picker
+   on a phone, which beats anything hand-rolled. */
+.nav .nav__pick { display: inline-flex; flex: 0 0 auto; }
+.nav .nav__pick select {
+  appearance: none;
+  /* One height for every control in this row — explicit rather than derived
+     from padding, which is what let the three drift apart. NAV_CONTROL = 42px,
+     mirrored on .nav__signin and .nav__theme below. */
+  height: 42px;
+  /* Fixed, and identical for both pickers, so EN and SG are the same control at
+     the same size. It also stops the header reflowing when the country options
+     are relabelled to their full names for the open menu (see Navbar.jsx) - the
+     wider text is only ever on screen behind the menu itself. */
+  width: 76px;
+  padding: 0 32px 0 14px;
+  border: 1.5px solid rgba(255, 255, 255, 0.34);
+  /* .btn's radius, not a pill: Sign in sits beside these, and every filled CTA
+     on the site uses 12px. */
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.10);
+  color: #fff;
+  font: inherit; font-size: 14.5px; font-weight: 700;
+  cursor: pointer;
+  /* The chevron, drawn inline so it needs no asset and inherits nothing from
+     the platform's own select styling. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5 6 6.5l5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 13px center;
+  background-size: 10px 7px;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.nav .nav__pick select:hover { background-color: rgba(255, 255, 255, 0.20); border-color: rgba(255, 255, 255, 0.6); }
+.nav .nav__pick select:disabled { opacity: 0.6; cursor: default; }
+/* The menu itself is drawn by the OS, so its options need readable colours of
+   their own — white-on-white otherwise. */
+.nav .nav__pick option { color: var(--ink); background: var(--surface); }
+
+/* Round icon buttons: a translucent white chip, the usual treatment on a
+   coloured bar. Listed together because they're the same control at different
+   breakpoints. */
+.nav .nav__theme,
+.nav .nav__signin-icon,
+.nav .nav__burger {
+  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.34);
+  color: #fff;
+}
+.nav .nav__theme:hover,
+.nav .nav__signin-icon:hover {
+  background: rgba(255, 255, 255, 0.20);
+  border-color: rgba(255, 255, 255, 0.6);
+  color: #fff;
+}
+.nav .nav__burger span { background: #fff; }
+
+/* "Sign in" is .btn--ghost — a light surface with a grey border. Same chip
+   treatment so it sits with the pickers beside it.
+
+   Height and padding are set HERE, not in the unscoped .nav__signin rule
+   further down: that one is a single class, same as global.css's `.btn`, which
+   is bundled later and won it — which is why this button rendered 48px tall
+   against the pickers' 38px. */
+.nav .nav__signin {
+  height: 42px;
+  padding: 0 18px;
+  font-size: 14.5px;
+  background: rgba(255, 255, 255, 0.10);
+  border: 1.5px solid rgba(255, 255, 255, 0.34);
+  color: #fff;
+}
+.nav .nav__signin:hover { background: rgba(255, 255, 255, 0.20); border-color: rgba(255, 255, 255, 0.6); }
 .nav__inner {
   display: flex;
   align-items: center;
@@ -17,9 +135,9 @@
 .nav__brand {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: 11px;
   font-weight: 800;
-  font-size: 22px;
+  font-size: 26px;
   color: var(--ink);
   letter-spacing: -0.03em;
   white-space: nowrap;
@@ -45,13 +163,12 @@
 /* Theme toggle — quiet by default; it's a preference, not an action. */
 .nav__theme {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 36px; height: 36px; padding: 0; flex: none;
+  width: 42px; height: 42px; padding: 0; flex: none;
   border: 1.5px solid var(--line); border-radius: 50%;
   background: var(--surface); color: var(--ink-2);
   transition: border-color 0.15s ease, color 0.15s ease;
 }
 .nav__theme:hover { border-color: var(--accent); color: var(--accent); }
-.nav__cta { padding: 11px 18px; font-size: 15px; white-space: nowrap; flex: 0 0 auto; }
 .nav__signin { padding: 10px 16px; font-size: 15px; white-space: nowrap; flex: 0 0 auto; }
 
 /* Profile icon — phone-only replacement for the "Sign in" button */
@@ -169,18 +286,19 @@
      which loads later and would otherwise keep these visible on mobile. */
   .nav__actions .nav__signin { display: none; }   /* phone: replaced by the profile icon */
   .nav__signin-icon { display: inline-flex; }
-  .nav__actions .nav__cta { display: none; }       /* phone: Free Benchmark moved into the menu */
+  /* EN is the only language for now, so it's the first thing to give up space. */
+  .nav .nav__pick--lang { display: none; }
 }
 @media (max-width: 560px) {
   .nav__inner { gap: 12px; height: 60px; }
   .nav__actions { gap: 8px; }
-  .nav__brand { font-size: 18px; gap: 7px; }
-  .nav__logo { height: 27px; }
+  .nav__brand { font-size: 21px; gap: 8px; }
+  .nav__logo { height: 41px; }   /* 29px of mark + the plate's padding */
 }
 @media (max-width: 400px) {
   .nav__inner { gap: 8px; }
-  .nav__brand { font-size: 16.5px; gap: 6px; }
-  .nav__logo { height: 24px; }
+  .nav__brand { font-size: 19px; gap: 7px; }
+  .nav__logo { height: 38px; }   /* 26px of mark + the plate's padding */
 }
 
 /* Profile picture inside the account-menu button — uploaded photo or the

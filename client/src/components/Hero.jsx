@@ -12,7 +12,7 @@ const SLIDES = [
   },
   {
     title: (
-      <>Your Bank is Quietly <span className="hero__title-accent">Overcharging You.</span></>
+      <>Your Bank is Quietly Overcharging You.<br /><span className="hero__title-accent">Did you know?</span></>
     ),
     lead: (
       <>
@@ -23,7 +23,7 @@ const SLIDES = [
   },
   {
     title: (
-      <>9 out of 10 SMEs overpay their Bank for the services, <span className="hero__title-accent">You don’t have to</span></>
+      <>9 out of 10 SMEs overpay their Bank, <span className="hero__title-accent">You don’t have to</span></>
     ),
     lead: 'SMEs overpay, not because good rates don’t exist, but because the system is built for Banks profitability. We help you compute your savings and negotiate best savings for you.',
   },
@@ -32,7 +32,7 @@ const SLIDES = [
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-export default function Hero({ onDetailedFeedback, onReveal, onStart, calcSelection, onRequireAuth, onMarketChange }) {
+export default function Hero({ onDetailedFeedback, onReveal, onStart, calcSelection, onRequireAuth, market, onMarketChange }) {
   const [active, setActive] = useState(0);
   // No play/pause control any more, so this is fixed at mount: users who ask for
   // reduced motion get a static carousel they drive with the dots (WCAG 2.2.2).
@@ -93,7 +93,7 @@ export default function Hero({ onDetailedFeedback, onReveal, onStart, calcSelect
           </button>
 
           <ul className="hero__trust">
-            <li>🛡️ Built by ex-JPM, Citi &amp; SCB bankers</li>
+            <li>🛡️ Built by ex-bankers</li>
             <li>🔒 Anonymous &amp; Secure</li>
             <li>🔄 Data updated daily</li>
           </ul>
@@ -101,7 +101,7 @@ export default function Hero({ onDetailedFeedback, onReveal, onStart, calcSelect
 
         {/* Right column — free benchmark calculator */}
         <div className="hero__media">
-          <BenchmarkCalculator compact onDetailedFeedback={onDetailedFeedback} onReveal={onReveal} selection={calcSelection} onRequireAuth={onRequireAuth} onMarketChange={onMarketChange} />
+          <BenchmarkCalculator compact onDetailedFeedback={onDetailedFeedback} onReveal={onReveal} selection={calcSelection} onRequireAuth={onRequireAuth} market={market} onMarketChange={onMarketChange} />
         </div>
       </div>
     </section>

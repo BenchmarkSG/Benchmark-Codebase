@@ -98,6 +98,26 @@ export async function recordBooking(leadId, eventUri = null, inviteeUri = null) 
   return true;
 }
 
+/* Footer newsletter sign-up. Open to signed-out visitors, so it deliberately
+   does NOT go through ensure()/currentUser() the way the dashboard calls do.
+
+   Returns 'ok' | 'already' — a duplicate address is a success from the
+   subscriber's point of view, not an error to show them. */
+export async function subscribeNewsletter(email, source = 'footer') {
+  if (!supabase) throw new Error('Subscriptions aren’t available right now.');
+  const clean = String(email || '').trim();
+  const { data: sess } = await supabase.auth.getSession();
+  const { error } = await supabase.from('newsletter_subscribers').insert({
+    email: clean,
+    source,
+    user_id: sess?.session?.user?.id ?? null,
+  });
+  if (!error) return 'ok';
+  // 23505 = unique violation: they're already on the list.
+  if (error.code === '23505') return 'already';
+  throw error;
+}
+
 export async function listMyLeads() {
   ensure();
   const user = await currentUser();

@@ -39,7 +39,7 @@ export default function App() {
   const [authOpen, setAuthOpen] = useState(false);
   const [advisorOpen, setAdvisorOpen] = useState(false);
   const [calcSelection, setCalcSelection] = useState(null);
-  const [market, setMarket] = useState('SG'); // market picked in the calculator; drives the partner-logo marquee
+  const [market, setMarket] = useState('SG'); // market picked in the calculator; drives the partner-logo marquee + the products grid
 
   // Returning from Stripe Checkout (?checkout=success|cancel): restore the stashed
   // journey context and reopen the modal to the scheduler.
@@ -199,10 +199,10 @@ export default function App() {
 
   return (
     <>
-      <Navbar onGetStarted={scrollToCalc} onSignIn={openAuth} />
+      <Navbar onGetStarted={scrollToCalc} onSignIn={openAuth} market={market} onMarketChange={setMarket} />
       <main>
-        <Hero onDetailedFeedback={openTiers} onReveal={revealBank} onStart={scrollToCalc} calcSelection={calcSelection} onRequireAuth={requireAuth} onMarketChange={setMarket} />
-        <WorksProducts onGetStarted={scrollToCalc} onCompare={handleCompare} />
+        <Hero onDetailedFeedback={openTiers} onReveal={revealBank} onStart={scrollToCalc} calcSelection={calcSelection} onRequireAuth={requireAuth} market={market} onMarketChange={setMarket} />
+        <WorksProducts onGetStarted={scrollToCalc} onCompare={handleCompare} market={market} />
         <RealSavings />
         <SegmentsWhy onGetStarted={scrollToCalc} onCompare={handleCompare} />
         <PartnerBanks market={market} />

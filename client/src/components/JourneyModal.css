@@ -14,6 +14,46 @@
   animation: fade 0.2s ease;
 }
 .jny__panel {
+  /* This screen is always light, in either theme.
+   *
+   * It's the paid result — the revealed bank, the certificate, the three
+   * options — and it's what people screenshot and share. A certificate already
+   * pins its own light palette (it's a printed document), so in dark mode the
+   * panel around it went navy while the document inside stayed white: two
+   * unrelated surfaces stacked.
+   *
+   * Re-anchored here rather than fought rule by rule: this is exactly the set
+   * :root[data-theme='dark'] swaps in global.css, so every token a child reads
+   * resolves light no matter how deep it sits. Keep the two lists in step — a
+   * token added to the dark theme needs its light value here too.
+   * `color-scheme` covers what CSS can't: form controls and scrollbars. */
+  color-scheme: light;
+
+  --ink: #0b1f3a;
+  --ink-2: #12294d;
+  --ink-3: #1a3763;
+  --muted: #5b6b82;
+  --line: #e4e9f2;
+  --bg: #ffffff;
+  --bg-soft: #f4f8fd;
+  --surface: #ffffff;
+  --surface-2: #f8fbff;
+  --accent: var(--blue-600);
+
+  --blue-50: #eef5fd;
+  --blue-100: #e3edfa;
+  --red-50: #fdecec;
+
+  --ok-bg: #ecfaf1;   --ok-line: #b6e6ca;  --ok-ink: #0f7a44;
+  --warn-bg: #fff8e8; --warn-line: #e6cf88; --warn-ink: #8a5a00;
+  --err-bg: #fdeaea;  --err-line: #f6c9cc; --err-ink: var(--red-600);
+
+  /* Navy-tinted again: the panel is light, so the dark theme's black shadows
+     would read as smudges on it. */
+  --shadow-sm: 0 2px 8px rgba(11, 31, 58, 0.06);
+  --shadow-md: 0 12px 30px rgba(11, 31, 58, 0.10);
+  --shadow-lg: 0 24px 60px rgba(11, 31, 58, 0.16);
+
   /* Tone the panel blends into low down — anything that needs to disappear
      against the panel (the OR divider's label) matches this rather than #fff. */
   --jny-surface: var(--surface-2);

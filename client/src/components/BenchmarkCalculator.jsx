@@ -121,7 +121,7 @@ function Field({ field, value, onChange, ccyOptions, bankOptions, required, inva
   );
 }
 
-export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, compact = false, selection = null, onRequireAuth, onMarketChange }) {
+export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, compact = false, selection = null, onRequireAuth, market = null, onMarketChange }) {
   const { user } = useAuth();
   const [ref, setRef] = useState(null);
   const [error, setError] = useState(null);
@@ -253,6 +253,18 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
       return patch;
     });
   }
+
+  // The header's country picker drives the same market this form does. Routed
+  // through changeCountry so switching to a market that doesn't offer the
+  // current product still lands on a valid one, exactly as the form's own
+  // dropdown would. No loop: the effect below reports `country` back up, and
+  // when the two already agree neither setState changes anything.
+  useEffect(() => {
+    if (!market || market === country) return;
+    if (!countries.some((c) => c.code === market)) return; // catalog not loaded yet
+    changeCountry(market);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [market, countries]);
 
   const setValue = (key, val) => {
     setValues((v) => ({ ...v, [key]: val }));
@@ -392,7 +404,7 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
               </div>
             ) : (
               <>
-                <h2 className="calc-card__title">Calculate Your Free Comparison</h2>
+                <h2 className="calc-card__title">Free Benchmarking Calculator</h2>
                 <p className="calc-card__sub">Live rates · no sign-up · no personal data stored</p>
               </>
             )}

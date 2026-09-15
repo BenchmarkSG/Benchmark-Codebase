@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import './Sections.css';
 import { getReference } from '../api.js';
+import { subscribeNewsletter } from '../lib/dashboardApi.js';
 import { CTA_PRIMARY } from '../lib/copy.js';
 
 /* -------- Banking products we compare --------
    Sourced from the same /api/reference catalog as the benchmark calculator, so
    the two never drift. Clicking a card selects that product in the calculator. */
-export function Products({ onCompare }) {
+export function Products({ onCompare, market = 'SG' }) {
   const [seg, setSeg] = useState('individual');
   const [products, setProducts] = useState([]);
 
@@ -14,12 +15,19 @@ export function Products({ onCompare }) {
     getReference().then((r) => setProducts(r.products || [])).catch(() => {});
   }, []);
 
-  const list = products.filter((p) => p.segments?.includes(seg));
+  /* Market as well as segment — the same `onlyCountries` allowlist the
+     calculator honours. Some products exist in one market and not another: an
+     SME current account is benchmarked on the interest it EARNS in Singapore,
+     but on the charges it COSTS in India, where the RBI forbids banks to pay
+     interest on one. Filtering by segment alone showed both cards side by side,
+     which read as a duplicate rather than as two markets' versions of the same
+     thing — and offered a product the calculator would then refuse. */
+  const list = products.filter((p) => p.segments?.includes(seg)
+    && (!p.onlyCountries || p.onlyCountries.includes(market)));
 
   return (
     <div className="products" id="products">
       <h2 className="section-title products__title">Banking Products We Compare</h2>
-      <p className="section-sub products__sub">Comprehensive benchmarking across all major banking categories.</p>
 
       <div className="products__toggle">
         <button className={seg === 'individual' ? 'is-active' : ''} onClick={() => setSeg('individual')}>For Individuals</button>
@@ -73,8 +81,8 @@ export function RealSavings() {
   return (
     <section className="section section--blue savings" id="savings">
       <div className="container">
-        <h2 className="section-title">The Savings on the Table</h2>
-        <p className="section-sub savings__sub">Illustrative scenarios based on the gaps our benchmarks routinely uncover.</p>
+        <h2 className="section-title">Real Savings Your Peers are Seeing</h2>
+        <p className="section-sub savings__sub">Illustrative examples of individuals &amp; corporates who routinely benchmark their bank fees &amp; rates.</p>
       </div>
 
       <div className="marquee savings__marquee" aria-label="Real savings carousel">
@@ -96,7 +104,7 @@ export function RealSavings() {
         </div>
       </div>
 
-      <p className="savings__foot container">🛡️ Built on anonymised market data + expert benchmarks. Examples are illustrative.</p>
+      <p className="savings__foot container">🛡️ Built on market data &amp; actual savings negotiated by our advisors.</p>
     </section>
   );
 }
@@ -142,7 +150,7 @@ export function Segments({ onGetStarted, onCompare }) {
         </div>
 
         <article className="segments__col segments__col--sme">
-          <div className="segments__head"><span className="segments__avatar">🏢</span><h3>For SMEs</h3></div>
+          <div className="segments__head"><span className="segments__avatar">🏢</span><h3>For SMEs &amp; Corporates</h3></div>
           <p>Current-account interest, overdraft &amp; trade-finance pricing, fixed-deposit yields and cross-border FX costs.</p>
           <ul>
             <li>Current Accounts</li>
@@ -162,9 +170,9 @@ export function Segments({ onGetStarted, onCompare }) {
 /* -------- Why choose us -------- */
 const WHY = [
   { icon: '🛡️', title: 'Independent', body: 'Not tied to any bank. 100% on your side.' },
-  { icon: '🎓', title: 'Decades of Expertise', body: 'Powered by ex-JPM, Citi & SCB transaction banking experts.' },
+  { icon: '🎓', title: 'Decades of Expertise', body: 'Powered by team of ex-Bankers.' },
   { icon: '🎯', title: 'Real Savings Focus', body: 'We focus on real cost savings & negotiation leverage.' },
-  { icon: '⚡', title: 'Fast & Free', body: 'Start free, upgrade only when you want the full report.' },
+  { icon: '⚡', title: 'Fast & Free', body: 'Start free comparison, full fee refunded in case savings not upto satisfaction.' },
 ];
 
 export function WhyChoose() {
@@ -234,24 +242,115 @@ const Stars = () => (
   <div className="tst__stars">{'★★★★★'.split('').map((s, i) => <span key={i}>★</span>)}</div>
 );
 
+/* A scroll-snap carousel rather than a transform-based one: the number of cards
+   on screen is set in CSS (3 / 2 / 1 by width), so the component never has to
+   know the breakpoints — it measures a card and scrolls by that much. Native
+   scrolling also means trackpad swipes and touch work for free. */
 export function Testimonials() {
+  const trackRef = useRef(null);
+  const [index, setIndex] = useState(0);   // leftmost visible card
+  const [maxIndex, setMaxIndex] = useState(0);
+  const hovering = useRef(false);
+
+  // One card plus one gap: the distance a single step scrolls.
+  const step = () => {
+    const el = trackRef.current;
+    const card = el?.querySelector('.tst__card');
+    if (!el || !card) return 0;
+    return card.getBoundingClientRect().width + (parseFloat(getComputedStyle(el).columnGap) || 0);
+  };
+
+  // How far the track can actually scroll decides how many dots there are, so
+  // the last dot lands on the last card rather than on empty space.
+  const measure = useCallback(() => {
+    const el = trackRef.current;
+    const s = step();
+    if (!el || !s) return;
+    setMaxIndex(Math.max(0, Math.round((el.scrollWidth - el.clientWidth) / s)));
+  }, []);
+
+  useEffect(() => {
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (trackRef.current) ro.observe(trackRef.current);
+    return () => ro.disconnect();
+  }, [measure]);
+
+  const go = (i) => {
+    const el = trackRef.current;
+    const s = step();
+    if (!el || !s) return;
+    el.scrollTo({ left: i * s, behavior: 'smooth' });
+  };
+
+  const onScroll = () => {
+    const el = trackRef.current;
+    const s = step();
+    if (!el || !s) return;
+    setIndex(Math.round(el.scrollLeft / s));
+  };
+
+  // Advance on its own, but never while someone is reading a card or tabbing
+  // through them, and never when the visitor has asked for less motion.
+  useEffect(() => {
+    if (maxIndex < 1) return undefined;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return undefined;
+    const t = setInterval(() => {
+      if (hovering.current) return;
+      setIndex((i) => { const next = i >= maxIndex ? 0 : i + 1; go(next); return next; });
+    }, 6000);
+    return () => clearInterval(t);
+  }, [maxIndex]);
+
   return (
     <div className="tst">
       <h2 className="section-title tst__title">Built for Businesses &amp; Professionals</h2>
       <p className="section-sub tst__sub">Illustrative scenarios showing how people use their benchmark — real reviews will appear here as they come in.</p>
-      <div className="tst__list">
-        {TESTIMONIALS.map((t, i) => (
-          <article className="tst__card" key={t.quote}>
-            <p className="tst__quote">“{t.quote}”</p>
-            <div className="tst__foot">
-              <Avatar i={i} />
-              <div>
-                <div className="tst__who"><strong>{t.name},</strong><span>{t.role}</span></div>
-                <Stars />
+
+      <div
+        className="tst__carousel"
+        onMouseEnter={() => { hovering.current = true; }}
+        onMouseLeave={() => { hovering.current = false; }}
+        onFocusCapture={() => { hovering.current = true; }}
+        onBlurCapture={() => { hovering.current = false; }}
+      >
+        <div className="tst__list" ref={trackRef} onScroll={onScroll}>
+          {TESTIMONIALS.map((t, i) => (
+            <article className="tst__card" key={t.quote}>
+              <p className="tst__quote">“{t.quote}”</p>
+              <div className="tst__foot">
+                <Avatar i={i} />
+                <div>
+                  <div className="tst__who"><strong>{t.name},</strong><span>{t.role}</span></div>
+                  <Stars />
+                </div>
               </div>
+            </article>
+          ))}
+        </div>
+
+        {maxIndex > 0 && (
+          <div className="tst__controls">
+            <button
+              type="button" className="tst__arrow" aria-label="Previous testimonials"
+              onClick={() => go(Math.max(0, index - 1))} disabled={index === 0}
+            >←</button>
+            <div className="tst__dots" role="tablist" aria-label="Testimonials">
+              {Array.from({ length: maxIndex + 1 }, (_, i) => (
+                <button
+                  key={i} type="button" role="tab" aria-selected={i === index}
+                  className={`tst__dot ${i === index ? 'is-active' : ''}`}
+                  aria-label={`Show testimonials ${i + 1}`}
+                  onClick={() => go(i)}
+                />
+              ))}
             </div>
-          </article>
-        ))}
+            <button
+              type="button" className="tst__arrow" aria-label="More testimonials"
+              onClick={() => go(Math.min(maxIndex, index + 1))} disabled={index >= maxIndex}
+            >→</button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -261,10 +360,11 @@ export function Testimonials() {
 export function Founding({ onBecomeMember }) {
   return (
     <div className="founding">
-      <h2 className="section-title founding__title">Join Our Advisors Community</h2>
+      <h2 className="section-title founding__title">Join Our Team of Advisors</h2>
       <p className="section-sub founding__sub">
-        Be among the first banking specialists on FeeOptima and get matched with the individuals
-        and businesses who need your expertise. Founding advisors enjoy:
+        Are you an ex-Banker, ex-Accountant or an ex-Corporate Treasury / SME Finance professional
+        and want to contribute to community? Join team of advisors in FeeOptima and get matched with
+        the individuals and businesses who need your expertise for a fee that you decide.
       </p>
       <div className="founding__grid">
         {[
@@ -349,10 +449,93 @@ export function FinalCTA({ onGetStarted }) {
 }
 
 /* -------- Footer -------- */
-// Social profiles. Add entries with our REAL profile URLs when the accounts
-// exist — icons for platforms we're not on yet must not ship (placeholder links
-// to platform homepages read as broken). Shape: { label, href, icon }.
-const SOCIALS = [];
+/* Social profiles.
+ *
+ * TODO(launch): every href below is a PLACEHOLDER pointing at the platform's own
+ * homepage, so the icons render while the FeeOptima accounts are still being
+ * created. Swap each one for the real profile URL (the shape is in the comment
+ * beside it) before going live — a footer icon that lands on linkedin.com's
+ * front door reads as an unfinished site. Blank an href to skip that platform;
+ * blank all four and the whole "Follow us on" block hides itself.
+ *
+ * Marks are drawn inline rather than fetched: four network requests for four
+ * 20px glyphs, and logo CDNs are exactly what an ad blocker eats. */
+const SOCIALS = [
+  {
+    label: 'LinkedIn',
+    slug: 'linkedin',
+    href: 'https://www.linkedin.com/', // placeholder — real: https://www.linkedin.com/company/feeoptima
+    path: 'M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.07 2.07 0 1 1 0-4.13 2.07 2.07 0 0 1 0 4.13zM7.12 20.45H3.55V9h3.57v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z',
+  },
+  {
+    label: 'Instagram',
+    slug: 'instagram',
+    href: 'https://www.instagram.com/', // placeholder — real: https://www.instagram.com/feeoptima
+    path: 'M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41-.56-.22-.96-.48-1.38-.9-.42-.42-.68-.82-.9-1.38-.16-.42-.36-1.06-.41-2.23C2.17 15.58 2.16 15.2 2.16 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16zM12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.3-1.46.71-2.13 1.38C1.34 2.68.93 3.35.63 4.14.33 4.9.13 5.78.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.3.79.71 1.46 1.38 2.13.67.67 1.34 1.08 2.13 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56.79-.3 1.46-.71 2.13-1.38.67-.67 1.08-1.34 1.38-2.13.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91-.3-.79-.71-1.46-1.38-2.13C21.32 1.34 20.65.93 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32zm0 10.16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm7.85-10.4a1.44 1.44 0 1 1-2.88 0 1.44 1.44 0 0 1 2.88 0z',
+  },
+  {
+    label: 'Facebook',
+    slug: 'facebook',
+    href: 'https://www.facebook.com/', // placeholder — real: https://www.facebook.com/feeoptima
+    path: 'M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.09 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.96h-1.51c-1.49 0-1.96.93-1.96 1.89v2.26h3.33l-.53 3.49h-2.8V24C19.61 23.09 24 18.1 24 12.07z',
+  },
+  {
+    label: 'X',
+    slug: 'x',
+    href: 'https://x.com/', // placeholder — real: https://x.com/feeoptima
+    path: 'M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.21-6.82-5.97 6.82H1.67l7.73-8.84L1.25 2.25h6.83l4.71 6.23zm-1.16 17.52h1.83L7.08 4.13H5.12z',
+  },
+].filter((s) => s.href);
+
+/* Footer newsletter sign-up. Anonymous by design — no account needed, so the
+   insert goes in as the anon role (see supabase/newsletter.sql). */
+function Newsletter() {
+  const [email, setEmail] = useState('');
+  const [state, setState] = useState('idle'); // idle | busy | done | already | error
+  const [msg, setMsg] = useState('');
+
+  const submit = async (e) => {
+    e.preventDefault();
+    const clean = email.trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(clean)) {
+      setState('error'); setMsg('Please enter a valid email address.');
+      return;
+    }
+    setState('busy'); setMsg('');
+    try {
+      const r = await subscribeNewsletter(clean);
+      setState(r === 'already' ? 'already' : 'done');
+      setEmail('');
+    } catch {
+      setState('error');
+      setMsg('Couldn’t sign you up just now — please try again.');
+    }
+  };
+
+  return (
+    <form className="footer__news" onSubmit={submit} noValidate>
+      <h4>Subscribe to our newsletter</h4>
+      <div className="footer__news-row">
+        <label className="sr-only" htmlFor="footer-news-email">Email address</label>
+        <input
+          id="footer-news-email" type="email" inputMode="email" autoComplete="email"
+          placeholder="you@company.com"
+          value={email}
+          onChange={(e) => { setEmail(e.target.value); if (state !== 'idle') { setState('idle'); setMsg(''); } }}
+        />
+        <button type="submit" disabled={state === 'busy'}>
+          {state === 'busy' ? 'Adding\u2026' : 'Subscribe'}
+        </button>
+      </div>
+      {/* Polite, not assertive — a confirmation, not an alert. */}
+      <p className={`footer__news-note ${state === 'error' ? 'is-err' : ''}`} role="status" aria-live="polite">
+        {state === 'done' ? '✓ You’re on the list.'
+          : state === 'already' ? '✓ You’re already subscribed.'
+            : msg}
+      </p>
+    </form>
+  );
+}
 
 export function Footer() {
   return (
@@ -361,16 +544,7 @@ export function Footer() {
         <div>
           <div className="footer__brand"><span>Fee</span>Optima</div>
           <p>Independent bank benchmarking for individuals, SMEs and corporates across Singapore & SEA.</p>
-          {SOCIALS.length > 0 && (
-            <div className="footer__social" aria-label="Follow us">
-              {SOCIALS.map((s) => (
-                <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer"
-                   aria-label={s.label} title={s.label}>
-                  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">{s.icon}</svg>
-                </a>
-              ))}
-            </div>
-          )}
+          <Newsletter />
         </div>
         <div>
           <h4>Product</h4>
@@ -379,6 +553,25 @@ export function Footer() {
         <div>
           <h4>Company</h4>
           <a href="#partners">Banks we track</a><a href="#faq">FAQ</a>
+          {/* Inside the Company column rather than a grid cell of its own: as its
+              own cell it landed on a second grid row, whose top is set by the
+              tallest first-row cell (the brand column, which carries the
+              newsletter) — leaving a band of dead space above it. */}
+          {SOCIALS.length > 0 && (
+            <div className="footer__follow">
+              <h4>Follow us on</h4>
+              <div className="footer__social">
+                {SOCIALS.map((s) => (
+                  <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer"
+                     data-net={s.slug} aria-label={s.label} title={s.label}>
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+                      <path d={s.path} />
+                    </svg>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         <div>
           <h4>Legal</h4>

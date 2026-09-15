@@ -1,7 +1,16 @@
+/* The header shares this wash — see the matching block in Navbar.css.
+   `background-attachment: fixed` on both is what makes them one surface: it
+   measures the gradient against the VIEWPORT rather than each element's own
+   box, so the nav paints the true top slice of the hero's gradient and the
+   diagonal stripes run through the seam unbroken. Sizing each element's
+   background to itself instead leaves a visible step — a 68px-tall box and a
+   700px-tall one resolve a 120deg gradient over different distances, and the
+   stripe phase restarts. */
 .hero {
   position: relative;
   overflow: hidden;
   background: linear-gradient(120deg, var(--navy-900) 0%, var(--blue-700) 55%, var(--blue-600) 100%);
+  background-attachment: fixed;
 }
 .hero__bg {
   position: absolute;
@@ -10,6 +19,7 @@
     radial-gradient(720px 340px at 88% 6%, rgba(255, 255, 255, 0.10), transparent 70%),
     radial-gradient(560px 300px at 6% 92%, rgba(216, 30, 41, 0.14), transparent 70%),
     repeating-linear-gradient(115deg, rgba(255,255,255,0.04) 0 2px, transparent 2px 26px);
+  background-attachment: fixed;
   pointer-events: none;
 }
 .hero .hero__grid {
@@ -18,8 +28,10 @@
   grid-template-columns: 1fr 1fr;
   gap: 54px;
   align-items: center;
-  padding-top: 40px;
-  padding-bottom: 88px;
+  /* Kept tight on purpose: the phone mock is the tallest thing on the page and
+     the whole hero — copy, CTA and the trust row — has to clear a laptop fold. */
+  padding-top: 26px;
+  padding-bottom: 40px;
 }
 /* Allow both columns to shrink below their content's intrinsic width so a
    wide child (the calculator card) can't push the layout past the viewport. */
@@ -27,7 +39,7 @@
 
 /* Left text carousel — only the active slide is rendered (static flow, so it
    never clips), with a gentle fade-in on change. */
-.hero__textcarousel { position: relative; min-height: 250px; }
+.hero__textcarousel { position: relative; min-height: 220px; }
 .hero__text { animation: hero-fade 0.5s ease both; }
 @keyframes hero-fade { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
 
@@ -57,7 +69,7 @@
 .hero__trust {
   list-style: none;
   padding: 0;
-  margin: 24px 0 0;
+  margin: 16px 0 0;
   display: flex;
   flex-wrap: wrap;
   gap: 18px;
@@ -66,10 +78,10 @@
   font-weight: 600;
 }
 
-.hero__cta { margin-top: 24px; }
+.hero__cta { margin-top: 18px; }
 
 /* Carousel controls (dots + play/pause) */
-.hero__controls { display: flex; align-items: center; gap: 12px; margin-top: 22px; }
+.hero__controls { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
 .hero__dots { display: flex; gap: 6px; }
 /* 24px hit area with a smaller visible dot (meets WCAG 2.5.8). */
 .hero__dot {

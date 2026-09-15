@@ -135,6 +135,23 @@ const SECTIONS = [
     ],
   },
   {
+    // Footer sign-ups. Read-only: the list is only useful as an export, and an
+    // editable email address is a way to mistype someone out of existence.
+    key: 'newsletter', title: 'Newsletter subscribers', table: 'newsletter_subscribers', pk: 'id',
+    select: 'id, email, source, user_id, created_at',
+    order: 'created_at', desc: true,
+    emptyText: 'No subscribers yet.',
+    migrationNote: 'Run supabase/newsletter.sql in the Supabase SQL editor to start collecting sign-ups.',
+    columns: [
+      { key: 'email', label: 'Email' },
+      { key: 'source', label: 'Signed up from' },
+      // user_id is set only when a signed-in visitor subscribes — the one thing
+      // this table can say about who they are.
+      { key: 'user_id', label: 'Has account', get: (r) => (r.user_id ? 'Yes' : '—') },
+      { key: 'created_at', label: 'Subscribed', get: (r) => (r.created_at ? formatDate(r.created_at) : '—') },
+    ],
+  },
+  {
     // Who took Option 2 (coaching call) or Option 3 (expert), which specialist
     // they picked, and the slot they booked. Rows are `leads`; the reveal-tier
     // rows (source 'reveal') are filtered out — those aren't bookings.
@@ -296,6 +313,15 @@ function Section({ config, country }) {
     if (error && config.selectFallback && /does not exist|42703|PGRST204/i.test(error.message)) {
       ({ data, error } = await run(config.selectFallback));
       if (!error) setNotice(config.migrationNote || 'Some columns are missing — a migration is pending.');
+    }
+    // The whole table can be missing too (PGRST205 / 42P01) — the same
+    // situation, one migration further back. Show the empty tab and the
+    // instruction rather than "could not find the table in the schema cache".
+    if (error && config.migrationNote
+      && /PGRST205|42P01|Could not find the table/i.test(`${error.code || ''} ${error.message || ''}`)) {
+      setNotice(config.migrationNote);
+      setRows([]);
+      return;
     }
     if (error) setError(error.message);
     else setRows(data);

@@ -91,6 +91,15 @@
 
 * { box-sizing: border-box; }
 
+/* Label text for screen readers where the control's own value already says what
+   it is on screen (the header's locale pickers). Clipped rather than hidden:
+   display:none would take it out of the accessibility tree too. */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
 /* Guaranteed, consistent keyboard focus ring everywhere. `!important` so it wins
    over the many component `:focus { outline: none }` rules — mouse users still get
    no ring (that's :focus without :focus-visible), keyboard users always do. */

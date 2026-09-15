@@ -1,22 +1,68 @@
+/* Stacked, not side by side: the testimonials run full width as a carousel and
+   the advisor pitch sits beneath them, so each gets the whole column rather
+   than half of one. */
 .tf__grid {
   display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
+  grid-template-columns: 1fr;
   gap: 48px;
-  align-items: start;
 }
+/* A grid item's default min-width is auto, so the horizontally-scrolling
+   carousel inside would stretch the track past the container instead of
+   scrolling within it. */
+.tf__col { min-width: 0; }
 .tf__col--join {
-  border-left: 1px solid var(--line);
-  padding-left: 48px;
+  border-top: 1px solid rgba(255, 255, 255, 0.22);
+  padding-top: 44px;
 }
 
-/* Testimonials (left) — grid of boxes */
+/* Testimonials — a horizontal carousel */
 .tst__title { text-align: left; font-size: clamp(22px, 2.4vw, 28px); }
+.tst__carousel { margin-top: 24px; }
 .tst__list {
-  margin-top: 24px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
   gap: 14px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  /* The dots and arrows are the affordance; a scrollbar under the cards reads
+     as a stray element on the blue panel. Swiping still works. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  /* Room for the cards' shadow, which a clipped overflow would otherwise cut. */
+  padding-bottom: 6px;
 }
+.tst__list::-webkit-scrollbar { display: none; }
+
+/* How many cards are on screen lives here, not in JS — the component measures
+   one card and scrolls by that, so these breakpoints are the only definition. */
+.tst__card { flex: 0 0 calc((100% - 28px) / 3); scroll-snap-align: start; }
+@media (max-width: 900px) { .tst__card { flex-basis: calc((100% - 14px) / 2); } }
+@media (max-width: 620px) { .tst__card { flex-basis: 100%; } }
+
+.tst__controls { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 18px; }
+.tst__arrow {
+  width: 34px; height: 34px; flex: none;
+  display: grid; place-items: center;
+  border: 1.5px solid rgba(255, 255, 255, 0.34);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.10);
+  color: #fff; font-size: 15px; cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+.tst__arrow:hover:not(:disabled) { background: rgba(255, 255, 255, 0.22); border-color: rgba(255, 255, 255, 0.6); }
+.tst__arrow:disabled { opacity: 0.35; cursor: default; }
+.tst__dots { display: flex; gap: 6px; }
+/* 24px hit area with a smaller visible dot (meets WCAG 2.5.8) — same as the
+   hero's carousel, so the two read as the same control. */
+.tst__dot {
+  width: 24px; height: 24px; padding: 0;
+  border: none; background: transparent; cursor: pointer;
+  display: grid; place-items: center;
+}
+.tst__dot::before {
+  content: ''; width: 9px; height: 9px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4); transition: all 0.2s ease;
+}
+.tst__dot.is-active::before { background: #fff; width: 22px; border-radius: 6px; }
 .tst__card {
   display: flex;
   flex-direction: column;
@@ -36,15 +82,17 @@
 .tst__who span { margin-left: 4px; }
 .tst__stars { margin-top: 3px; color: var(--accent); font-size: 12px; letter-spacing: 2px; }
 
-@media (max-width: 620px) {
-  .tst__list { grid-template-columns: 1fr; }
-}
 
-/* Founding (right) — override centered/full styles for column context */
+/* Centred over the full-width perks row beneath it. The subheading is a long
+   paragraph now, so it keeps a measure rather than running the whole width. */
 .tf .founding__title,
-.tf .founding__sub { text-align: left; }
-.tf .founding__sub { margin-left: 0; }
-.tf .founding__grid { margin-top: 20px; }
+.tf .founding__sub { text-align: center; }
+.tf .founding__sub { max-width: 760px; margin-inline: auto; }
+/* Full width now, so the four perks sit in one row instead of a 2x2 block. */
+.tf .founding__grid { margin-top: 20px; grid-template-columns: repeat(4, 1fr); }
+/* btn--block would run the CTA the entire width of the page here. Cap it and
+   centre it under the perks. */
+.tf .founding__cta { width: auto; max-width: 420px; margin-inline: auto; display: flex; }
 
 /* Embedded single-row logo marquee — sits on its own full-width white band
    so the logos are not on the blue section background. */
@@ -65,12 +113,11 @@
 }
 .tf .partners .marquee { margin-top: 0; }
 
-/* Divider legible on the blue panel */
-.tf.section--blue .tf__col--join { border-left-color: rgba(255, 255, 255, 0.22); }
 
 @media (max-width: 960px) {
-  .tf__grid { grid-template-columns: 1fr; gap: 40px; }
-  .tf__col--join { border-left: none; padding-left: 0; border-top: 1px solid var(--line); padding-top: 36px; }
+  .tf__grid { gap: 40px; }
+  .tf__col--join { padding-top: 36px; }
+  .tf .founding__grid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 520px) {
   .tf .founding__grid { grid-template-columns: 1fr; }
