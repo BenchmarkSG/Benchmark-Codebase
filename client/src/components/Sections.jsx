@@ -397,7 +397,7 @@ const FAQS = [
   },
   {
     q: 'How does the expert negotiation work?',
-    a: 'An ex-banker contacts your bank armed with your specific benchmarking data and negotiates on your behalf. The S$199 fee is fully refundable if no savings are delivered — so there’s no risk in trying.',
+    a: 'An ex-banker contacts your bank armed with your specific benchmarking data and negotiates on your behalf. The fee is fully refundable if no savings are delivered — so there’s no risk in trying.',
   },
 ];
 
