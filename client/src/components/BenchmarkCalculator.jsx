@@ -288,6 +288,8 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
       market_typical: result.marketTypical,
       annual_saving: result.annualSaving,
       monthly_saving: result.monthlySaving,
+      // Always null at save time now: the free benchmark withholds the name, and
+      // it is written back only once the reveal has actually been paid for.
       best_bank: result.bestBank ?? null,
       inputs: values,
     };
@@ -534,23 +536,26 @@ function Result({ result, product, compact, localCcy, yourBank = '', onReveal, o
   // is optional and carries an "Other / not listed" entry, neither of which
   // names a bank — those keep the generic wording.
   const namedBank = yourBank && yourBank !== 'Other' ? yourBank : '';
-  const yourLabel = crossBorder ? 'Your all-in cost'
-    : moneyMetric ? 'What you pay now'
-    : namedBank ? `Your Bank (${namedBank}) Rate`
-    : 'Your bank’s rate';
+  const yourLabel = crossBorder ? 'Your all-in cost is'
+    : moneyMetric ? 'What you pay now is'
+    : namedBank ? `Your Bank (${namedBank}) Rate is`
+    : 'Your bank’s rate is';
   // How the best rate was published. A lender that prints "8.00%–9.50%" is
   // represented by the midpoint and marked "~"; one that prints "from 7.50%"
   // keeps the floor and is labelled "from". A plain figure was published as
   // such. When any rate in the pool is a midpoint or a floor, the typical
   // figure is approximate too, so it wears the "~" as well.
   const bestBasis = result.benchmarkBasis || 'exact';
-  const fmtBest = (v) => (bestBasis === 'range' ? `~${fmtMetric(v)}` : bestBasis === 'from' ? `from ${fmtMetric(v)}` : fmtMetric(v));
+  // "from" is no longer printed on the figure (product decision). A floor rate
+  // now renders as a plain number, exactly like an exact one; the "~" on a range
+  // midpoint stays, since that marks a different thing.
+  const fmtBest = (v) => (bestBasis === 'range' ? `~${fmtMetric(v)}` : fmtMetric(v));
   const fmtPool = (v) => (result.approxPool ? `~${v}` : v);
   const ahead = result.status === 'ahead';
   const saveLabel = saveState === 'saved' ? 'Saved to dashboard ✓'
     : saveState === 'saving' ? 'Saving…'
     : saveState === 'error' ? 'Couldn’t save — retry'
-    : isAuthed ? '＋ Save to my dashboard' : 'Sign in to save this';
+    : isAuthed ? '＋ Save to my dashboard' : 'Sign-in to save this';
 
   return (
     <div className="res">
@@ -592,9 +597,10 @@ function Result({ result, product, compact, localCcy, yourBank = '', onReveal, o
         <>
           <div className="res__overpay">
             <span className="res__overpay-lead">
-              {higher ? <>You&apos;re <strong>missing out</strong> on</> : <>You&apos;re <strong>overpaying</strong> your bank by</>}
+              {higher ? <>Hey, you&apos;re <strong>missing out</strong> on</> : <>Hey, you&apos;re <strong>losing</strong></>}
             </span>
-            <strong className="res__overpay-amt">{formatMoney(result.annualSaving, ccy)} per year</strong>
+            <strong className="res__overpay-amt">{formatMoney(result.annualSaving, ccy)} per year!</strong>
+            <span className="res__overpay-sub">Here&apos;s the rate comparison</span>
           </div>
 
           <div className="res__cmp">
@@ -603,12 +609,12 @@ function Result({ result, product, compact, localCcy, yourBank = '', onReveal, o
               <span className="res__cmp-val">{fmtMetric(result.yourRate)}</span>
             </div>
             <div className="res__cmp-row">
-              <span className="res__cmp-label">Best Bank Available Rate</span>
+              <span className="res__cmp-label">Best Available Rate is</span>
               <span className="res__cmp-val">{fmtBest(result.benchmarkRate)}</span>
             </div>
           </div>
 
-          <p className="res__tagline">Save the money your bank is making off you.</p>
+          <p className="res__tagline">Save this money your Bank is making off you.</p>
 
           {result.status === 'estimate' && (
             <p className="res__standing res__standing--muted">
@@ -635,14 +641,16 @@ function Result({ result, product, compact, localCcy, yourBank = '', onReveal, o
           about half the size of an effective rate — compare it with your own flat rate, not your EIR.
         </p>
       )}
-      {(bestBasis !== 'exact' || result.approxPool || result.floatingPool) && (
+      {/* Only when there is something left to say. 'from' used to satisfy
+          `bestBasis !== 'exact'` and bring its own sentence; with that sentence
+          gone, the old test would render an empty paragraph and its margin. */}
+      {(bestBasis === 'range' || result.benchmarkIndex || result.approxPool || result.floatingPool) && (
         <p className="res__basis">
           {bestBasis === 'range' && (
             <>~ marks the midpoint of the range this lender publishes
               {result.benchmarkLow != null && result.benchmarkHigh != null && <> ({result.benchmarkLow}%–{result.benchmarkHigh}%)</>}
               ; the rate you are offered depends on your profile. </>
           )}
-          {bestBasis === 'from' && <>“From” is this lender's lowest advertised rate — what its best-profile borrowers get. </>}
           {/* A floating rate is a formula, not a promise. Show the two parts, so
               the reader can see which half their bank can actually move. */}
           {result.benchmarkIndex && (
@@ -676,18 +684,24 @@ function Result({ result, product, compact, localCcy, yourBank = '', onReveal, o
         </button>
       ) : (
         <>
+          {/* Reads as the lead-in to the button, so it sits directly above it
+              rather than after the tagline (the notes between the two are all
+              conditional and would separate them). */}
+          {!unlockedTier && (
+            <p className="res__findout">Find out which Bank is giving the Best Available Rate</p>
+          )}
           {/* Already paid for this benchmark? Then this button reopens it — it
               never offers to sell the same reveal a second time. */}
           <button className="btn btn--block res__detail" onClick={handleReveal} disabled={revealBusy}>
             {revealBusy
               ? (unlockedTier ? 'Opening…' : 'Opening secure checkout…')
-              : (unlockedTier ? 'View Your Best Bank →' : 'Reveal the Best Bank →')}
+              : (unlockedTier ? 'View Your Best Bank →' : 'Unlock the Best Rate Bank →')}
           </button>
           {revealErr && <p className="res__lead-err">{revealErr}</p>}
           <p className="res__reveal-note">
             {unlockedTier
               ? '✓ Already unlocked — reopening it is free.'
-              : `🔒 ${revealLabel} charged securely. 100% cashback if not satisfied.`}
+              : `Click to pay ${revealLabel}. 100% cashback if not satisfied.`}
           </p>
         </>
       )}

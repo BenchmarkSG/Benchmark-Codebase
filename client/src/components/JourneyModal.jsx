@@ -666,6 +666,17 @@ Kind regards,
     } catch { /* non-blocking */ }
   };
 
+  // Picking one of the three options is the moment we ask for an account: the
+  // user has chosen what they want, so the prompt reads as "sign in to do this"
+  // rather than a toll gate in front of the offer. After auth the resume flow
+  // reopens the modal on the option they picked (App.jsx reads intent.view).
+  // An option they already own reopens with no prompt - owning it implies an
+  // account.
+  const chooseTier = (id, owned) => {
+    if (!user && !owned) { onRequireAuth?.({ kind: 'journey', context, view: id, expert }); return; }
+    setView(id);
+  };
+
   // Redirect to Stripe Checkout for a paid tier; stash context to resume on return.
   const pay = async (tier, adv) => {
     // Require sign-in before any payment/booking, so the appointment is tied to a
@@ -898,7 +909,7 @@ Kind regards,
                     <div className="jny-tier__title">{t.title}</div>
                     {/* CTA sits directly under the title; the detail reads as a
                         footnote beneath it rather than something to get past. */}
-                    <button className="jny-tier__cta" onClick={() => setView(t.id)}>
+                    <button className="jny-tier__cta" onClick={() => chooseTier(t.id, owned)}>
                       {owned ? (current ? 'Manage this →' : 'Open →') : `${t.cta} →`}
                     </button>
                     <div className="jny-tier__desc">{t.desc}</div>

@@ -362,18 +362,12 @@ test('bearerToken: reads the Authorization header, or nothing at all', () => {
   assert.equal(bearerToken(undefined), '');
 });
 
-test('checkRevealPurchase: an unverifiable caller is never sold a reveal', async () => {
-  const refusal = await checkRevealPurchase({ token: '', benchmarkId: 'abc' });
-  if (isSupabaseConfigured) {
-    // A reveal is always tied to an account, so a request carrying no valid
-    // token is refused rather than charged.
-    assert.equal(refusal?.status, 401);
-    assert.equal(refusal?.body?.code, 'auth_required');
-  } else {
-    // Demo / self-hosted build: there's no row to check against, so the route
-    // behaves as it always did instead of blocking every sale.
-    assert.equal(refusal, null);
-  }
+test('checkRevealPurchase: an anonymous buyer is allowed through', async () => {
+  // A reveal no longer requires an account to buy: /api/reveal serves what was
+  // bought against the paid Stripe session, so payment is the entitlement. An
+  // anonymous caller has no purchase history to check, and refusing them would
+  // simply block a legitimate sale.
+  assert.equal(await checkRevealPurchase({ token: '', benchmarkId: 'abc' }), null);
 });
 
 // ---- Floating rates (supabase/floating_rate.sql) ---------------------------

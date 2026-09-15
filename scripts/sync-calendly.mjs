@@ -61,7 +61,16 @@ async function fetchEvent(uri) {
   if (!href) return { skip: 'not a Calendly scheduled_events URI' };
   const res = await fetch(href, { headers: { Authorization: `Bearer ${token}` } });
   if (res.status === 404) return { skip: 'event no longer exists (canceled + purged?)' };
-  if (res.status === 401 || res.status === 403) throw new Error('Calendly rejected the token (401/403).');
+  // 401 and 403 are NOT the same failure and must not be treated alike.
+  //   401 — the token itself is bad (wrong, expired, revoked). Nothing in this
+  //         run can succeed, so stop rather than hammer the API 500 times.
+  //   403 — the token is fine; this particular event belongs to a DIFFERENT
+  //         Calendly account. That is the normal case for a booking made on an
+  //         advisor's own scheduling link: a personal access token can only read
+  //         events its own account owns. Permanent for that row, irrelevant to
+  //         every other row — so skip it and carry on.
+  if (res.status === 401) throw new Error('Calendly rejected the token (401) - it is wrong, expired or revoked.');
+  if (res.status === 403) return { skip: 'owned by another Calendly account (an advisor\'s own link) - CALENDLY_TOKEN cannot read it' };
   if (!res.ok) return { skip: `Calendly returned ${res.status}` };
   const body = await res.json();
   const r = body?.resource;

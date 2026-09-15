@@ -77,3 +77,50 @@ export function unlockedTierFor(ctx) {
 export function clearUnlocks() {
   try { sessionStorage.removeItem(KEY); } catch { /* ignore */ }
 }
+
+/* ---------------------------------------------------------------------------
+   Anonymous reveals.
+
+   A reveal can now be bought without an account, which means the browser holds
+   the only proof of purchase until the payer uses the magic link emailed to
+   them. That proof is the Stripe session id, and /api/reveal re-verifies it
+   with Stripe on every use — so this is a capability, not a claim the client
+   gets to make for itself.
+
+   localStorage, unlike the sessionStorage above: the whole point is to outlive
+   the tab, so someone who pays and comes back tomorrow is not charged twice.
+   --------------------------------------------------------------------------- */
+const SESSION_KEY = 'bb_reveal_sessions';
+
+function readSessions() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
+    return raw && typeof raw === 'object' ? raw : {};
+  } catch { return {}; }
+}
+
+/** File a paid reveal session under every key this benchmark answers to. */
+export function rememberRevealSession(ctx, sessionId) {
+  if (!sessionId) return;
+  const keys = keysFor(ctx);
+  if (!keys.length) return;
+  const map = readSessions();
+  for (const k of keys) map[k] = sessionId;
+  try { localStorage.setItem(SESSION_KEY, JSON.stringify(map)); } catch { /* ignore */ }
+}
+
+/** The paid session id for this benchmark in this browser, or null. */
+export function revealSessionFor(ctx) {
+  const map = readSessions();
+  for (const k of keysFor(ctx)) if (map[k]) return map[k];
+  return null;
+}
+
+/** Consume one after it has been attached to an account - the saved benchmark's
+    own `stage` is the durable record from then on. */
+export function forgetRevealSession(sessionId) {
+  const map = readSessions();
+  let changed = false;
+  for (const [k, v] of Object.entries(map)) if (v === sessionId) { delete map[k]; changed = true; }
+  if (changed) { try { localStorage.setItem(SESSION_KEY, JSON.stringify(map)); } catch { /* ignore */ } }
+}

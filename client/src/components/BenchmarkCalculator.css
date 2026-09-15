@@ -342,11 +342,10 @@
 /* --- Redesigned result: red rules, "overpaying" headline, rate rows, tagline --- */
 .res__top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .res__product { font-weight: 800; color: var(--ink); font-size: 15px; }
+/* The headline sits on the card itself now - the blue panel moved down to wrap
+   the two comparison rows (.res__cmp below). */
 .res__overpay {
   text-align: center; margin-top: 16px;
-  background: var(--blue-50);
-  border: 1px solid #c3d8f5; border-radius: 16px;
-  padding: 18px 16px 22px;
 }
 .res__overpay-lead { display: block; font-size: 15px; font-weight: 700; color: var(--ink-3); }
 /* The emphasised word blends with its neighbours in colour; a red hand-drawn
@@ -364,19 +363,31 @@
   display: inline-block;
   margin-top: 20px; font-size: 30px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em;
 }
+/* Second half of the headline, under the amount: it introduces the comparison
+   panel below, so it is sized between the amount and the panel's labels. */
+.res__overpay-sub {
+  display: block;
+  margin-top: 10px; font-size: 14.5px; font-weight: 700; color: var(--ink-3);
+}
 
 /* "You vs best" — two rows of label + figure. One shared 2-column grid (rows
    are display:contents) so both figures line up whatever the label width, and
    the pair is centred as a block rather than pushed out to the card's edges.
    Neutral surface on both figures: the numbers carry the comparison. */
 .res__cmp {
-  margin-top: 22px;
+  margin-top: 20px;
   display: grid;
   grid-template-columns: auto max-content;
   justify-content: center;
   align-items: center;
   column-gap: 14px;
   row-gap: 10px;
+  /* Was on .res__overpay. The white value chips keep their contrast on this
+     wash, so the pair reads as one block. */
+  background: var(--blue-50);
+  border: 1px solid #c3d8f5;
+  border-radius: 16px;
+  padding: 18px 16px;
 }
 .res__cmp-row { display: contents; }
 .res__cmp-label { font-size: 13px; font-weight: 700; color: var(--ink-2); text-align: left; }
@@ -387,6 +398,12 @@
 }
 
 .res__tagline { margin-top: 16px; text-align: center; font-size: 17px; line-height: 1.35; font-weight: 800; color: var(--ink-2); }
+/* Lead-in above the reveal button. Quieter than the tagline so the two don't
+   compete, but darker than the fine print below the button. */
+.res__findout {
+  margin-top: 18px; margin-bottom: 10px;
+  text-align: center; font-size: 14px; line-height: 1.4; font-weight: 700; color: var(--ink-3);
+}
 
 /* Primary result CTA — blue (overrides the global red .btn* unification) */
 .res .res__detail { background: var(--blue-600); color: #fff; box-shadow: 0 8px 20px rgba(29, 99, 196, 0.26); }

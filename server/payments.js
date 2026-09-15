@@ -97,7 +97,7 @@ const cleanBase = (origin) => {
 // Create a hosted Checkout Session for a tier; returns { url, id }.
 // Every tier is priced server-side from the market currency — a client-supplied
 // amount is never trusted, only the currency code it asks to be billed in.
-export async function createCheckout({ tier, origin, email, advisorId, product, segment, currency }) {
+export async function createCheckout({ tier, origin, email, advisorId, product, segment, currency, country, productId }) {
   const t = getTier(tier);
   if (!t) throw new Error('Unknown tier');
   const base = cleanBase(origin);
@@ -110,7 +110,12 @@ export async function createCheckout({ tier, origin, email, advisorId, product, 
       price_data: { currency: price.currency, unit_amount: price.amount, product_data: { name: t.name } },
     }],
     customer_email: email || undefined,
-    metadata: { tier, advisorId: advisorId || '', product: product || '', segment: segment || '', currency: price.currency },
+    // country + productId bind a reveal session to ONE benchmark, so a paid
+    // session id can't be replayed against a different product or market.
+    metadata: {
+      tier, advisorId: advisorId || '', product: product || '', segment: segment || '',
+      currency: price.currency, country: country || '', productId: productId || '',
+    },
     success_url: `${base}/?checkout=success&tier=${tier}&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${base}/?checkout=cancel&tier=${tier}`,
   });
@@ -127,6 +132,8 @@ export async function retrieveCheckout(id) {
     tier: session.metadata?.tier || null,
     advisorId: session.metadata?.advisorId || null,
     product: session.metadata?.product || null,
+    country: session.metadata?.country || null,
+    productId: session.metadata?.productId || null,
     amountTotal: session.amount_total,
     currency: session.currency,
     email: session.customer_details?.email || session.customer_email || null,

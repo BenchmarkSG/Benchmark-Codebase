@@ -64,6 +64,12 @@ export const scoreQuestionnaire = (id, answers) => post('/questionnaire/score', 
 // `token` is the caller's Supabase access token. The server requires it for the
 // reveal tier so it can refuse to sell a benchmark that's already unlocked.
 export const createCheckout = (payload, token) => post('/checkout', payload, { token });
+
+/* The paid reveal. The free /benchmark response deliberately withholds the
+   winning bank's name; this asks for it and the server only answers when it can
+   verify the purchase itself — a paid Stripe session id, or a signed-in user
+   whose saved benchmark is already marked revealed. */
+export const revealBestBank = (payload, token = null) => post('/reveal', payload, { token });
 export const getCheckoutSession = (id) =>
   fetch(`${BASE}/checkout/session?id=${encodeURIComponent(id)}`)
     .then((r) => (r.ok ? r.json() : null))

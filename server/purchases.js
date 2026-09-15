@@ -47,12 +47,14 @@ async function stageOf(token, benchmarkId) {
 export async function checkRevealPurchase({ token, benchmarkId }) {
   if (!isSupabaseConfigured) return null;
 
-  // Reveal always requires an account (App.jsx never starts one signed-out), so
-  // an unverifiable caller is a bug or an attempt — not a paying customer.
+  // Signing in is no longer required to BUY a reveal: what the purchase unlocks
+  // is served by /api/reveal against the paid Stripe session itself, so payment
+  // — not an account — is the entitlement. An anonymous caller therefore has no
+  // history to check and is simply allowed through; their protection against a
+  // second charge is the stored session id, and the account they get from the
+  // magic link sent on return.
   const user = await userFromToken(token);
-  if (!user) {
-    return { status: 401, body: { error: 'Please sign in again to continue.', code: 'auth_required' } };
-  }
+  if (!user) return null;
   if (!benchmarkId) return null; // nothing to compare against; let it through
 
   if (!isRevealPaid(await stageOf(token, benchmarkId))) return null;

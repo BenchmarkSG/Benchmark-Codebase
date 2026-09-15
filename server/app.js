@@ -4,12 +4,13 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import {
   PRODUCTS, QUESTIONNAIRES, getProduct, isProductInCountry,
-  buildBenchmarkResult, crossBorderCostPct, scoreQuestionnaire,
+  buildBenchmarkResult, crossBorderCostPct, scoreQuestionnaire, pickBestItem,
 } from './benchmark.js';
 import * as ratesRepo from './ratesRepo.js';
 import * as fxModule from './fx.js';
 import * as payments from './payments.js';
-import { checkRevealPurchase, bearerToken } from './purchases.js';
+import { checkRevealPurchase, bearerToken, isRevealPaid } from './purchases.js';
+import { userFromToken, clientForToken, supabase, isSupabaseConfigured } from './supabase.js';
 import * as email from './email.js';
 
 // Session ids we've already emailed a confirmation for. Fast-path per-process
@@ -23,6 +24,29 @@ const emailedSessions = new Set();
 // can't smuggle markup into an official email.
 const cleanMeta = (v, max = 80) =>
   String(v ?? '').replace(/[<>"'&]/g, '').slice(0, max).trim() || '';
+
+/* Create-or-sign-in the payer from the email Stripe collected, by sending a
+   Supabase magic link. Deliberately uses the ANON key: signInWithOtp needs no
+   admin privileges, so the service-role key stays out of this runtime (it
+   bypasses RLS and must never be deployed to the web tier).
+
+   Failure is silent by design. The reveal is already unlocked by the paid
+   session id; this only makes the purchase portable, so a mail outage must not
+   turn into a failed checkout return. */
+async function sendClaimLink(to, req) {
+  if (!isSupabaseConfigured || !to) return;
+  const reqOrigin = req?.headers?.origin || '';
+  const base = reqOrigin && isOriginAllowed(reqOrigin) ? reqOrigin : (process.env.PUBLIC_BASE_URL || '');
+  try {
+    await supabase.auth.signInWithOtp({
+      email: to,
+      options: {
+        shouldCreateUser: true,
+        ...(base ? { emailRedirectTo: `${base.replace(/\/$/, '')}/#dashboard` } : {}),
+      },
+    });
+  } catch { /* see above: never block the return */ }
+}
 
 // Wrap an async handler so rejected promises become clean 5xx responses.
 // The raw error is logged server-side only; the client gets a generic message
@@ -98,7 +122,7 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
   // ---- Stripe payments (JourneyModal tiers). No-ops without STRIPE_SECRET_KEY. --
   app.post('/api/checkout', strictLimiter, asyncRoute(async (req, res) => {
     if (!payments.isPaymentsConfigured) return res.status(503).json({ error: 'Payments not configured' });
-    const { tier, advisorId, product, segment, email, currency, benchmarkId } = req.body || {};
+    const { tier, advisorId, product, segment, email, currency, benchmarkId, country, productId } = req.body || {};
     if (!payments.getTier(tier)) return res.status(400).json({ error: 'Unknown tier' });
     // The reveal is sold once per benchmark. Closing the modal and pressing the
     // button again must not charge twice, and the UI can't be what guarantees
@@ -117,7 +141,61 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
     res.json(await payments.createCheckout({
       tier, origin, email, currency,
       advisorId: cleanMeta(advisorId, 40), product: cleanMeta(product), segment: cleanMeta(segment, 20),
+      country: cleanMeta(country, 8), productId: cleanMeta(productId, 40),
     }));
+  }));
+
+  /* THE PAID REVEAL.
+   *
+   * Returns the winning bank's name — the one thing the free benchmark withholds.
+   * Entitlement is proved one of two ways, and never by the client asserting it:
+   *
+   *   1. `sessionId` — a Stripe Checkout session this server retrieves and finds
+   *      paid, for tier 'reveal', bound to this same country + product. That is
+   *      what lets someone buy without an account: the payment IS the key.
+   *   2. A signed-in user whose saved benchmark is already marked revealed, read
+   *      under their own RLS. That is how it keeps working on another device
+   *      once the purchase has been claimed.
+   */
+  app.post('/api/reveal', strictLimiter, asyncRoute(async (req, res) => {
+    const { sessionId, benchmarkId, country = 'SG', product, currency, variant } = req.body || {};
+    const meta = getProduct(product);
+    if (!meta) return res.status(400).json({ error: 'Unknown product' });
+    if (!isProductInCountry(meta, country)) {
+      return res.status(400).json({ error: 'That product isn\u2019t offered in this market.' });
+    }
+
+    let entitled = false;
+
+    if (sessionId && payments.isPaymentsConfigured) {
+      const paid = await payments.retrieveCheckout(String(sessionId)).catch(() => null);
+      // Bind the session to this exact benchmark. Without this a single paid
+      // session id would unlock every product in every market, forever.
+      entitled = !!paid?.paid
+        && paid.tier === 'reveal'
+        && (!paid.productId || paid.productId === product)
+        && (!paid.country || paid.country === country);
+    }
+
+    if (!entitled && benchmarkId) {
+      const token = bearerToken(req);
+      const db = clientForToken(token);
+      if (db) {
+        const { data } = await db
+          .from('saved_benchmarks').select('stage').eq('id', String(benchmarkId)).maybeSingle();
+        entitled = isRevealPaid(data?.stage);
+      }
+    }
+
+    if (!entitled) {
+      return res.status(402).json({ error: 'This reveal hasn\u2019t been paid for.', code: 'payment_required' });
+    }
+
+    const data = await repo.getProductValues(country, product, currency, variant);
+    if (!data) return res.status(503).json({ error: 'Rate database not configured. See PRODUCT_DATA.md.' });
+    const best = pickBestItem(data.items, meta.rateType);
+    if (!best?.bank) return res.status(404).json({ error: 'No benchmark data for this selection yet.' });
+    res.json({ bestBank: best.bank, benchmarkRate: best.value ?? null });
   }));
 
   // Localized price for a tier, for DISPLAY only. Needs FX but not Stripe, so it
@@ -148,6 +226,12 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
         amountTotal: result.amountTotal, currency: result.currency,
       }).then((r) => { if (r?.ok) return payments.markEmailSent(id); })
         .catch(() => {});
+      // Someone who paid WITHOUT an account gets one now, from the email Stripe
+      // already collected: a magic link creates the user and signs them in, so
+      // the purchase stops living in one browser tab. Fire-and-forget — a mail
+      // failure must never break the return from checkout, and the reveal itself
+      // works without it (the session id is the key).
+      if (!(await userFromToken(bearerToken(req)))) sendClaimLink(result.email, req);
     }
     // Never echo the payer's email back — anyone holding the session id (it
     // travels in the success-URL query string) could otherwise read it.
@@ -190,7 +274,12 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
     const result = buildBenchmarkResult({ product, country, currency, values: data.values, items: data.items, yourRate, amount, tenor, dataQuality: data.dataQuality });
     if (result.error) return res.status(404).json({ error: result.error });
     await attachMarketReference(repo, result, country, product);
-    res.json(result);
+    // The winning bank's NAME is the product sold by the ~$1 reveal. It must not
+    // travel in the free response: a client-side paywall is no paywall at all,
+    // and this endpoint is public. /api/reveal serves the name, and only against
+    // a payment this server has verified.
+    const { bestBank: _paid, ...publicResult } = result;
+    res.json(publicResult);
   }));
 
   // Efficiency questionnaires → maturity score + expert hand-off.

@@ -44,13 +44,17 @@ test('GET /api/reference -> countries + product schemas + questionnaires', async
   assert.ok(Array.isArray(j.questionnaires) && j.questionnaires.length >= 2);
 });
 
-test('POST /api/benchmark (rate) -> masked result + best bank', async () => {
+test('POST /api/benchmark (rate) -> masked result, and NEVER the bank name', async () => {
   const r = await post('/api/benchmark', { country: 'SG', product: 'overdraft', currency: 'SGD', yourRate: 8, amount: 1000000 });
   assert.equal(r.status, 200);
   const j = await r.json();
   assert.equal(j.benchmarkRate, 6.5);
-  assert.equal(j.bestBank, 'DBS');
   assert.ok(j.annualSaving > 0);
+  // The bank's NAME is the paid product. This endpoint is public and
+  // unauthenticated, so it must never carry it — the client-side paywall used to
+  // be the only thing hiding a value that was sitting in every response.
+  assert.ok(!('bestBank' in j), 'free benchmark must not leak the winning bank');
+  assert.equal(j.benchmarkMasked, true);
 });
 
 test('POST /api/benchmark (cross-border) -> computes all-in cost via FX', async () => {
@@ -88,8 +92,17 @@ test('POST /api/questionnaire/score -> maturity score', async () => {
   assert.equal(j.band, 'Advanced');
 });
 
-test('POST /api/reveal -> removed (reveal now goes through checkout)', async () => {
-  assert.equal((await post('/api/reveal', { email: 'sme@example.com' })).status, 404);
+test('POST /api/reveal -> 402 without proof of payment', async () => {
+  // No session id and no signed-in user: nothing to be entitled by.
+  const r = await post('/api/reveal', { country: 'SG', product: 'overdraft', currency: 'SGD' });
+  assert.equal(r.status, 402);
+  const j = await r.json();
+  assert.equal(j.code, 'payment_required');
+  assert.ok(!('bestBank' in j));
+});
+
+test('POST /api/reveal -> 400 on an unknown product, before any entitlement work', async () => {
+  assert.equal((await post('/api/reveal', { product: 'not_a_product' })).status, 400);
 });
 
 test('POST /api/benchmark -> 503 when rates DB unconfigured', async () => {

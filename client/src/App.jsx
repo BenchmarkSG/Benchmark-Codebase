@@ -19,11 +19,14 @@ import {
   FinalCTA,
   Footer,
 } from './components/Sections.jsx';
-import { createCheckout } from './api.js';
+import { createCheckout, revealBestBank } from './api.js';
 import { isStripeCheckoutUrl } from './lib/safeUrl.js';
 import { saveBenchmark, updateBenchmark } from './lib/dashboardApi.js';
 import { readCheckoutReturn, stashJourney, clearJourney, goToPage } from './lib/checkoutReturn.js';
-import { markUnlocked, unlockedTierFor } from './lib/unlocks.js';
+import {
+  markUnlocked, unlockedTierFor,
+  rememberRevealSession, revealSessionFor, forgetRevealSession,
+} from './lib/unlocks.js';
 import { getAccessToken } from './lib/supabase.js';
 
 // After-auth resume intents live in lib/afterAuth.js (shared with AuthModal,
@@ -55,6 +58,30 @@ export default function App() {
     setContext(r.context);
     setResume({ tier: r.tier, sessionId: r.sessionId, expert: r.expert, canceled: r.canceled });
     setTiersOpen(true);
+
+    // A paid reveal. Two things the old flow never had to do, because the bank's
+    // name used to arrive free with the benchmark:
+    //   1. keep the session id in THIS BROWSER, durably, so coming back later
+    //      re-unlocks instead of charging again;
+    //   2. actually fetch the name, which now only the server can hand over.
+    if (r.tier === 'reveal' && !r.canceled && r.sessionId) {
+      rememberRevealSession(r.context, r.sessionId);
+      revealBestBank({
+        sessionId: r.sessionId,
+        country: r.context?.country || 'SG',
+        product: r.context?.productId || undefined,
+        currency: r.context?.currency || undefined,
+      }).then(({ bestBank }) => {
+        if (!bestBank) return;
+        setContext((c) => (c ? { ...c, bestBank } : c));
+        // A signed-in buyer's row was saved BEFORE the name existed on the
+        // client (the free benchmark no longer carries it), so write it back —
+        // otherwise the dashboard shows a revealed benchmark with no bank on it.
+        if (r.context?.benchmarkId) {
+          updateBenchmark(r.context.benchmarkId, { best_bank: bestBank }).catch(() => {});
+        }
+      }).catch(() => { /* the modal copes with a missing name */ });
+    }
   }, []);
 
   const scrollToCalc = useCallback(() => {
@@ -82,6 +109,31 @@ export default function App() {
     setTiersOpen(true);
   }, []);
 
+  /* Fetch the thing that was actually bought.
+
+     The bank's name is no longer in the free benchmark response, so it has to be
+     asked for — with proof. `sessionId` is a paid Stripe session; a signed-in
+     owner is proved by the saved row's stage instead. If the call fails we still
+     open the journey: everything else on that screen (certificate, the three
+     options) is usable, and the name retries on the next open. */
+  const openRevealed = useCallback(async (ctx, { sessionId = null, tier = 'reveal' } = {}) => {
+    let full = ctx || {};
+    try {
+      const { bestBank } = await revealBestBank({
+        sessionId: sessionId || undefined,
+        benchmarkId: full.benchmarkId || undefined,
+        country: full.country || 'SG',
+        product: full.productId || undefined,
+        currency: full.currency || undefined,
+      }, await getAccessToken());
+      if (bestBank) full = { ...full, bestBank };
+    } catch { /* leave bestBank unset — the modal handles a missing name */ }
+    setContext(full);
+    setResume({ afterAuth: true, view: 'options', unlockedTier: tier });
+    setTiersOpen(true);
+    return full;
+  }, []);
+
   // Open the auth modal. If a `resumeIntent` is given (e.g. from inside the
   // journey), stash it so we can return the user to that exact screen post-auth.
   const requireAuth = useCallback((resumeIntent) => {
@@ -101,16 +153,23 @@ export default function App() {
   // Priced in the user's market currency (FX-localized, server-side).
   const revealBank = useCallback(async (ctx) => {
     const ready = ctx || {};
-    if (!user) { requireAuth({ kind: 'reveal', context: ready }); return; }
 
     // Already bought — reopen it instead of selling it again. Closing the modal
     // (or mis-clicking its ✕) must never cost a second payment.
     const owned = unlockedTierFor(ready);
     if (owned) { reopenUnlocked(ready, owned); return; }
 
-    // Persist first so the reveal lands in their dashboard; reuse an existing row.
+    // Bought anonymously, earlier. The Stripe session id outlives the tab, so a
+    // returning payer re-unlocks for free instead of being charged again — the
+    // server re-verifies that session with Stripe before it answers.
+    const paidSession = revealSessionFor(ready);
+    if (paidSession) { await openRevealed(ready, { sessionId: paidSession }); return; }
+
+    // Persist first so the reveal lands in their dashboard; reuse an existing
+    // row. Anonymous buyers have no row to write to (RLS) — they get one when
+    // they claim the purchase with the magic link sent after payment.
     let saved = ready;
-    if (!saved.benchmarkId && saved.saveRow) {
+    if (user && !saved.benchmarkId && saved.saveRow) {
       try { const row = await saveBenchmark(saved.saveRow); saved = { ...saved, benchmarkId: row?.id }; }
       catch { /* proceed without persistence */ }
     }
@@ -120,8 +179,12 @@ export default function App() {
         tier: 'reveal',
         currency: saved.currency || 'SGD',
         product: saved.product || null,
+        // Binds the session to one benchmark, so a paid session id can't be
+        // replayed against another product or market (server/app.js).
+        country: saved.country || 'SG',
+        productId: saved.productId || null,
         segment: saved.segment || 'individual',
-        email: user.email,
+        email: user?.email,
         // Lets the server refuse a reveal this benchmark already has.
         benchmarkId: saved.benchmarkId || undefined,
       }, await getAccessToken());
@@ -133,7 +196,7 @@ export default function App() {
       // they own it, so record it locally and open what they paid for.
       if (err?.code === 'already_purchased') {
         markUnlocked(saved, 'reveal');
-        reopenUnlocked(saved, 'reveal');
+        openRevealed(saved, { tier: 'reveal' });
         return;
       }
       // Only fall back to the free demo reveal when Stripe genuinely isn't
@@ -147,7 +210,27 @@ export default function App() {
       setResume({ tier: 'reveal', demo: true });
       setTiersOpen(true);
     }
-  }, [user, requireAuth, reopenUnlocked]);
+  }, [user, reopenUnlocked, openRevealed]);
+
+  /* Attach a reveal that was bought without an account.
+
+     Until this runs, the only proof of the purchase is a session id in one
+     browser. Saving the benchmark and moving it to the 'revealed' stage makes it
+     permanent and portable: the server will then serve the reveal to this user
+     on any device, and refuse to sell it to them a second time. */
+  const claimAnonymousReveal = useCallback(async (ctx) => {
+    if (!ctx?.saveRow || ctx.benchmarkId) return;
+    const sessionId = revealSessionFor(ctx);
+    if (!sessionId) return;
+    try {
+      const row = await saveBenchmark({ ...ctx.saveRow, best_bank: ctx.bestBank ?? null });
+      if (!row?.id) return;
+      await updateBenchmark(row.id, { stage: 'revealed' });
+      // The row is the durable record now; the local capability has done its job.
+      forgetRevealSession(sessionId);
+      setContext((c) => (c ? { ...c, benchmarkId: row.id } : c));
+    } catch { /* keep the session id: it is still valid proof on its own */ }
+  }, []);
 
   // Once the user is authenticated (in-session sign-in, or after an email-confirm
   // / OAuth reload), reopen the journey exactly where they left off.
@@ -174,9 +257,12 @@ export default function App() {
     clearAfterAuth();
     setAuthOpen(false);
     setContext(intent.context || null);
+    // They signed in from inside the journey — which is where an anonymous
+    // reveal finally gets an account to belong to.
+    claimAnonymousReveal(intent.context);
     setResume({ afterAuth: true, view: intent.view || 'options', expert: intent.expert || null });
     setTiersOpen(true);
-  }, [user, revealBank]);
+  }, [user, revealBank, claimAnonymousReveal]);
 
   // In-page section anchors (#how, #products, #calculator, …) don't scroll when
   // the browser navigates from another hash route (the fragment scroll fires
