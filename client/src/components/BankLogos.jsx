@@ -34,20 +34,21 @@ export const BANK_LOGOS = [
   { name: 'Aspire', img: `${LOGO_DIR}/aspireBank.webp`, el: wrap(text('Aspire', '#1a56db', 75, 22)) },
 ];
 
-// Text-wordmark entry — a clean, consistent representation for markets/banks we
-// don't ship an image logo for (prototype only, not an official asset).
+// Text-wordmark entry — the fallback shape every market entry used before real
+// logo files existed. Kept for any bank added before its image lands.
+// eslint-disable-next-line no-unused-vars
 const tw = (name, str, fill, size = 20) => ({ name, img: null, el: wrap(text(str, fill, 75, size)) });
 
 // India
 const IN_LOGOS = [
   { name: 'State Bank of India', img: `${LOGO_DIR}/SBI-Logo.jpg`, el: wrap(text('SBI', '#22409a', 75, 24)) },
-  tw('HDFC Bank', 'HDFC', '#004c8f', 22),
-  tw('ICICI Bank', 'ICICI', '#ae282e', 22),
-  tw('Axis Bank', 'AXIS', '#97144d', 22),
-  tw('Kotak Mahindra', 'Kotak', '#003874', 21),
-  tw('Punjab National Bank', 'PNB', '#4b2e83', 24),
-  tw('Bank of Baroda', 'Baroda', '#f37021', 20),
-  tw('Yes Bank', 'YES BANK', '#00518f', 17),
+  { name: 'HDFC Bank', img: `${LOGO_DIR}/hdfcBank.png`, el: wrap(text('HDFC', '#004c8f', 75, 22)) },
+  { name: 'ICICI Bank', img: `${LOGO_DIR}/iciciBank.png`, el: wrap(text('ICICI', '#ae282e', 75, 22)) },
+  { name: 'Axis Bank', img: `${LOGO_DIR}/axisBank.png`, el: wrap(text('AXIS', '#97144d', 75, 22)) },
+  { name: 'Kotak Mahindra', img: `${LOGO_DIR}/kotakMahindra.png`, el: wrap(text('Kotak', '#003874', 75, 21)) },
+  { name: 'Punjab National Bank', img: `${LOGO_DIR}/punjabNationalBank.png`, el: wrap(text('PNB', '#4b2e83', 75, 24)) },
+  { name: 'Bank of Baroda', img: `${LOGO_DIR}/bankOfBaroda.png`, el: wrap(text('Baroda', '#f37021', 75, 20)) },
+  { name: 'Yes Bank', img: `${LOGO_DIR}/yesBank.png`, el: wrap(text('YES BANK', '#00518f', 75, 17)) },
 ];
 
 // Malaysia
@@ -55,29 +56,29 @@ const MY_LOGOS = [
   { name: 'Maybank', img: `${LOGO_DIR}/logo-bank-maybank copy.jpg`, el: wrap(<>{text('Maybank', '#ffc61e', 82, 18)}<path d="M18 26 q6 -12 12 0" fill="#000" /></>) },
   { name: 'CIMB', img: `${LOGO_DIR}/CIMB-Logo.png`, el: wrap(text('CIMB', '#ec1c24', 75, 22)) },
   { name: 'RHB', img: `${LOGO_DIR}/RHB_Logo.svg.webp`, el: wrap(<>{text('RHB', '#003da5', 60, 24)}<rect x="102" y="13" width="20" height="14" rx="2" fill="#00a3e0" /></>) },
-  tw('Public Bank', 'Public Bank', '#cc0000', 16),
-  tw('Hong Leong Bank', 'Hong Leong', '#00539b', 18),
-  tw('AmBank', 'AmBank', '#ed1c24', 22),
+  { name: 'Public Bank', img: `${LOGO_DIR}/publicBank.png`, el: wrap(text('Public Bank', '#cc0000', 75, 16)) },
+  { name: 'Hong Leong Bank', img: `${LOGO_DIR}/hongLeongBank.png`, el: wrap(text('Hong Leong', '#00539b', 75, 18)) },
+  { name: 'AmBank', img: `${LOGO_DIR}/ambank.png`, el: wrap(text('AmBank', '#ed1c24', 75, 22)) },
   { name: 'Standard Chartered', img: `${LOGO_DIR}/standardChartered.png`, el: wrap(text('Standard Chartered', '#0473ea', 75, 12.5, 700)) },
 ];
 
 // Indonesia
 const ID_LOGOS = [
-  tw('Bank Central Asia', 'BCA', '#0060af', 24),
-  tw('Bank Mandiri', 'Mandiri', '#003d79', 20),
-  tw('Bank Negara Indonesia', 'BNI', '#f15a22', 24),
-  tw('Bank Rakyat Indonesia', 'BRI', '#00529c', 24),
-  tw('CIMB Niaga', 'CIMB Niaga', '#ec1c24', 16),
+  { name: 'Bank Central Asia', img: `${LOGO_DIR}/bankCentralAsia.png`, el: wrap(text('BCA', '#0060af', 75, 24)) },
+  { name: 'Bank Mandiri', img: `${LOGO_DIR}/bankMandiri.png`, el: wrap(text('Mandiri', '#003d79', 75, 20)) },
+  { name: 'Bank Negara Indonesia', img: `${LOGO_DIR}/bankNegaraIndonesia.png`, el: wrap(text('BNI', '#f15a22', 75, 24)) },
+  { name: 'Bank Rakyat Indonesia', img: `${LOGO_DIR}/bankRakyatIndonesia.png`, el: wrap(text('BRI', '#00529c', 75, 24)) },
+  { name: 'CIMB Niaga', img: `${LOGO_DIR}/cimbNiaga.png`, el: wrap(text('CIMB Niaga', '#ec1c24', 75, 16)) },
   { name: 'HSBC', img: `${LOGO_DIR}/HSBC-Logo.png`, el: wrap(<><path d="M22 12 l10 8 -10 8 -10 -8 z" fill="#db0011" />{text('HSBC', '#1a3763', 90, 20)}</>) },
 ];
 
 // Thailand
 const TH_LOGOS = [
-  tw('Bangkok Bank', 'Bangkok Bank', '#1e4598', 15),
-  tw('Kasikornbank', 'KBank', '#138f2d', 22),
-  tw('Siam Commercial Bank', 'SCB', '#4e2e7f', 24),
-  tw('Krungthai Bank', 'Krungthai', '#01b0e6', 19),
-  tw('Bank of Ayudhya', 'Krungsri', '#e8a200', 19),
+  { name: 'Bangkok Bank', img: `${LOGO_DIR}/bangkokBank.png`, el: wrap(text('Bangkok Bank', '#1e4598', 75, 15)) },
+  { name: 'Kasikornbank', img: `${LOGO_DIR}/kasikornbank.png`, el: wrap(text('KBank', '#138f2d', 75, 22)) },
+  { name: 'Siam Commercial Bank', img: `${LOGO_DIR}/siamCommercialBank.png`, el: wrap(text('SCB', '#4e2e7f', 75, 24)) },
+  { name: 'Krungthai Bank', img: `${LOGO_DIR}/krungthaiBank.png`, el: wrap(text('Krungthai', '#01b0e6', 75, 19)) },
+  { name: 'Bank of Ayudhya', img: `${LOGO_DIR}/bankOfAyudhya.png`, el: wrap(text('Krungsri', '#e8a200', 75, 19)) },
   { name: 'Citibank', img: `${LOGO_DIR}/Citi.png`, el: wrap(<>{text('citi', '#004685', 62, 24)}<path d="M96 15 q10 -8 20 0" stroke="#d6001c" strokeWidth="3" fill="none" /></>) },
 ];
 

@@ -289,7 +289,7 @@ export default function App() {
       <main>
         <Hero onDetailedFeedback={openTiers} onReveal={revealBank} onStart={scrollToCalc} calcSelection={calcSelection} onRequireAuth={requireAuth} market={market} onMarketChange={setMarket} />
         <WorksProducts onGetStarted={scrollToCalc} onCompare={handleCompare} market={market} />
-        <RealSavings />
+        <RealSavings market={market} />
         <SegmentsWhy onGetStarted={scrollToCalc} onCompare={handleCompare} />
         <PartnerBanks market={market} />
         <EfficiencyChecks />

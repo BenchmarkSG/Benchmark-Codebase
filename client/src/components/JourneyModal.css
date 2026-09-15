@@ -67,13 +67,31 @@
      blues, so in dark mode the panel stayed pale and swallowed its own
      headline. Separation now comes from the blue header band and the cards'
      own borders. */
-  background: var(--surface-2);
-  border-radius: 22px;
+  /* Same orange bezel as the hero calculator's phone (BenchmarkCalculator.css).
+     This modal is the rest of that flow, so it reads as the same device rather
+     than a different surface the journey jumps to.
+
+     Two backgrounds, not a border-image: padding-box paints the panel, border-box
+     paints the bezel, and unlike border-image this one follows border-radius
+     instead of squaring the corners. The transparent border is what leaves room
+     for it. Safe on a scroll container - a background with the default
+     `attachment: scroll` is fixed to the element, so the bezel stays put while
+     the content moves under it. */
+  border: 7px solid transparent;
+  background:
+    linear-gradient(var(--surface-2), var(--surface-2)) padding-box,
+    linear-gradient(165deg, #ea9440 0%, var(--orange-500) 52%, #9c4f08 100%) border-box;
+  border-radius: 30px;
   /* NO `overflow: hidden` here — the shorthand would override the overflow-y
      above it and the panel would stop scrolling. It isn't needed anyway: a
      scroll container already clips its content to the border radius, which is
      what keeps the header band's square corners off the panel's round ones. */
-  box-shadow: var(--shadow-lg);
+  /* The phone's moulded-case cues, same as .calc-card: a catch-light along the
+     top edge and a shadow along the bottom. */
+  box-shadow:
+    var(--shadow-lg),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.42),
+    inset 0 -1.5px 0 rgba(120, 60, 0, 0.35);
   padding: 26px;
   animation: pop 0.22s ease;
 }
@@ -443,7 +461,8 @@ body.jny-open .needhelp { display: none; }
 .jny-expert__pick:hover { filter: brightness(1.06); }
 
 @media (max-width: 560px) {
-  .jny__panel { padding: 20px 16px; }
+  /* Thinner bezel on a phone, where 7px of it is a bigger share of the width. */
+  .jny__panel { padding: 20px 16px; border-width: 5px; border-radius: 24px; }
   /* Keep the embedded scheduler from forcing a tall nested scroll on phones. */
   .jny-sched__frame, .jny-sched__frame iframe { min-height: 520px; }
   .jny-tier { flex-wrap: wrap; }

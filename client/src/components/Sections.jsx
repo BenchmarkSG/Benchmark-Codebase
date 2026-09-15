@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import './Sections.css';
-import { getReference } from '../api.js';
+import { getReference, getFxRate } from '../api.js';
 import { subscribeNewsletter } from '../lib/dashboardApi.js';
 import { CTA_PRIMARY } from '../lib/copy.js';
 
@@ -58,24 +58,79 @@ const SAVINGS = [
   {
     tint: 'blue', icon: '🚢', tag: 'Shipping / Logistics SME',
     lines: ['Cross-border payments & cash sweeps'],
-    big: 'SGD 28,000', bigSub: 'annual savings',
+    // Authored in SGD; shown in the visitor's market currency (see localAmount).
+    amount: 28000, bigSub: 'annual savings',
     quote: '"Reduced overheads dramatically — clear, credible benchmarks." ★★★★★',
   },
   {
     tint: 'red', icon: '🏠', tag: 'Homeowner',
     lines: ['Mortgage rates across lenders'],
-    big: 'SGD 5,800', bigSub: 'annual savings',
+    amount: 5800, bigSub: 'annual savings',
     quote: '"Switched lender terms on the benchmark and never looked back." ★★★★★',
   },
   {
     tint: 'navy', icon: '🌐', tag: 'Importer / Exporter SME',
     lines: ['FX & cross-border payments'],
+    // A ratio, not a sum — the same in every currency, so it never converts.
     big: '18%', bigSub: 'lower fees',
     quote: '"Transparent insights, real savings. Easy decision." ★★★★★',
   },
 ];
 
-export function RealSavings() {
+// The currency these scenarios are written in.
+const SAVINGS_BASE = 'SGD';
+
+/* Two significant figures. A converted figure like 1,848,000 reads as a precise
+   measurement of something; 1,800,000 reads as the illustration it is, and the
+   section says so directly underneath. */
+function round2sf(n) {
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  const mag = 10 ** (Math.floor(Math.log10(n)) - 1);
+  return Math.round(n / mag) * mag;
+}
+
+const GROUP_LOCALE = { SGD: 'en-SG', INR: 'en-IN', MYR: 'ms-MY', IDR: 'id-ID', THB: 'th-TH', USD: 'en-US' };
+
+/* CODE + grouped number, e.g. "SGD 28,000" / "INR 18,00,000". Deliberately not
+   formatMoney(): these cards have always shown the ISO code rather than a
+   symbol, and an Indian reader gets lakh grouping from the locale. */
+function formatScenario(amount, ccy) {
+  try {
+    return `${ccy} ${new Intl.NumberFormat(GROUP_LOCALE[ccy] || 'en-US', { maximumFractionDigits: 0 }).format(amount)}`;
+  } catch {
+    return `${ccy} ${Math.round(amount).toLocaleString()}`;
+  }
+}
+
+export function RealSavings({ market = 'SG' }) {
+  /* Show the scenarios in the money the visitor actually banks in. The figures
+     are authored in SGD, so this resolves the chosen market's currency and
+     converts at the mid-market rate. Anything that fails — unknown market, FX
+     down — leaves the original SGD figures on screen rather than a blank or a
+     half-converted number. */
+  const [local, setLocal] = useState(null); // { ccy, rate }
+
+  useEffect(() => {
+    let live = true;
+    setLocal(null);
+    getReference()
+      .then((r) => (r.countries || []).find((c) => c.code === market)?.currency)
+      .then((ccy) => {
+        if (!live || !ccy || ccy === SAVINGS_BASE) return;
+        return getFxRate(SAVINGS_BASE, ccy).then((rate) => {
+          if (live && rate) setLocal({ ccy, rate });
+        });
+      })
+      .catch(() => { /* stay in SGD */ });
+    return () => { live = false; };
+  }, [market]);
+
+  const bigFor = (s) => {
+    if (s.big) return s.big;                                   // already a ratio
+    if (!local) return formatScenario(s.amount, SAVINGS_BASE);
+    return formatScenario(round2sf(s.amount * local.rate), local.ccy);
+  };
+
   // Duplicate so the marquee loops seamlessly (same trick as the bank logos).
   const loop = [...SAVINGS, ...SAVINGS];
   return (
@@ -95,7 +150,7 @@ export function RealSavings() {
                 {s.lines.map((l) => <p className="savings__line" key={l}>{l}</p>)}
               </div>
               <div className="savings__metric">
-                <div className="savings__big">{s.big}</div>
+                <div className="savings__big">{bigFor(s)}</div>
                 <div className="savings__big-sub">{s.bigSub}</div>
               </div>
               {s.quote && <p className="savings__quote">{s.quote}</p>}
@@ -368,10 +423,10 @@ export function Founding({ onBecomeMember }) {
       </p>
       <div className="founding__grid">
         {[
-          ['🏅', 'Founding advisor badge', 'on your public profile'],
-          ['🤝', 'Priority client matches', 'ahead of later advisors'],
-          ['👥', 'Exclusive advisor network', 'of top banking specialists'],
-          ['📈', 'First access', 'to new markets, products & tools'],
+          ['💰', 'Monetize your expertise', '— you know banking, now get paid for it. Turn your banking knowledge into income.'],
+          ['🗓️', 'Flexibility & independence', '— be your own boss: you decide your schedule and your fees. We bring the clients, you bring the expertise.'],
+          ['🤝', 'Purpose & community', '— put your experience to the people who need it, alongside a network of ex-bankers and finance leaders.'],
+          ['🆓', 'Low risk & no cost', '— free to join. Zero upfront cost. Earn from day one.'],
         ].map(([i, t, s]) => (
           <div className="founding__item" key={t}>
             <span>{i}</span><div><strong>{t}</strong> {s}</div>
@@ -543,7 +598,7 @@ export function Footer() {
       <div className="container footer__grid">
         <div>
           <div className="footer__brand"><span>Fee</span>Optima</div>
-          <p>Independent bank benchmarking for individuals, SMEs and corporates across Singapore & SEA.</p>
+          <p>We’re an independent platform that shows individuals, SMEs, and corporates how their bank’s fees, rates, and pricing compare to the cheapest options available — with no bank bias. The best rate wins. Always.</p>
           <Newsletter />
         </div>
         <div>

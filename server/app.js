@@ -291,6 +291,18 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
   });
 
   // ---- Raw rate data (also fetched from Supabase) ----------------------------
+  /* Mid-market FX, for DISPLAY only. The landing page's illustrative savings
+     scenarios are authored in SGD; this is what lets an Indian visitor read them
+     in rupees instead of doing the conversion in their head. Never used to price
+     anything — a charge is always computed server-side at checkout time. */
+  app.get('/api/fx', asyncRoute(async (req, res) => {
+    const from = String(req.query.from || 'SGD').toUpperCase();
+    const to = String(req.query.to || 'SGD').toUpperCase();
+    const rate = await fx.getMidRate(from, to);
+    if (rate == null) return res.status(503).json({ error: 'FX rate unavailable' });
+    res.json({ from, to, rate });
+  }));
+
   app.get('/api/countries', asyncRoute(async (_req, res) => {
     res.json((await repo.getCountries()) ?? [SG_FALLBACK]);
   }));

@@ -644,7 +644,7 @@ function Result({ result, product, compact, localCcy, yourBank = '', onReveal, o
       {/* Only when there is something left to say. 'from' used to satisfy
           `bestBasis !== 'exact'` and bring its own sentence; with that sentence
           gone, the old test would render an empty paragraph and its margin. */}
-      {(bestBasis === 'range' || result.benchmarkIndex || result.approxPool || result.floatingPool) && (
+      {(bestBasis === 'range' || result.benchmarkIndex || result.floatingPool) && (
         <p className="res__basis">
           {bestBasis === 'range' && (
             <>~ marks the midpoint of the range this lender publishes
@@ -659,7 +659,6 @@ function Result({ result, product, compact, localCcy, yourBank = '', onReveal, o
               . It moves when the index does — the spread is the part you negotiate. </>
           )}
           {!result.benchmarkIndex && result.floatingPool && <>Some rates in this pool track an index, so they move over time. </>}
-          {result.approxPool && <>Some rates in this pool are published as ranges or floors, so the typical figure is approximate.</>}
         </p>
       )}
       {/* A pool is only a benchmark if the rates in it came from somewhere. The

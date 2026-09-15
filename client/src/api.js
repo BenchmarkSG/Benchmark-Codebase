@@ -83,6 +83,15 @@ export const getTierPrice = (tier, currency) =>
 export const getRevealPrice = (currency) => getTierPrice('reveal', currency);
 
 // Bank directory for a country (id, name, category) — powers the provider picker.
+/* Mid-market rate, display only (the savings scenarios are authored in SGD).
+   Resolves to null rather than throwing: a missing rate must leave the page
+   showing the original figures, never a blank or a wrong number. */
+export const getFxRate = (from, to) =>
+  fetch(`${BASE}/fx?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`)
+    .then((r) => (r.ok ? r.json() : null))
+    .then((d) => (Number.isFinite(d?.rate) && d.rate > 0 ? d.rate : null))
+    .catch(() => null);
+
 export const getBanks = (country) =>
   fetch(`${BASE}/banks?country=${encodeURIComponent(country || '')}`)
     .then((r) => (r.ok ? r.json() : []))
