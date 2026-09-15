@@ -4,7 +4,8 @@
 .partners {
   padding: 34px 24px 36px;
   background: var(--surface);
-  border-top: 1px solid var(--line);
+  /* No top rule: the band is separated from "Why Choose" by whitespace alone.
+     The bottom one stays - it divides the logos from the section below. */
   border-bottom: 1px solid var(--line);
 }
 .partners__label {

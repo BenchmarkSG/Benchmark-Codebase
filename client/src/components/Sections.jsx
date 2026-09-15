@@ -379,7 +379,7 @@ export function Founding({ onBecomeMember }) {
         ))}
       </div>
       <button className="btn btn--red btn--block founding__cta" onClick={onBecomeMember}>
-        Claim Your Founding Advisor Spot
+        Join as an Advisor
       </button>
     </div>
   );
@@ -389,7 +389,7 @@ export function Founding({ onBecomeMember }) {
 const FAQS = [
   {
     q: 'Is it really free?',
-    a: 'Benchmarking your rates, fees and FX margins is completely free with no sign-up. Revealing your best-match bank costs about S$1 (charged in your local currency) — and drafting your negotiation email is then included. If you want hands-on help, a coaching call is S$99 and an expert-led negotiation is S$199, both fully refundable if we don’t find you savings.',
+    a: 'Benchmarking your rates, fees and FX margins is completely free with no sign-up. Revealing your best-match bank costs a small one-off fee — and drafting your negotiation email is then included. If you want hands-on help, a coaching call and an expert-led negotiation are also available. Every price is shown in your local currency before you pay, and the paid help is fully refundable if we don’t find you savings.',
   },
   {
     q: 'Do you store my bank statements or personal data?',

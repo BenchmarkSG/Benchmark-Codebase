@@ -72,8 +72,11 @@
   background: linear-gradient(150deg, var(--blue-600) 0%, var(--navy-800) 100%);
   color: #fff;
 }
-.calc-card .calc-card__title { font-size: 18px; font-weight: 800; color: #fff; }
-.calc-card .calc-card__sub { font-size: 11.5px; margin-top: 2px; font-weight: 600; color: rgba(255, 255, 255, 0.82); }
+/* Centred on the title and sub rather than on .calc-card__head, so the result
+   screen's nav row (back button + product meta, which share the same band) keeps
+   its space-between layout. */
+.calc-card .calc-card__title { font-size: 18px; font-weight: 800; color: #fff; text-align: center; }
+.calc-card .calc-card__sub { font-size: 11.5px; margin-top: 2px; font-weight: 600; color: rgba(255, 255, 255, 0.82); text-align: center; }
 
 /* Navbar variant — same band, shown on the result (and later) screens so the
    phone chrome never disappears mid-flow. Keeps the 40px top padding that

@@ -129,7 +129,6 @@
 .sw__why {
   margin-top: 40px;
   padding-top: 40px;
-  border-top: 1px solid var(--line);
 }
 .sw .why__title { text-align: center; font-size: clamp(24px, 2.8vw, 32px); }
 .sw .why__sub { text-align: center; margin: 6px auto 0; font-size: 14px; }
