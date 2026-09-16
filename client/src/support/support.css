@@ -1,0 +1,261 @@
+/* Customer-support portal.
+
+   Alias the SEMANTIC app tokens (not the brand scale) exactly as admin.css does:
+   --navy-900 is a dark background elsewhere and deliberately never flips, so
+   aliasing text to it renders the whole portal navy-on-navy in dark mode.
+
+   Read on a live call, so: generous line-height, high contrast, no decoration
+   that costs scanning speed. */
+.sup, .sup-login, .sup-center {
+  --navy: var(--ink);
+  --blue: var(--accent);
+  --red: var(--red-600);
+  font-family: var(--font);
+  color: var(--navy);
+}
+
+.sup-center {
+  min-height: 100vh;
+  display: grid;
+  place-content: center;
+  gap: 12px;
+  text-align: center;
+  padding: 24px;
+  background: var(--surface-2);
+}
+
+/* ---- Login gate ---- */
+.sup-login {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  /* Teal rather than the admin blue: at a glance you can tell which portal you
+     are signed into, which matters when both are open in the same browser. */
+  background: linear-gradient(120deg, #06302f, #0c6b62 60%, #109184);
+  padding: 24px;
+}
+.sup-login__card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 30px 70px rgba(6, 48, 47, 0.42);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sup-login__brand { font-weight: 800; font-size: 14px; }
+.sup-login__brand span { color: var(--blue); }
+.sup-login__card h1 { font-size: 22px; font-weight: 800; margin-top: 6px; }
+.sup-login__sub { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+.sup-login__card label { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; font-weight: 700; }
+.sup-login__card input {
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 14px;
+  background: var(--surface);
+  color: var(--navy);
+}
+.sup-login__submit { margin-top: 6px; }
+.sup-login__back { font-size: 12.5px; color: var(--muted); text-align: center; margin-top: 4px; }
+
+/* ---- Buttons ---- */
+.sup-btn {
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+.sup-btn--primary { background: #0c6b62; color: #fff; }
+.sup-btn--primary:hover:not(:disabled) { background: #095c55; }
+.sup-btn--ghost { background: transparent; border-color: var(--line); color: var(--navy); }
+.sup-btn--ghost:hover { background: var(--surface-2); }
+.sup-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.sup-error {
+  background: var(--red-50, #fdecec);
+  border: 1px solid var(--red);
+  color: var(--red);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.sup-empty { color: var(--muted); font-size: 14px; padding: 28px 4px; text-align: center; }
+
+/* ---- Shell ---- */
+.sup { min-height: 100vh; background: var(--surface-2); }
+.sup-top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.sup-top__brand { font-weight: 800; font-size: 14px; }
+.sup-top__brand span { color: var(--blue); }
+.sup-top__right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.sup-top__who { font-size: 12px; color: var(--muted); }
+
+.sup-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.sup-tabs button {
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+}
+.sup-tabs button.is-on { background: #0c6b62; color: #fff; }
+.sup-tabs button:not(.is-on):hover { background: var(--surface-2); color: var(--navy); }
+
+.sup-main { max-width: 900px; margin: 0 auto; padding: 20px 16px 60px; }
+
+/* ---- Pickers ---- */
+.sup-pickers {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin-bottom: 18px;
+}
+.sup-pickers label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; font-weight: 800; }
+.sup-pickers select {
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 14px;
+  min-width: 190px;
+  background: var(--surface);
+  color: var(--navy);
+  font-family: inherit;
+}
+
+/* ---- Playbook cards ---- */
+.sup-book { display: flex; flex-direction: column; gap: 14px; }
+.sup-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 18px;
+}
+.sup-card h3 { font-size: 14px; font-weight: 800; margin-bottom: 10px; }
+.sup-card--cust { border-color: #0c6b62; }
+.sup-card--ask { background: var(--blue-50, #eef4ff); border-color: #c3d8f5; }
+.sup-card--warn { background: #fff8e8; border-color: #f0d79a; }
+
+.sup-frame { font-size: 14px; line-height: 1.65; }
+.sup-anchor { font-size: 13.5px; line-height: 1.6; margin-bottom: 8px; }
+.sup-terms { font-size: 12.5px; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+
+.sup-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 7px; }
+.sup-list li { font-size: 13.5px; line-height: 1.6; }
+
+.sup-levers { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 11px; }
+.sup-levers li { font-size: 13.5px; line-height: 1.6; }
+.sup-levers strong { display: block; }
+.sup-levers span { color: var(--muted); }
+
+.sup-ask {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.65;
+  font-weight: 600;
+  border-left: 3px solid var(--blue);
+  padding-left: 12px;
+}
+.sup-note { font-size: 12.5px; color: var(--muted); margin-top: 10px; line-height: 1.55; }
+.sup-note--key { color: var(--navy); background: #fff8e8; border-radius: 10px; padding: 10px 12px; font-size: 13px; }
+
+.sup-obj { margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.sup-obj dt { font-size: 13.5px; font-weight: 700; }
+.sup-obj dd { margin: 3px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--muted); }
+
+/* ---- Customer panel ---- */
+.sup-cust { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.sup-cust div { display: flex; flex-direction: column; gap: 2px; }
+.sup-cust span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.sup-cust strong { font-size: 15px; }
+.sup-cust__note { font-size: 12.5px; color: var(--muted); margin-top: 10px; line-height: 1.55; }
+
+/* ---- Queue ---- */
+.sup-queue { display: flex; flex-direction: column; gap: 12px; }
+.sup-queue__bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.sup-check { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; }
+
+.sup-lead {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+.sup-lead header { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: baseline; }
+.sup-lead header strong { font-size: 15px; }
+.sup-lead__opt {
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.sup-lead__slot { font-size: 12.5px; color: var(--muted); }
+.sup-lead__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 9px;
+  margin-top: 12px;
+}
+.sup-lead__grid div { display: flex; flex-direction: column; gap: 2px; font-size: 13.5px; }
+.sup-lead__grid span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.sup-lead__msg {
+  margin-top: 11px;
+  font-size: 13px;
+  line-height: 1.6;
+  font-style: italic;
+  color: var(--muted);
+  border-left: 3px solid var(--line);
+  padding-left: 10px;
+}
+.sup-lead footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 13px;
+}
+.sup-stage { display: flex; flex-direction: column; gap: 4px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.sup-stage select {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 13px;
+  background: var(--surface);
+  color: var(--navy);
+  font-family: inherit;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+}
+
+@media (max-width: 560px) {
+  .sup-main { padding: 16px 12px 48px; }
+  .sup-pickers select { min-width: 0; width: 100%; }
+  .sup-pickers label { flex: 1 1 100%; }
+}

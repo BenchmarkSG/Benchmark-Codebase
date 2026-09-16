@@ -3,7 +3,7 @@ import './Navbar.css';
 import { getReference } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useAdvisorRow } from '../hooks/useAdvisorRow.js';
-import { isAdminEmail } from '../lib/roles.js';
+import { isAdminEmail, isSupportEmail } from '../lib/roles.js';
 import { CTA_PRIMARY } from '../lib/copy.js';
 import { Avatar } from './DefaultAvatar.jsx';
 import ThemeToggle from './ThemeToggle.jsx';
@@ -32,6 +32,9 @@ function UserMenu({ user, onSignOut }) {
   const ref = useRef(null);
   const { advisor } = useAdvisorRow();
   const admin = isAdminEmail(user);
+  // isSupportEmail() is true for an admin too, so this is only the
+  // support-desk account — an admin already has a portal link below.
+  const support = !admin && isSupportEmail(user);
   useEffect(() => {
     const close = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
     document.addEventListener('mousedown', close);
@@ -48,9 +51,9 @@ function UserMenu({ user, onSignOut }) {
         <div className="nav__menu">
           <div className="nav__menu-name">{name}</div>
           <div className="nav__menu-email">{user?.email}</div>
-          {admin ? (
-            <a className="nav__menu-item" href="#admin" onClick={go}>Admin portal</a>
-          ) : (
+          {admin && <a className="nav__menu-item" href="#admin" onClick={go}>Admin portal</a>}
+          {support && <a className="nav__menu-item" href="#support" onClick={go}>Support portal</a>}
+          {!admin && !support && (
             <a className="nav__menu-item" href="#dashboard" onClick={go}>My dashboard</a>
           )}
           {advisor && !admin && (

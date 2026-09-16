@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import App from './App.jsx';
 import AdminApp from './admin/AdminApp.jsx';
+import SupportApp from './support/SupportApp.jsx';
 import LegalPage from './components/LegalPage.jsx';
 import UserDashboard from './dashboard/UserDashboard.jsx';
 import AdvisorDashboard from './dashboard/AdvisorDashboard.jsx';
 import { ConfirmProvider } from './components/ConfirmProvider.jsx';
 import UpdatePrompt from './components/UpdatePrompt.jsx';
 
-/* Tiny hash router: `/#admin` renders the admin portal, `#terms` / `#privacy`
-   render the legal pages, everything else the marketing site. Hash routing needs
-   no server/Vercel rewrite config. */
+/* Tiny hash router: `/#admin` renders the admin portal, `#support` the
+   customer-support portal, `#terms` / `#privacy` render the legal pages,
+   everything else the marketing site. Hash routing needs no server/Vercel
+   rewrite config. */
 function useHashRoute() {
   // Strip the leading '#'/'#/' and any trailing '/' so '#dashboard/' still routes.
   const read = () => window.location.hash.replace(/^#\/?/, '').replace(/\/+$/, '');
@@ -24,6 +26,7 @@ function useHashRoute() {
 
 function Route({ hash }) {
   if (hash === 'admin' || hash.startsWith('admin/')) return <AdminApp />;
+  if (hash === 'support' || hash.startsWith('support/')) return <SupportApp />;
   if (hash === 'terms') return <LegalPage doc="terms" />;
   if (hash === 'privacy') return <LegalPage doc="privacy" />;
   if (hash === 'disclaimer') return <LegalPage doc="disclaimer" />;
