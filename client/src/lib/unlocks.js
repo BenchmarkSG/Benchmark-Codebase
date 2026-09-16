@@ -116,6 +116,21 @@ export function revealSessionFor(ctx) {
   return null;
 }
 
+/* Drop every remembered reveal session.
+
+   Called on sign-out. The store exists so an ANONYMOUS buyer who comes back
+   tomorrow isn't charged twice - and an anonymous buyer never signs out, so
+   clearing here leaves that case untouched. What it does clear is the case that
+   leaked: a signed-in purchase also files its session id here, and without this
+   the capability outlived the account. Sign out, recalculate, and the paid
+   reveal came back for free - to whoever was using the browser next.
+
+   The purchase itself is not lost: for a signed-in buyer the durable record is
+   saved_benchmarks.stage, which /api/reveal honours on any device. */
+export function clearRevealSessions() {
+  try { localStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
+}
+
 /** Consume one after it has been attached to an account - the saved benchmark's
     own `stage` is the durable record from then on. */
 export function forgetRevealSession(sessionId) {

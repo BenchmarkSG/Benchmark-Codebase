@@ -25,6 +25,20 @@ const emailedSessions = new Set();
 const cleanMeta = (v, max = 80) =>
   String(v ?? '').replace(/[<>"'&]/g, '').slice(0, max).trim() || '';
 
+/* What a Stripe session may be told back to the browser.
+
+   The session id travels in the success-URL query string, so anyone who gets
+   hold of that link can call this route. The payer's email therefore never goes
+   back out. The benchmark id is held to the same rule and released only to a
+   signed-in caller: an anonymous buyer has no saved row, so it would tell them
+   nothing, while a leaked id plus a stolen session would name a stranger's row.
+
+   Exported for tests — it is the whole disclosure decision in one place. */
+export const publicSession = (result, viewer) => {
+  const { email: _omit, benchmarkId, ...pub } = result || {};
+  return viewer && benchmarkId ? { ...pub, benchmarkId } : pub;
+};
+
 /* Create-or-sign-in the payer from the email Stripe collected, by sending a
    Supabase magic link. Deliberately uses the ANON key: signInWithOtp needs no
    admin privileges, so the service-role key stays out of this runtime (it
@@ -142,6 +156,7 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
       tier, origin, email, currency,
       advisorId: cleanMeta(advisorId, 40), product: cleanMeta(product), segment: cleanMeta(segment, 20),
       country: cleanMeta(country, 8), productId: cleanMeta(productId, 40),
+      benchmarkId: cleanMeta(benchmarkId, 64),
     }));
   }));
 
@@ -216,6 +231,9 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
     if (!req.query.id) return res.status(400).json({ error: 'Missing session id' });
     const id = String(req.query.id);
     const result = await payments.retrieveCheckout(id);
+    // Who is asking. Drives both the claim-link decision below and whether the
+    // benchmark id is safe to hand back.
+    const viewer = await userFromToken(bearerToken(req));
     // On the first verified-paid read, fire the purchase confirmation email.
     // Dedupe durably via metadata.email_sent on the Stripe session (survives
     // serverless cold starts); the Set is just a same-instance fast path.
@@ -231,12 +249,9 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
       // the purchase stops living in one browser tab. Fire-and-forget — a mail
       // failure must never break the return from checkout, and the reveal itself
       // works without it (the session id is the key).
-      if (!(await userFromToken(bearerToken(req)))) sendClaimLink(result.email, req);
+      if (!viewer) sendClaimLink(result.email, req);
     }
-    // Never echo the payer's email back — anyone holding the session id (it
-    // travels in the success-URL query string) could otherwise read it.
-    const { email: _omit, ...pub } = result || {};
-    res.json(pub);
+    res.json(publicSession(result, viewer));
   }));
 
   // Internal trigger for the REMINDER (before a session) and FEEDBACK (after)

@@ -554,7 +554,9 @@ Kind regards,
       if (resume.canceled) { setPaidTier(null); setPayError('Payment canceled — you can try again below.'); return; }
       setPayError(''); setPaidTier(resume.tier); // optimistic; verify below
       if (resume.sessionId) {
-        getCheckoutSession(resume.sessionId).then((s) => {
+        // Signed in? Say so. Without the token the server treats every payer as
+        // anonymous and mails them a sign-in link they don't need.
+        getAccessToken().then((tok) => getCheckoutSession(resume.sessionId, tok)).then((s) => {
           if (!s?.paid) {
             setPaidTier(null);
             setPayError('We couldn’t confirm your payment. Please try again.');
@@ -882,10 +884,17 @@ Kind regards,
         {view === 'options' && (
           <>
             {!context && (
+              /* Only reachable when the context could not be rebuilt either — a
+                 signed-in buyer's row is recovered from the server on return
+                 (see recoverPaidContext), so they should never land here. Don't
+                 send someone who IS signed in to look for a sign-in email. */
               <div className="jny-note jny-note--warn">
-                Your payment is confirmed, but this tab couldn’t restore your benchmark details
-                (it looks like the session was opened fresh). Find your revealed bank in{' '}
-                <a href="#dashboard">your dashboard</a> — or check your inbox for your sign-in link.
+                Your payment is confirmed. {user
+                  ? <>Your revealed bank is saved to your account — open{' '}
+                    <a href="#dashboard">your dashboard</a> to see it.</>
+                  : <>This tab couldn’t restore your benchmark details (it looks like the
+                    page was opened fresh). Check your inbox for your sign-in link — it
+                    puts the purchase on your account, on any device.</>}
               </div>
             )}
             <h4 className="jny-sectlabel">

@@ -97,7 +97,7 @@ const cleanBase = (origin) => {
 // Create a hosted Checkout Session for a tier; returns { url, id }.
 // Every tier is priced server-side from the market currency — a client-supplied
 // amount is never trusted, only the currency code it asks to be billed in.
-export async function createCheckout({ tier, origin, email, advisorId, product, segment, currency, country, productId }) {
+export async function createCheckout({ tier, origin, email, advisorId, product, segment, currency, country, productId, benchmarkId }) {
   const t = getTier(tier);
   if (!t) throw new Error('Unknown tier');
   const base = cleanBase(origin);
@@ -115,6 +115,12 @@ export async function createCheckout({ tier, origin, email, advisorId, product, 
     metadata: {
       tier, advisorId: advisorId || '', product: product || '', segment: segment || '',
       currency: price.currency, country: country || '', productId: productId || '',
+      // Which saved row this purchase belongs to. Stripe returns everyone to the
+      // bare origin and a mobile 3DS hop can land them in a FRESH tab, where the
+      // sessionStorage stash is gone - this is what lets a signed-in buyer's
+      // benchmark be found again from the server instead of dead-ending.
+      // Only ever set for a signed-in buyer (an anonymous one has no row yet).
+      benchmarkId: benchmarkId || '',
     },
     success_url: `${base}/?checkout=success&tier=${tier}&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${base}/?checkout=cancel&tier=${tier}`,
@@ -134,6 +140,7 @@ export async function retrieveCheckout(id) {
     product: session.metadata?.product || null,
     country: session.metadata?.country || null,
     productId: session.metadata?.productId || null,
+    benchmarkId: session.metadata?.benchmarkId || null,
     amountTotal: session.amount_total,
     currency: session.currency,
     email: session.customer_details?.email || session.customer_email || null,

@@ -1,20 +1,12 @@
-AmBank
-Axis Bank
-Bangkok Bank
-Bank Central Asia
-Bank Mandiri
-Bank Negara Indonesia
-Bank Rakyat Indonesia
-Bank of Ayudhya
-Bank of Baroda
-CIMB Niaga
-HDFC Bank
-Hong Leong Bank
-ICICI Bank
-Kasikornbank
-Kotak Mahindra
-Krungthai Bank
-Public Bank
-Punjab National Bank
-Siam Commercial Bank
-Yes Bank
+Banks in the carousel without a logo file: NONE.
+
+As of 2026-09-16 the "Banks & Companies We Track" carousel mirrors public.banks
+exactly - the same 15 institutions per market (SG, IN, MY, ID, TH), under the
+same names, in the same display_order. All 75 slots render a real logo image;
+none fall back to an SVG text wordmark.
+
+Provenance and licence for every file: BANK_LOGOS_SOURCES.md
+Logo artwork and the market lists: client/src/components/BankLogos.jsx
+
+If a market gains an institution in the banks table, add it here again until its
+logo lands.

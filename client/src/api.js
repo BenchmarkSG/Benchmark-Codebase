@@ -70,8 +70,14 @@ export const createCheckout = (payload, token) => post('/checkout', payload, { t
    verify the purchase itself — a paid Stripe session id, or a signed-in user
    whose saved benchmark is already marked revealed. */
 export const revealBestBank = (payload, token = null) => post('/reveal', payload, { token });
-export const getCheckoutSession = (id) =>
-  fetch(`${BASE}/checkout/session?id=${encodeURIComponent(id)}`)
+/* Verify a returned Stripe session. Pass the caller's access token when they
+   are signed in: the server uses it to decide NOT to email them a "claim your
+   purchase" magic link (they already have an account), and to hand back the
+   benchmark id this purchase belongs to. Anonymous callers get neither. */
+export const getCheckoutSession = (id, token = null) =>
+  fetch(`${BASE}/checkout/session?id=${encodeURIComponent(id)}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
     .then((r) => (r.ok ? r.json() : null))
     .catch(() => null);
 // Localized price for a tier, for display (the charge is recomputed server-side

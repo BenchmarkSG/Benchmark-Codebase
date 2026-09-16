@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from './context/AuthContext.jsx';
 import Navbar from './components/Navbar.jsx';
 import Hero from './components/Hero.jsx';
@@ -23,6 +23,7 @@ import { createCheckout, revealBestBank } from './api.js';
 import { isStripeCheckoutUrl } from './lib/safeUrl.js';
 import { saveBenchmark, updateBenchmark } from './lib/dashboardApi.js';
 import { readCheckoutReturn, stashJourney, clearJourney, goToPage } from './lib/checkoutReturn.js';
+import { recoverPaidContext } from './lib/journeyContext.js';
 import {
   markUnlocked, unlockedTierFor,
   rememberRevealSession, revealSessionFor, forgetRevealSession,
@@ -46,7 +47,13 @@ export default function App() {
 
   // Returning from Stripe Checkout (?checkout=success|cancel): restore the stashed
   // journey context and reopen the modal to the scheduler.
+  const checkoutHandled = useRef(false);
   useEffect(() => {
+    // StrictMode runs effects twice in dev. This one consumes the URL and the
+    // stash, so it must happen exactly once - and it must NOT be undone by a
+    // cleanup, which would cancel the reveal fetch it kicks off.
+    if (checkoutHandled.current) return;
+    checkoutHandled.current = true;
     const r = readCheckoutReturn('home');
     if (!r) return;
     // Paid from the dashboard: Stripe always returns to the bare origin, so send
@@ -59,29 +66,43 @@ export default function App() {
     setResume({ tier: r.tier, sessionId: r.sessionId, expert: r.expert, canceled: r.canceled });
     setTiersOpen(true);
 
-    // A paid reveal. Two things the old flow never had to do, because the bank's
-    // name used to arrive free with the benchmark:
-    //   1. keep the session id in THIS BROWSER, durably, so coming back later
-    //      re-unlocks instead of charging again;
-    //   2. actually fetch the name, which now only the server can hand over.
-    if (r.tier === 'reveal' && !r.canceled && r.sessionId) {
-      rememberRevealSession(r.context, r.sessionId);
-      revealBestBank({
-        sessionId: r.sessionId,
-        country: r.context?.country || 'SG',
-        product: r.context?.productId || undefined,
-        currency: r.context?.currency || undefined,
-      }).then(({ bestBank }) => {
+    if (!(r.tier === 'reveal' && !r.canceled && r.sessionId)) return;
+
+    (async () => {
+      // The stash lives in ONE tab's sessionStorage, and a mobile 3-D Secure or
+      // banking-app hop can land the return in a fresh one. Rebuild from the
+      // server before anything else: the reveal below is asked per country +
+      // product, so without this it can't even be asked — and the buyer would
+      // sit on "we couldn't restore your benchmark" having just paid.
+      let ctx = r.context;
+      if (!ctx) {
+        ctx = await recoverPaidContext(r.sessionId);
+        if (ctx) setContext(ctx);
+      }
+
+      // A paid reveal. Two things the old flow never had to do, because the bank's
+      // name used to arrive free with the benchmark:
+      //   1. keep the session id in THIS BROWSER, durably, so coming back later
+      //      re-unlocks instead of charging again;
+      //   2. actually fetch the name, which now only the server can hand over.
+      rememberRevealSession(ctx, r.sessionId);
+      try {
+        const { bestBank } = await revealBestBank({
+          sessionId: r.sessionId,
+          country: ctx?.country || 'SG',
+          product: ctx?.productId || undefined,
+          currency: ctx?.currency || undefined,
+        });
         if (!bestBank) return;
         setContext((c) => (c ? { ...c, bestBank } : c));
         // A signed-in buyer's row was saved BEFORE the name existed on the
         // client (the free benchmark no longer carries it), so write it back —
         // otherwise the dashboard shows a revealed benchmark with no bank on it.
-        if (r.context?.benchmarkId) {
-          updateBenchmark(r.context.benchmarkId, { best_bank: bestBank }).catch(() => {});
+        if (ctx?.benchmarkId) {
+          updateBenchmark(ctx.benchmarkId, { best_bank: bestBank }).catch(() => {});
         }
-      }).catch(() => { /* the modal copes with a missing name */ });
-    }
+      } catch { /* the modal copes with a missing name */ }
+    })();
   }, []);
 
   const scrollToCalc = useCallback(() => {

@@ -4,6 +4,7 @@ import DashboardLayout from './DashboardLayout.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { formatMoney, getReference, createCheckout, getRevealPrice } from '../api.js';
 import { listBenchmarks, updateBenchmark, deleteBenchmark, listMyLeads } from '../lib/dashboardApi.js';
+import { contextFromBenchmark } from '../lib/journeyContext.js';
 import { isStripeCheckoutUrl } from '../lib/safeUrl.js';
 import { useConfirm } from '../components/ConfirmProvider.jsx';
 import { formatDate } from '../lib/formatDate.js';
@@ -170,12 +171,6 @@ export default function UserDashboard() {
   // Open the tier flow (JourneyModal) on the dashboard itself — no route home.
   // Purchases/upgrades run through it; on close we reload so newly-unlocked
   // benchmarks reveal their bank.
-  const contextFromBenchmark = (r) => ({
-    segment: r.segment, annualSaving: r.annual_saving, currency: r.currency, unit: r.unit,
-    direction: r.direction, status: r.result_status, bestBank: r.best_bank,
-    product: r.product_label || r.product, yourRate: r.your_rate, benchmarkRate: r.benchmark_rate,
-    benchmarkId: r.id,
-  });
   const openJourney = (r, resume) => setJourney({ ctx: contextFromBenchmark(r), resume });
   const openTier = (r, view) => openJourney(r, { afterAuth: true, view });               // buy a tier
   const openManage = (r) => { const tv = TIER_META[r.stage] || {}; openJourney(r, { afterAuth: true, view: tv.view || 'options', unlockedTier: tv.tier || null }); };

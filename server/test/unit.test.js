@@ -9,6 +9,7 @@ import {
 } from '../benchmark.js';
 import { isRevealPaid, bearerToken, checkRevealPurchase } from '../purchases.js';
 import { isSupabaseConfigured } from '../supabase.js';
+import { publicSession } from '../app.js';
 
 test('PRODUCTS: catalog exposes the go-live products with schemas', () => {
   const ids = PRODUCTS.map((p) => p.id);
@@ -452,4 +453,41 @@ test('buildBenchmarkResult: an effective-rate pool is not flagged flat', () => {
   });
   assert.equal(r.flatPool, false);
   assert.equal(r.poolRateType, 'apr');
+});
+
+/* ---- /api/checkout/session disclosure rule ---------------------------------
+   The session id rides in the success-URL query string, so this decides what
+   someone holding that link is allowed to learn. */
+
+const SESSION = {
+  paid: true, status: 'paid', tier: 'reveal', currency: 'sgd', amountTotal: 100,
+  email: 'buyer@example.com', benchmarkId: 'a1b2c3d4-0000-4000-8000-000000000000',
+};
+
+test('publicSession: never returns the payer email, signed in or not', () => {
+  assert.equal('email' in publicSession(SESSION, null), false);
+  assert.equal('email' in publicSession(SESSION, { id: 'u1' }), false);
+});
+
+test('publicSession: benchmarkId is withheld from an anonymous caller', () => {
+  const pub = publicSession(SESSION, null);
+  assert.equal('benchmarkId' in pub, false);
+  // The rest of the session still comes back - the reveal works without an account.
+  assert.equal(pub.paid, true);
+  assert.equal(pub.tier, 'reveal');
+});
+
+test('publicSession: benchmarkId is returned to a signed-in caller', () => {
+  // This is what lets a buyer whose tab lost the stash (mobile 3-D Secure hop)
+  // find their benchmark again instead of dead-ending after paying.
+  assert.equal(publicSession(SESSION, { id: 'u1' }).benchmarkId, SESSION.benchmarkId);
+});
+
+test('publicSession: a session with no benchmarkId just omits it', () => {
+  const { benchmarkId: _none, ...anon } = SESSION;
+  assert.equal('benchmarkId' in publicSession(anon, { id: 'u1' }), false);
+});
+
+test('publicSession: a missing session degrades to an empty object', () => {
+  assert.deepEqual(publicSession(null, { id: 'u1' }), {});
 });

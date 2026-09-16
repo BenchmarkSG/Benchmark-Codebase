@@ -1,6 +1,9 @@
 import { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase.js';
-import { clearUnlocks } from '../lib/unlocks.js';
+import { clearUnlocks, clearRevealSessions } from '../lib/unlocks.js';
+
+// Everything this browser remembers about what has been paid for.
+const forgetPurchases = () => { clearUnlocks(); clearRevealSessions(); };
 
 const AuthContext = createContext(null);
 
@@ -21,6 +24,10 @@ export function AuthProvider({ children }) {
       setSession(s ?? null);
       // Fired when the browser opens a Supabase reset-password link.
       if (event === 'PASSWORD_RECOVERY') setRecovery(true);
+      // Not just the button below: this also fires when the user signs out in
+      // ANOTHER tab, or when the session expires. Those paths never reach
+      // signOut(), and a paid reveal must not survive any of them.
+      if (event === 'SIGNED_OUT') forgetPurchases();
       // Back from an OAuth redirect: restore the hash route the user signed in
       // from (e.g. #dashboard) — the provider round-trip lands on the bare origin.
       if (event === 'SIGNED_IN') {
@@ -97,14 +104,16 @@ export function AuthProvider({ children }) {
     [redirectTo]
   );
 
-  // Drop the session's record of what was purchased on the way out — the next
-  // account to sign in on this browser must not inherit someone else's unlocks.
+  // Drop this browser's record of what was purchased on the way out — the next
+  // account to sign in here must not inherit someone else's unlocks. BOTH stores
+  // have to go: the session hint AND the paid Stripe session ids, which live in
+  // localStorage and otherwise outlive the account that bought them.
   // The purchases themselves live in saved_benchmarks, not here.
-  const signOut = useCallback(() => { clearUnlocks(); return supabase.auth.signOut(); }, []);
+  const signOut = useCallback(() => { forgetPurchases(); return supabase.auth.signOut(); }, []);
 
   // Sign out of every device/browser (revokes all refresh tokens). Offered in
   // account settings after a password change or a suspected compromise.
-  const signOutEverywhere = useCallback(() => { clearUnlocks(); return supabase.auth.signOut({ scope: 'global' }); }, []);
+  const signOutEverywhere = useCallback(() => { forgetPurchases(); return supabase.auth.signOut({ scope: 'global' }); }, []);
 
   // Change the account email. Supabase sends a confirmation link to the NEW
   // address (and, when "secure email change" is on, the old one too); the change
