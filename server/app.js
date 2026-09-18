@@ -72,7 +72,7 @@ const asyncRoute = (fn) => (req, res, next) => fn(req, res).catch((err) => {
 });
 
 // Origins allowed to call this API from a browser. Configure ALLOWED_ORIGINS as a
-// comma-separated list in production (e.g. https://feeoptima.com). In dev we
+// comma-separated list in production (e.g. https://feeoptima.vercel.app). In dev we
 // also accept the Vite/preview localhost origins. Non-browser callers (curl,
 // server-to-server, tests) send no Origin header and are always allowed.
 const configuredOrigins = (process.env.ALLOWED_ORIGINS || '')
@@ -372,7 +372,14 @@ async function handleCrossBorder(req, res, { repo, fx }, meta, country) {
   });
   if (result.error) return res.status(404).json({ error: result.error });
   await attachMarketReference(repo, result, country, meta.id);
-  res.json(result);
+  // Same paywall as the rate path above: the winning provider's NAME is what the
+  // ~$1 reveal sells, and this endpoint is public and unauthenticated. This
+  // handler used to res.json(result) unchanged — the leak only stayed hidden
+  // because there was no cross-border data to return, so every request 404'd
+  // before reaching here. The moment real rows were loaded it began handing the
+  // paid answer out for free.
+  const { bestBank: _paid, ...publicResult } = result;
+  res.json(publicResult);
 }
 
 /* Attach an aggregate market-reference figure (e.g. from MAS) when one exists for

@@ -69,6 +69,12 @@ test('POST /api/benchmark (cross-border) -> computes all-in cost via FX', async 
   assert.equal(j.benchmarkRate, 0.9);    // best market cost %
   assert.equal(j.settlementHours, 24);
   assert.ok(j.annualSaving > 0);
+  // Same paywall as the rate path. This handler returned the result unchanged
+  // for a long time and nobody noticed, because with no cross-border rows every
+  // request 404'd before it could leak anything. The test above covers the rate
+  // path only, which is exactly why this one was missed — assert it here too.
+  assert.ok(!('bestBank' in j), 'free cross-border benchmark must not leak the winning provider');
+  assert.equal(j.benchmarkMasked, true);
 });
 
 test('POST /api/benchmark -> unknown product 400', async () => {
