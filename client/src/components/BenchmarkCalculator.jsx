@@ -324,6 +324,12 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
       // leads and the admin booking list want the id that matches the catalog.
       productId: product.id,
       benchmarkId: savedId || undefined,
+      // The raw form values. The reveal recomputes the benchmark server-side, so
+      // it has to be asked the same question: a cross-border pool is priced per
+      // corridor and per amount sent, and without these it would rebuild a
+      // different comparison and name a different winner. Same shape the saved
+      // row stores (currentSaveRow), so a reopen from the dashboard has them too.
+      inputs: values,
     };
   }
 

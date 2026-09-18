@@ -30,6 +30,9 @@ export const contextFromBenchmark = (r) => ({
   // have to survive the round trip or the bank can't be fetched on return.
   country: r.country_code,
   productId: r.product,
+  // The raw form values, for the same reason the calculator keeps them: the
+  // reveal re-derives a cross-border pool from the corridor and the amount.
+  inputs: r.inputs || null,
 });
 
 /**

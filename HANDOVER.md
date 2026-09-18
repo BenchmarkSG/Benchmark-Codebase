@@ -94,6 +94,22 @@ anyone with `curl` the moment real data was loaded. Both are now asserted in
 
 The name is served only by `/api/reveal`, and only against a payment the server verified.
 
+**The other half of that rule: `/api/reveal` must rebuild the SAME pool `/api/benchmark`
+built.** It recomputes from scratch and returns only a name, so any parameter the benchmark
+used and the reveal doesn't means the buyer is handed the winner of a different comparison.
+Cross-border is the trap — it is priced per corridor and per amount sent (a bank's USD
+spread says nothing about its INR spread; a flat S$20 fee is 2% of S$1,000 and 0.2% of
+S$10,000). The reveal passed neither for months. The corridor now travels in the journey
+context as `inputs` (the raw form values, which `saved_benchmarks.inputs` also stores, so it
+survives the Stripe redirect and a reopen from the dashboard) and is asserted in
+`server/test/api.test.js`. **Add a parameter to a benchmark and you must add it to the
+reveal.**
+
+Proof of purchase is a Stripe session id (bought anonymously) or a `saved_benchmarks` row
+whose `stage` is in `REVEALED_STAGES`. A signed-in buyer who has claimed the purchase holds
+neither once they recompute the same benchmark, so `findPaidBenchmarkId()` looks the row up
+— otherwise they are shown the three options with no bank on them, for something they own.
+
 ### 2.5 Never show one bank's logo next to another bank's name
 
 On a screen someone paid for, a wrong logo is a false statement about who offers the rate.

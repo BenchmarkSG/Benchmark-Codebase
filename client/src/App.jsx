@@ -21,7 +21,7 @@ import {
 } from './components/Sections.jsx';
 import { createCheckout, revealBestBank } from './api.js';
 import { isStripeCheckoutUrl } from './lib/safeUrl.js';
-import { saveBenchmark, updateBenchmark } from './lib/dashboardApi.js';
+import { saveBenchmark, updateBenchmark, findPaidBenchmarkId } from './lib/dashboardApi.js';
 import { readCheckoutReturn, stashJourney, clearJourney, goToPage } from './lib/checkoutReturn.js';
 import { recoverPaidContext } from './lib/journeyContext.js';
 import {
@@ -34,6 +34,24 @@ import { getAccessToken } from './lib/supabase.js';
 // which clears a pending intent when the user dismisses sign-in without
 // authenticating — so a stale intent can't reopen a pay screen later).
 import { readAfterAuth, storeAfterAuth, clearAfterAuth } from './lib/afterAuth.js';
+
+/* What /api/reveal has to be asked.
+
+   The reveal recomputes the benchmark server-side and hands back only the name,
+   so it must be asked the SAME question the free benchmark was — otherwise it
+   answers about a different comparison. For cross-border that means the corridor
+   and the amount sent: pricing is per receive-currency, and a flat fee is 2% of
+   S$1,000 but 0.2% of S$10,000. Both ride in the context's `inputs` (the raw
+   form values), which the saved row stores too, so they survive the Stripe hop
+   and a reopen from the dashboard. */
+const revealPayload = (ctx) => ({
+  country: ctx?.country || 'SG',
+  product: ctx?.productId || undefined,
+  currency: ctx?.currency || undefined,
+  send_currency: ctx?.inputs?.send_currency || undefined,
+  receive_currency: ctx?.inputs?.receive_currency || undefined,
+  sent_amount: ctx?.inputs?.sent_amount || undefined,
+});
 
 export default function App() {
   const { user } = useAuth();
@@ -88,10 +106,8 @@ export default function App() {
       rememberRevealSession(ctx, r.sessionId);
       try {
         const { bestBank } = await revealBestBank({
+          ...revealPayload(ctx),
           sessionId: r.sessionId,
-          country: ctx?.country || 'SG',
-          product: ctx?.productId || undefined,
-          currency: ctx?.currency || undefined,
         });
         if (!bestBank) return;
         setContext((c) => (c ? { ...c, bestBank } : c));
@@ -132,12 +148,19 @@ export default function App() {
   const openRevealed = useCallback(async (ctx, { sessionId = null, tier = 'reveal' } = {}) => {
     let full = ctx || {};
     try {
+      // Neither proof to hand? A signed-in buyer who has claimed their purchase
+      // and then recomputed the same benchmark holds no session id (it was
+      // consumed) and no row id (a fresh result carries none) — so find the row
+      // that records the purchase before giving up on the name.
+      let benchmarkId = full.benchmarkId || undefined;
+      if (!sessionId && !benchmarkId) {
+        benchmarkId = (await findPaidBenchmarkId({ country: full.country, productId: full.productId })) || undefined;
+        if (benchmarkId) full = { ...full, benchmarkId };
+      }
       const { bestBank } = await revealBestBank({
+        ...revealPayload(full),
         sessionId: sessionId || undefined,
-        benchmarkId: full.benchmarkId || undefined,
-        country: full.country || 'SG',
-        product: full.productId || undefined,
-        currency: full.currency || undefined,
+        benchmarkId,
       }, await getAccessToken());
       if (bestBank) full = { ...full, bestBank };
     } catch { /* leave bestBank unset — the modal handles a missing name */ }

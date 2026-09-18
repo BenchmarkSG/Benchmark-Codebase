@@ -89,10 +89,14 @@ const SG_FALLBACK = { code: 'SG', name: 'Singapore', currency: 'SGD', currency_s
  * Create the Express app. `repo` and `fx` are injectable so tests can supply
  * fixtures instead of live Supabase / network calls.
  */
-export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
+/* `pay` is injectable for the same reason `repo` and `fx` are: /api/reveal is
+   the endpoint that hands over the paid product, and it could not be exercised
+   at all without a Stripe key — which is how it shipped mispricing cross-border
+   reveals unnoticed. Tests pass a stub. */
+export function createApp({ repo = ratesRepo, fx = fxModule, pay = payments } = {}) {
   // Checkout needs a trusted redirect base: without PUBLIC_BASE_URL (or an
   // allow-listed Origin) every /api/checkout call fails closed with a 502.
-  if (process.env.NODE_ENV === 'production' && payments.isPaymentsConfigured && !publicBase && !configuredOrigins.length) {
+  if (process.env.NODE_ENV === 'production' && pay.isPaymentsConfigured && !publicBase && !configuredOrigins.length) {
     console.warn('[boot] PUBLIC_BASE_URL / ALLOWED_ORIGINS not set — checkout will fail. Set them in the deployment env.');
   }
   const app = express();
@@ -130,14 +134,14 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
     const countries = (await repo.getCountries()) ?? [SG_FALLBACK];
     // Every product ships with its `onlyCountries` allowlist attached; the
     // calculator filters on it once a market is picked.
-    res.json({ countries, products: PRODUCTS, questionnaires: QUESTIONNAIRES, paymentsEnabled: payments.isPaymentsConfigured });
+    res.json({ countries, products: PRODUCTS, questionnaires: QUESTIONNAIRES, paymentsEnabled: pay.isPaymentsConfigured });
   }));
 
   // ---- Stripe payments (JourneyModal tiers). No-ops without STRIPE_SECRET_KEY. --
   app.post('/api/checkout', strictLimiter, asyncRoute(async (req, res) => {
-    if (!payments.isPaymentsConfigured) return res.status(503).json({ error: 'Payments not configured' });
+    if (!pay.isPaymentsConfigured) return res.status(503).json({ error: 'Payments not configured' });
     const { tier, advisorId, product, segment, email, currency, benchmarkId, country, productId } = req.body || {};
-    if (!payments.getTier(tier)) return res.status(400).json({ error: 'Unknown tier' });
+    if (!pay.getTier(tier)) return res.status(400).json({ error: 'Unknown tier' });
     // The reveal is sold once per benchmark. Closing the modal and pressing the
     // button again must not charge twice, and the UI can't be what guarantees
     // that — so the repeat sale is refused here, against the row itself.
@@ -152,7 +156,7 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
     // success/cancel base otherwise comes from server-set PUBLIC_BASE_URL.
     const reqOrigin = req.headers.origin || '';
     const origin = reqOrigin && isOriginAllowed(reqOrigin) ? reqOrigin : '';
-    res.json(await payments.createCheckout({
+    res.json(await pay.createCheckout({
       tier, origin, email, currency,
       advisorId: cleanMeta(advisorId, 40), product: cleanMeta(product), segment: cleanMeta(segment, 20),
       country: cleanMeta(country, 8), productId: cleanMeta(productId, 40),
@@ -173,7 +177,8 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
    *      once the purchase has been claimed.
    */
   app.post('/api/reveal', strictLimiter, asyncRoute(async (req, res) => {
-    const { sessionId, benchmarkId, country = 'SG', product, currency, variant } = req.body || {};
+    const { sessionId, benchmarkId, country = 'SG', product, currency, variant,
+            send_currency, receive_currency, sent_amount } = req.body || {};
     const meta = getProduct(product);
     if (!meta) return res.status(400).json({ error: 'Unknown product' });
     if (!isProductInCountry(meta, country)) {
@@ -182,8 +187,8 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
 
     let entitled = false;
 
-    if (sessionId && payments.isPaymentsConfigured) {
-      const paid = await payments.retrieveCheckout(String(sessionId)).catch(() => null);
+    if (sessionId && pay.isPaymentsConfigured) {
+      const paid = await pay.retrieveCheckout(String(sessionId)).catch(() => null);
       // Bind the session to this exact benchmark. Without this a single paid
       // session id would unlock every product in every market, forever.
       entitled = !!paid?.paid
@@ -206,7 +211,21 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
       return res.status(402).json({ error: 'This reveal hasn\u2019t been paid for.', code: 'payment_required' });
     }
 
-    const data = await repo.getProductValues(country, product, currency, variant);
+    // The pool has to be rebuilt exactly as /api/benchmark built it, or the name
+    // handed over is the winner of a different comparison. For cross-border that
+    // means the corridor and the amount: a bank's USD spread says nothing about
+    // its INR spread, and a flat S$20 fee is 2% of S$1,000 but 0.2% of S$10,000.
+    // This used to call getProductValues with no options at all, which silently
+    // merged every corridor and priced every fee against the row's own stored
+    // notional — so a paid reveal could name the best bank for a transfer the
+    // customer never asked about.
+    const data = meta.family === 'crossborder'
+      ? await repo.getProductValues(country, product, null, null, {
+          counterparty: receive_currency || null,
+          sentAmount: Number(sent_amount) || 0,
+          sendCurrency: send_currency || null,
+        })
+      : await repo.getProductValues(country, product, currency, variant);
     if (!data) return res.status(503).json({ error: 'Rate database not configured. See PRODUCT_DATA.md.' });
     const best = pickBestItem(data.items, meta.rateType);
     if (!best?.bank) return res.status(404).json({ error: 'No benchmark data for this selection yet.' });
@@ -217,20 +236,20 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
   // works in demo mode too; the actual charge is recomputed at checkout time.
   app.get('/api/checkout/price', asyncRoute(async (req, res) => {
     const tier = String(req.query.tier || 'reveal');
-    if (!payments.getTier(tier)) return res.status(400).json({ error: 'Unknown tier' });
-    res.json(await payments.amountFor(tier, String(req.query.currency || 'SGD')));
+    if (!pay.getTier(tier)) return res.status(400).json({ error: 'Unknown tier' });
+    res.json(await pay.amountFor(tier, String(req.query.currency || 'SGD')));
   }));
 
   // Back-compat for the reveal button's original endpoint.
   app.get('/api/checkout/reveal-price', asyncRoute(async (req, res) => {
-    res.json(await payments.amountFor('reveal', String(req.query.currency || 'SGD')));
+    res.json(await pay.amountFor('reveal', String(req.query.currency || 'SGD')));
   }));
 
   app.get('/api/checkout/session', asyncRoute(async (req, res) => {
-    if (!payments.isPaymentsConfigured) return res.status(503).json({ error: 'Payments not configured' });
+    if (!pay.isPaymentsConfigured) return res.status(503).json({ error: 'Payments not configured' });
     if (!req.query.id) return res.status(400).json({ error: 'Missing session id' });
     const id = String(req.query.id);
-    const result = await payments.retrieveCheckout(id);
+    const result = await pay.retrieveCheckout(id);
     // Who is asking. Drives both the claim-link decision below and whether the
     // benchmark id is safe to hand back.
     const viewer = await userFromToken(bearerToken(req));
@@ -242,7 +261,7 @@ export function createApp({ repo = ratesRepo, fx = fxModule } = {}) {
       email.sendConfirmation({
         to: result.email, tier: result.tier, product: result.product,
         amountTotal: result.amountTotal, currency: result.currency,
-      }).then((r) => { if (r?.ok) return payments.markEmailSent(id); })
+      }).then((r) => { if (r?.ok) return pay.markEmailSent(id); })
         .catch(() => {});
       // Someone who paid WITHOUT an account gets one now, from the email Stripe
       // already collected: a magic link creates the user and signs them in, so

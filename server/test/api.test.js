@@ -120,3 +120,88 @@ test('POST /api/benchmark -> 503 when rates DB unconfigured', async () => {
   assert.equal(r.status, 503);
   srv.close();
 });
+
+/* ---------------------------------------------------------------------------
+   /api/reveal — the endpoint that hands over the paid product.
+
+   It was untestable until `pay` became injectable, and that is how it shipped
+   asking the rate database a different question from the one /api/benchmark
+   asked: for cross-border it passed no options at all, so every corridor was
+   merged into one pool and every fee was sized against the row's own stored
+   notional instead of the customer's amount. The buyer paid for "the bank that
+   beats yours on THIS transfer" and could be handed the winner of a different
+   one.
+   --------------------------------------------------------------------------- */
+const paidStub = {
+  isPaymentsConfigured: true,
+  getTier: () => ({ id: 'reveal' }),
+  async retrieveCheckout() { return { paid: true, tier: 'reveal' }; },
+  async createCheckout() { return {}; },
+  async amountFor() { return {}; },
+  async markEmailSent() {},
+};
+
+let revealServer, revealBase, seenArgs;
+const revealRepo = {
+  ...fixtureRepo,
+  async getProductValues(country, product, currency, variant, opts) {
+    seenArgs = { country, product, currency, variant, opts };
+    return fixtureRepo.getProductValues(country, product, currency, variant, opts);
+  },
+};
+
+before(async () => {
+  const app = createApp({ repo: revealRepo, fx: fixtureFx, pay: paidStub });
+  await new Promise((resolve) => {
+    revealServer = app.listen(0, () => { revealBase = `http://localhost:${revealServer.address().port}`; resolve(); });
+  });
+});
+after(() => revealServer?.close());
+
+const revealPost = (body) =>
+  fetch(revealBase + '/api/reveal', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  });
+
+test('POST /api/reveal -> 402 even with payments live, when nothing is presented', async () => {
+  // Distinct from the case above: Stripe IS configured here, so the entitlement
+  // branch actually runs. Presenting no session id must still buy nothing.
+  const r = await revealPost({ country: 'SG', product: 'overdraft' });
+  assert.equal(r.status, 402);
+  const j = await r.json();
+  assert.ok(!('bestBank' in j), 'an unpaid reveal must never carry the name');
+  assert.equal(j.code, 'payment_required');
+});
+
+test('POST /api/reveal (paid) -> the winning bank', async () => {
+  const r = await revealPost({ sessionId: 'cs_test_paid', country: 'SG', product: 'overdraft', currency: 'SGD' });
+  assert.equal(r.status, 200);
+  const j = await r.json();
+  assert.equal(j.bestBank, 'DBS');
+  assert.equal(j.benchmarkRate, 6.5);
+});
+
+test('POST /api/reveal (cross-border) asks for the SAME pool /api/benchmark priced', async () => {
+  seenArgs = null;
+  const r = await revealPost({
+    sessionId: 'cs_test_paid', country: 'SG', product: 'cross_border',
+    send_currency: 'SGD', receive_currency: 'INR', sent_amount: 10000,
+  });
+  assert.equal(r.status, 200);
+  // The corridor and the amount must reach the repo. Without them the pool is
+  // every corridor at once, priced off each row's stored notional.
+  assert.equal(seenArgs.opts?.counterparty, 'INR');
+  assert.equal(seenArgs.opts?.sentAmount, 10000);
+  assert.equal(seenArgs.opts?.sendCurrency, 'SGD');
+});
+
+test('POST /api/reveal (rate product) still passes currency and variant', async () => {
+  seenArgs = null;
+  const r = await revealPost({
+    sessionId: 'cs_test_paid', country: 'SG', product: 'housing_loan', currency: 'SGD', variant: 'floating',
+  });
+  assert.equal(r.status, 200);
+  assert.equal(seenArgs.currency, 'SGD');
+  assert.equal(seenArgs.variant, 'floating');
+  assert.equal(seenArgs.opts, undefined, 'a rate pool takes no cross-border options');
+});

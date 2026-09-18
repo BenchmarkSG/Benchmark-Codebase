@@ -35,6 +35,44 @@ export async function listBenchmarks() {
   return data || [];
 }
 
+/* Proof of purchase, when the browser has lost it.
+
+   /api/reveal answers to a Stripe session id (bought anonymously) or to a saved
+   row of yours whose stage says the reveal was paid for. A signed-in buyer whose
+   purchase has been claimed holds neither the moment they recompute the same
+   benchmark in the calculator: the session id is consumed once the row owns the
+   purchase (see forgetRevealSession), and a freshly computed result carries no
+   row id. Without this they are shown the three options with no bank on them —
+   for something they already own.
+
+   Matches on market + product only. The row is PROOF here, not the answer: the
+   name is recomputed server-side from the payload, so the newest paid row for
+   this product settles entitlement just as well as an exact match would, and
+   matching on floating-point rates would fail for the wrong reasons.
+
+   RLS scopes this to the caller's own rows, so it can never find someone
+   else's. Returns null — never throws — when there is nothing to find. */
+
+// Mirrors REVEALED_STAGES in server/purchases.js; keep the two in step.
+const PAID_STAGES = ['revealed', 'email', 'call', 'expert', 'negotiated'];
+
+export async function findPaidBenchmarkId({ country, productId } = {}) {
+  if (!isSupabaseConfigured || !country || !productId) return null;
+  try {
+    if (!(await currentUser())) return null;
+    const { data, error } = await supabase
+      .from('saved_benchmarks').select('id')
+      .eq('country_code', country).eq('product', productId)
+      .in('stage', PAID_STAGES)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    if (error) return null;
+    return data?.[0]?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function saveBenchmark(row) {
   ensure();
   const user = await currentUser();
