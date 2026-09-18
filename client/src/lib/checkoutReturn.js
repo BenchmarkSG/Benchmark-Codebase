@@ -68,6 +68,10 @@ export function readCheckoutReturn(page) {
     // time already exists — otherwise it shows the scheduler again and the
     // customer books a second one.
     slotBooked: !!stash?.slotBooked,
+    // The instant that was HELD on the way out. Without it the return cannot
+    // tell the hold to become a booking, and the slot would quietly lapse after
+    // a successful payment.
+    slotIso: stash?.slotIso || null,
     canceled: checkout === 'cancel',
   };
 }

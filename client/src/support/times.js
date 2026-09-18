@@ -89,6 +89,12 @@ export function bothZones(iso, marketCode) {
  */
 export function isOverdue(lead, now = Date.now()) {
   if (!lead?.slot_start) return false;
+  // A slot_start on an UNBOOKED lead is a hold that was never paid for — the
+  // customer picked a time and never came out of Checkout (see
+  // supabase/call_booking.sql). Nobody owes them a call, so it is not overdue;
+  // counting it would bury the rows that are. Calendly-sourced slots always
+  // carry booked = true, so this cannot hide a real one.
+  if (!lead.booked) return false;
   if (lead.stage && lead.stage !== 'new') return false;
   const t = new Date(lead.slot_start).getTime();
   return Number.isFinite(t) && t < now;

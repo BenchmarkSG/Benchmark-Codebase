@@ -299,6 +299,7 @@ must also be given the `supabase/` folder out of band, or the schema is lost.
 |---|---|
 | `supabase/whatsapp.sql` | WhatsApp opt-in/verification is collected by the UI then **silently discarded** |
 | `supabase/floating_rate.sql` | `import:pool` warns; floating-rate index/spread columns missing |
+| `supabase/call_booking.sql` | Option 2 self-scheduling. Without it the booking screen **falls back to Calendly automatically** — nothing breaks, but the slot picker, the pre-payment hold and the blackout honouring do not exist |
 
 ---
 
@@ -361,24 +362,47 @@ Do not fill these with plausible numbers — see §2.1.
 
 ### 8.5 Calendly
 
-Two structural problems, both documented in `supabase/advisor_blackouts.sql`:
+**Option 2 (specialist call) no longer uses it.** It has its own scheduler:
+`supabase/call_booking.sql` + `client/src/components/SlotPicker.jsx`. The client falls back
+to the Calendly embed automatically if that migration has not been run, so this is safe to
+deploy before running it — and safe to roll back by dropping the functions.
 
-1. **Blackouts do not reach Calendly.** Calendly's v2 API has no availability-override
-   endpoint, so a window blocked in the admin portal **stays bookable** in the widget.
-   Double-booking risk.
-2. **The booked time is not known at booking time.** The widget hands the browser opaque
-   URIs; resolving the actual slot needs `CALENDLY_TOKEN` + the nightly
-   `scripts/sync-calendly.mjs`. In test data, `booked=true` with **no URI at all** occurs
-   repeatedly — once that happens the slot is unrecoverable.
+**Option 3 (named expert) still uses Calendly**, because an external advisor's real
+Google/Outlook calendar is the one thing our own scheduler cannot see. A specialist call
+sells "a FeeOptima specialist", so there is no individual calendar to read and team-level
+working hours are the right model. An expert is a person, and booking them against hours we
+do not control would double-book them. Moving Option 3 across needs per-advisor Google
+Calendar OAuth — a real project, not an afternoon.
 
-A replacement booking UI was scoped and **not built** (pending a decision). Most of the
-scaffolding already exists: `advisor_blackouts` + admin UI, `advisor_availability` view,
-`leads.slot_start/slot_end`, `record_booking()`, and dual-timezone rendering in
-`client/src/support/times.js`. What is missing is the slot picker, an atomic
-booking constraint (so two customers cannot take one slot), and `.ics` confirmation.
+What the in-house one does that Calendly could not:
 
-**Also:** Option 2 now books the slot **before** payment. An abandoned checkout therefore
-leaves a held Calendly slot with no payment behind it. Calendly offers no provisional hold.
+1. **Blackouts are honoured.** `booking_blackouts` (team-level, whole-day or a time range)
+   removes slots from the grid. Calendly's v2 API has no availability-override endpoint, so
+   a window blocked in the admin portal stayed bookable in the widget — see
+   `supabase/advisor_blackouts.sql`. That was a live double-booking risk.
+2. **The time is known at booking time.** `leads.slot_start` / `slot_end` are written by
+   `hold_call_slot()` itself. Nothing to resolve later, no `CALENDLY_TOKEN`, no nightly
+   `sync-calendly.mjs`. The old path left rows with `booked = true` and no URI at all, and
+   those times are unrecoverable.
+3. **A real hold.** Option 2 takes the slot before payment, so an abandoned checkout used to
+   park a Calendly booking with no money behind it — Calendly has no provisional hold.
+   `hold_call_slot()` sets `hold_expires_at` (default 15 min). Availability counts confirmed
+   bookings and LIVE holds, so an expired hold frees its slot with no cleanup job to run.
+4. **Capacity is real.** `booking_hours.capacity` is how many calls the team takes at once.
+   Two customers racing for the last seat are serialised by `pg_advisory_xact_lock` on the
+   slot instant, and the loser is told to pick another — verified against a real Postgres.
+5. **`.ics` instead of an email invite.** `client/src/lib/ics.js`, covered by
+   `server/test/ics.test.js` (it is the only test runner in the repo).
+
+**Configuration lives in the database, not in code.** `booking_settings` (timezone, slot
+length, notice, horizon, hold length) and `booking_hours` (weekday windows + capacity).
+Both are seeded with **Mon–Fri 09:00–18:00 Asia/Singapore, one call at a time** — that is a
+guess about the working day, not data. Change it. An empty `booking_hours` means an empty
+picker.
+
+**Still to do:** an admin UI for hours and blackouts (today they are edited in the SQL
+editor); the WhatsApp reminder before the call; reschedule/cancel by the customer after
+payment (today that is a support action, because a refund hangs off it).
 
 ### 8.6 Smaller items
 

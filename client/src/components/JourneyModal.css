@@ -599,3 +599,49 @@ body.jny-open .needhelp { display: none; }
 
 /* The options screen only — see .jny__panel's max-width note. */
 .jny__panel--wide { max-width: 1000px; }
+
+/* ---- A held / booked slot (Option 2, own scheduler) ----------------------- */
+.jny-hold {
+  border: 1.5px solid var(--blue-600);
+  background: var(--blue-50);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-top: 4px;
+}
+.jny-hold__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.jny-hold__when { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.jny-hold__when strong { font-size: 15.5px; font-weight: 800; color: var(--ink); }
+.jny-hold__when em { font-style: normal; font-size: 11.5px; font-weight: 700; color: var(--muted); }
+.jny-hold__change {
+  flex: 0 0 auto;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  color: var(--accent);
+  font-weight: 800;
+  font-size: 12.5px;
+  padding: 7px 12px;
+  border-radius: 9px;
+  cursor: pointer;
+}
+.jny-hold__change:hover:not(:disabled) { border-color: var(--accent); }
+.jny-hold__change:disabled { opacity: 0.6; cursor: not-allowed; }
+.jny-hold__note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+/* Tabular figures so the countdown doesn't jitter the line as digits change. */
+.jny-hold__clock {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.jny-ics { margin-top: 10px; width: 100%; }

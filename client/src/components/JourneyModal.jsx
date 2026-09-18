@@ -16,6 +16,40 @@ import { getAccessToken } from '../lib/supabase.js';
 import { confirmLink, verificationCode, whatsappReady, looksDialable, missingCountryCode } from '../lib/whatsapp.js';
 import { logoForBank } from './BankLogos.jsx';
 import StepBar from './StepBar.jsx';
+import SlotPicker from './SlotPicker.jsx';
+import { holdCallSlot, confirmCallSlot, releaseCallSlot, SlotTakenError, fullLabel, viewerZone, zoneLabel } from '../lib/booking.js';
+import { callInvite, downloadInvite } from '../lib/ics.js';
+
+/* How long is left on a held slot.
+ *
+ * The hold is the whole reason for owning the calendar: it lets someone walk
+ * into Stripe Checkout with the time reserved, and gives the time back on its
+ * own if they never come out. That only works if they can SEE it — an
+ * unexplained "that time has gone" on the way back would read as a bug.
+ *
+ * Ticks every second; `onExpire` fires once, when it actually runs out. */
+function HoldTimer({ until, onExpire }) {
+  const [left, setLeft] = useState(() => Math.max(0, new Date(until).getTime() - Date.now()));
+  const firedRef = useRef(false);
+  useEffect(() => {
+    firedRef.current = false;
+    const tick = () => {
+      const ms = Math.max(0, new Date(until).getTime() - Date.now());
+      setLeft(ms);
+      if (ms <= 0 && !firedRef.current) { firedRef.current = true; onExpire?.(); }
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+    // onExpire is recreated every render by the parent; re-subscribing on it
+    // would restart the countdown each tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [until]);
+  if (left <= 0) return null;
+  const mins = Math.floor(left / 60000);
+  const secs = Math.floor((left % 60000) / 1000);
+  return <span className="jny-hold__clock">{mins}:{String(secs).padStart(2, '0')}</span>;
+}
 
 /* Screen 3 — the "reveal + act on it" screen. Three vertical tiers: negotiate
    yourself ($1), get a coaching call ($99), or hire an expert ($199). The paid
@@ -511,6 +545,117 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
      remember that a slot exists — across a Stripe round trip, which throws away
      component state. Stashed on the way out, read back on the way in. */
   const [slotBooked, setSlotBooked] = useState(false);
+  /* Our own scheduler (supabase/call_booking.sql). `ownScheduler` flips to false
+     only when the migration has not been run — SlotPicker tells us — and the
+     screen falls back to the Calendly embed, which is still what Option 3 uses. */
+  const [ownScheduler, setOwnScheduler] = useState(true);
+  const [slotIso, setSlotIso] = useState(null);      // the held (or booked) instant
+  const [holdUntil, setHoldUntil] = useState(null);  // when an unconfirmed hold lapses
+  const [slotErr, setSlotErr] = useState('');
+  const [slotBusy, setSlotBusy] = useState(false);
+  const [slotsKey, setSlotsKey] = useState(0);       // bump to re-read availability
+  // A time clicked while signed out. Held so signing in without leaving the page
+  // picks up where they were instead of dropping them on an empty grid.
+  const pendingSlotRef = useRef(null);
+
+  /* The lead a hold is attached to. Option 2 takes the slot BEFORE payment, so
+     the row has to exist before the money does — `booked` stays false until
+     Stripe confirms, and the admin list already reads `booked`, not existence. */
+  const ensureCallLead = async () => {
+    if (leadRef.current) return leadRef.current;
+    const u = await authUser();
+    if (!u) return null;
+    const row = await createLead({
+      source: 'call',
+      segment: context?.segment || 'individual',
+      product: context?.productId || null,
+      product_label: context?.product || null,
+      benchmark_id: context?.benchmarkId || null,
+      annual_saving: context?.annualSaving ?? null,
+      full_name: u.user_metadata?.full_name || null,
+      email: u.email || null,
+      phone: phone || u.user_metadata?.phone || null,
+      whatsapp_opt_in: u.user_metadata?.whatsapp_opt_in ?? null,
+      booked: false,
+    });
+    leadRef.current = row?.id || null;
+    return leadRef.current;
+  };
+
+  /* Take a time.
+     Already paid (or nothing to pay) → the hold is confirmed on the spot, since
+     there is no checkout to come back from. Otherwise it stays a hold and the
+     pay button below turns it into a booking. */
+  const pickSlot = async (iso) => {
+    setSlotErr('');
+    if (!user) {
+      pendingSlotRef.current = iso;
+      onRequireAuth?.({ kind: 'journey', context, view, expert });
+      return;
+    }
+    setSlotBusy(true);
+    try {
+      const leadId = await ensureCallLead();
+      if (!leadId) throw new Error('We could not start your booking. Please try again.');
+      const expires = await holdCallSlot(leadId, iso);
+      setSlotIso(iso);
+      setHoldUntil(expires || null);
+      if (paidTier === 'call' || !paymentsEnabled) {
+        await confirmCallSlot(leadId);
+        setSlotBooked(true);
+        setHoldUntil(null);
+      }
+    } catch (e) {
+      // Someone else took it while this grid was on screen: re-read availability
+      // so they are not staring at a time that no longer exists.
+      if (e instanceof SlotTakenError) setSlotsKey((n) => n + 1);
+      setSlotErr(e.message || 'We could not hold that time. Please pick another.');
+    } finally {
+      setSlotBusy(false);
+    }
+  };
+
+  /* Give a held time back. Never touches a confirmed booking — release_call_slot
+     refuses that outright, and cancelling something paid for is a support action
+     with a refund attached, not a button on this screen. */
+  const dropHold = async ({ quiet = false } = {}) => {
+    const leadId = leadRef.current;
+    setSlotIso(null); setHoldUntil(null);
+    if (!quiet) setSlotErr('');
+    setSlotsKey((n) => n + 1);
+    if (leadId) { try { await releaseCallSlot(leadId); } catch { /* it lapses on its own */ } }
+  };
+
+  const onHoldExpired = () => {
+    setSlotIso(null); setHoldUntil(null);
+    setSlotsKey((n) => n + 1);
+    setSlotErr('Your hold ran out, so the time went back into the pool. Pick another — it only takes a moment.');
+  };
+
+  // Signed in from the picker itself (no page reload): resume the click they
+  // already made rather than making them find the time again.
+  useEffect(() => {
+    if (!user || !pendingSlotRef.current) return;
+    const iso = pendingSlotRef.current;
+    pendingSlotRef.current = null;
+    pickSlot(iso);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  const addToCalendar = () => {
+    if (!slotIso) return;
+    const start = new Date(slotIso);
+    const end = new Date(start.getTime() + 30 * 60000);
+    downloadInvite(callInvite({
+      uid: `call-${leadRef.current || context?.benchmarkId || start.getTime()}@feeoptima`,
+      start, end,
+      summary: 'FeeOptima specialist call',
+      description: context?.product
+        ? `Negotiation coaching on your ${context.product}. Your specialist will call the number you gave us.`
+        : 'Negotiation coaching with a FeeOptima specialist.',
+      location: 'Phone / WhatsApp',
+    }), 'feeoptima-call.ics');
+  };
 
   const stampBooking = (payload) => {
     const id = leadRef.current;
@@ -695,6 +840,7 @@ Kind regards,
       setExpert(resume.expert || null);
       setSentTo(resume.expert?.id || null);
       setSlotBooked(!!resume.slotBooked);
+      setSlotIso(resume.slotIso || null);
       if (resume.canceled) { setPaidTier(null); setPayError('Payment canceled — you can try again below.'); return; }
       setPayError(''); setPaidTier(resume.tier); // optimistic; verify below
       if (resume.sessionId) {
@@ -708,13 +854,25 @@ Kind regards,
           }
           // Payment confirmed — log the paid engagement + unlock the source benchmark.
           if (resume.tier === 'call' || resume.tier === 'expert') {
-            recordPaidBooking(resume.tier, resume.sessionId, resume.leadId, resume.expert);
+            // The hold becomes a booking HERE and nowhere else: this is the first
+            // point at which the payment is known to have gone through. Until it
+            // runs the slot is still only held, and still lapses on its own.
+            recordPaidBooking(resume.tier, resume.sessionId, resume.leadId, resume.expert)
+              .then(() => {
+                if (resume.tier !== 'call' || !resume.slotIso || !leadRef.current) return undefined;
+                return confirmCallSlot(leadRef.current).then(() => {
+                  setSlotBooked(true);
+                  setHoldUntil(null);
+                });
+              })
+              .catch(() => { /* the support queue still shows the held slot */ });
           }
           applyUnlock(resume.tier);
         });
       }
     } else {
       setView('options'); setExpert(null); setSentTo(null); setPaidTier(null); setPayError(''); setSlotBooked(false);
+      setSlotIso(null); setHoldUntil(null); setSlotErr('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, resume]);
@@ -836,7 +994,7 @@ Kind regards,
       years: adv.years, blurb: adv.blurb, photo: adv.photo, accent: adv.accent, calendly_url: adv.calendly_url,
     } : null;
     try {
-      stashJourney({ tier, expert: snap, context, leadId: leadRef.current, slotBooked });
+      stashJourney({ tier, expert: snap, context, leadId: leadRef.current, slotBooked, slotIso });
       const { url } = await createCheckout({
         tier,
         currency: context?.currency || 'SGD', // bill in the currency we showed
@@ -955,7 +1113,12 @@ Kind regards,
     + (ccUs ? `&cc=${encodeURIComponent(CC_EMAIL)}` : '')
     + `&body=${encodeURIComponent(emailBody)}`;
 
-  const back = () => { setView('options'); setExpert(null); setPayError(''); };
+  const back = () => {
+    // Give a held slot back immediately. It would lapse on its own, but leaving
+    // it parked for the full window blocks a customer who is ready to book now.
+    if (slotIso && !slotBooked) dropHold({ quiet: true });
+    setView('options'); setExpert(null); setPayError('');
+  };
 
   // Where to go once a slot is booked. Close first, then navigate: the modal's
   // history effect strips its marker param from whatever the location is at
@@ -1157,21 +1320,121 @@ Kind regards,
             {/* ORDER: time first, payment second. Nobody is asked for S$99
                 before they know a slot exists that suits them.
 
-                The trade-off is real and deliberate: the Calendly booking is
-                made for good at the moment they pick, so an abandoned checkout
-                leaves a held slot with no payment behind it. That is why the
-                paid confirmation below is explicit about what is and isn't
-                settled. */}
-            {paidTier === 'call' ? (
+                With our own calendar that is now safe: picking a time takes a
+                HOLD, not a booking, and the hold lapses on its own if the
+                customer never comes back out of Checkout. The Calendly fallback
+                below cannot do that — it books for good the moment they pick —
+                which is exactly why this exists. */}
+            {ownScheduler ? (
+              <>
+                {paidTier === 'call' && slotBooked ? (
+                  /* Paid AND timed — the whole job is done. Showing the picker
+                     again here is how you get two bookings for one call. */
+                  <>
+                    {/* A booking made before this scheduler existed (or one
+                        whose instant did not survive the round trip) has nothing
+                        to print — say so plainly rather than render an empty
+                        date, and don't offer a calendar file with no time in it. */}
+                    <div className="jny-note jny-note--ok">
+                      {slotIso
+                        ? <>✓ You&apos;re booked for <strong>{fullLabel(slotIso)}</strong>{' '}
+                          ({zoneLabel(viewerZone())}). We&apos;ll message you on WhatsApp before the call.</>
+                        : <>✓ Payment received — your call is confirmed for the time you picked.
+                          We&apos;ll message you on WhatsApp before the call.</>}
+                    </div>
+                    {slotIso && (
+                      <button type="button" className="btn btn--ghost jny-ics" onClick={addToCalendar}>
+                        ＋ Add to my calendar
+                      </button>
+                    )}
+                    <div className="jny-done">
+                      <FeedbackCard source="call" benchmarkId={context?.benchmarkId} />
+                      <p className="jny-done__title">You&apos;re all set. Where next?</p>
+                      <div className="jny-actions">
+                        <button type="button" className="btn btn--primary" onClick={() => finishTo('dashboard')}>Go to my dashboard →</button>
+                        <button type="button" className="btn btn--ghost" onClick={() => finishTo('home')}>Back to home</button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="jny-sub__sub">
+                      <span className="jny-pill">{priceOf('call', 'S$99')}</span> A FeeOptima specialist reviews your numbers and coaches you through the negotiation.
+                    </p>
+                    {paidTier === 'call' && <div className="jny-note jny-note--ok">✓ Payment received — pick a time below.</div>}
+                    {/* The phone number is what the specialist actually calls, so
+                        it is asked for before a slot is taken rather than after. */}
+                    {!phone ? <PhoneGate onSaved={setPhone} /> : (
+                      <>
+                        {!user && !slotIso && (
+                          <div className="jny-note jny-note--warn">
+                            Pick a time below — we&apos;ll ask you to sign in before we hold it, so the booking lands on your account.
+                          </div>
+                        )}
+                        {slotErr && <div className="jny-note jny-note--warn">{slotErr}</div>}
+
+                        {slotIso ? (
+                          <div className="jny-hold">
+                            <div className="jny-hold__row">
+                              <span className="jny-hold__when">
+                                <strong>{fullLabel(slotIso)}</strong>
+                                <em>{zoneLabel(viewerZone())}</em>
+                              </span>
+                              <button type="button" className="jny-hold__change" onClick={() => dropHold()} disabled={slotBusy}>
+                                Change time
+                              </button>
+                            </div>
+                            {holdUntil && !slotBooked && (
+                              <p className="jny-hold__note">
+                                Held for you — <HoldTimer until={holdUntil} onExpire={onHoldExpired} /> left to confirm.
+                                {' '}Nobody else can take it until then.
+                              </p>
+                            )}
+                            {slotBooked && !paymentsEnabled && (
+                              <p className="jny-hold__note">✓ Booked. We&apos;ll message you on WhatsApp before the call.</p>
+                            )}
+                          </div>
+                        ) : (
+                          <SlotPicker
+                            selected={slotIso}
+                            onPick={pickSlot}
+                            busy={slotBusy}
+                            refreshKey={slotsKey}
+                            onUnavailable={() => setOwnScheduler(false)}
+                          />
+                        )}
+
+                        {/* Payment, only once a time is actually held. */}
+                        {slotIso && paymentsEnabled && paidTier !== 'call' && (
+                          <div className="jny-confirmpay">
+                            <p className="jny-confirmpay__lead">
+                              <strong>Your time is held.</strong> Confirm it with payment and the
+                              specialist is booked — you&apos;ll get a calendar invite and a WhatsApp message before the call.
+                            </p>
+                            <button className="btn btn--primary jny-pay" disabled={busy} onClick={() => pay('call')}>
+                              {!user ? 'Sign in to confirm →' : busy ? 'Redirecting to secure checkout…' : `Confirm & pay ${priceOf('call', 'S$99')} →`}
+                            </button>
+                            <p className="jny-note">🔒 Secure payment via Stripe. Your slot is held while you pay.</p>
+                          </div>
+                        )}
+                        {slotIso && slotBooked && !paymentsEnabled && (
+                          <button type="button" className="btn btn--ghost jny-ics" onClick={addToCalendar}>
+                            ＋ Add to my calendar
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </>
+                )}
+              </>
+            ) : /* ---- Fallback: supabase/call_booking.sql has not been run ---- */
+            paidTier === 'call' ? (
               <>
                 {slotBooked ? (
-                  /* Paid AND already timed — the whole job is done. Showing the
-                     scheduler again here is how you get two bookings for one
-                     call. */
                   <>
                     <div className="jny-note jny-note--ok">
                       ✓ Payment received — your call is confirmed for the time you picked.
-                      The calendar invite is on its way, and we'll message you on WhatsApp beforehand.
+                      The calendar invite is on its way, and we&apos;ll message you on WhatsApp beforehand.
                     </div>
                     <div className="jny-done">
                       <FeedbackCard source="call" benchmarkId={context?.benchmarkId} />
@@ -1212,9 +1475,6 @@ Kind regards,
                 )}
                 {!phone ? <PhoneGate onSaved={setPhone} /> : (
                   <>
-                    {/* No onDone: they are NOT finished after picking a time,
-                        they still have to pay. A "you're all set" here would be
-                        a lie and would lose the sale. */}
                     <Scheduler
                       url={CALENDLY_URL} prefill={bookingPrefill}
                       onScheduled={(payload) => { stampBooking(payload); setSlotBooked(true); }}

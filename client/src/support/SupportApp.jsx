@@ -30,7 +30,7 @@ const waOpener = (lead) => {
   return `Hi${who ? ` ${who}` : ''}, this is FeeOptima about the ${lead?.product_label || 'benchmark'} call you booked. `
     + 'Is now a good time, or shall I call you instead?';
 };
-import { bothZones, dateInZone, agentZone, isOverdue, overdueBy, localInputToIso, nowForInput } from './times.js';
+import { bothZones, dateInZone, inZone, agentZone, isOverdue, overdueBy, localInputToIso, nowForInput } from './times.js';
 import ComplaintLadder from '../components/ComplaintLadder.jsx';
 
 // leads.source → the option the customer clicked in the reveal modal. Option 2
@@ -408,7 +408,19 @@ function Queue({ onOpenScript, products }) {
 
             <div className="sup-lead__grid sup-lead__grid--when">
               <WhenRow label="Requested on" iso={r.created_at} market={cc} dateOnly />
-              {r.slot_start
+              {/* A slot_start with booked = false is a HOLD, not a booking:
+                  someone picked a time and is (or was) inside Stripe Checkout.
+                  Calling them would be calling someone who has not paid, so the
+                  row says which it is rather than showing a bare time. */}
+              {r.slot_start && !r.booked
+                ? (
+                  <div><span>Booked for</span>
+                    {new Date(r.hold_expires_at || 0).getTime() > Date.now()
+                      ? `${inZone(r.slot_start, agentZone())} · HELD, awaiting payment`
+                      : `${inZone(r.slot_start, agentZone())} · hold lapsed — not booked`}
+                  </div>
+                )
+                : r.slot_start
                 ? <WhenRow label="Booked for" iso={r.slot_start} market={cc} />
                 : (
                   <div><span>Booked for</span>
