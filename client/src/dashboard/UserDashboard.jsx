@@ -240,7 +240,7 @@ export default function UserDashboard() {
     if (r.canceled && r.tier === 'reveal') { load(); return; }
     setJourney({
       ctx: r.context,
-      resume: { tier: r.tier, sessionId: r.sessionId, expert: r.expert, canceled: r.canceled },
+      resume: r.resume,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

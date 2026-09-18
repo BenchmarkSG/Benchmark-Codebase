@@ -81,7 +81,7 @@ export default function App() {
     // 'options' view shows the bank + certificate, i.e. the paid product).
     if (r.canceled && r.tier === 'reveal') return;
     setContext(r.context);
-    setResume({ tier: r.tier, sessionId: r.sessionId, expert: r.expert, canceled: r.canceled });
+    setResume(r.resume);
     setTiersOpen(true);
 
     if (!(r.tier === 'reveal' && !r.canceled && r.sessionId)) return;

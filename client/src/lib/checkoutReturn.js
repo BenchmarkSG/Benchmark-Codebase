@@ -56,7 +56,7 @@ export function readCheckoutReturn(page) {
 
   clearJourney();
   window.history.replaceState({}, '', window.location.pathname + window.location.hash);
-  return {
+  const out = {
     tier: p.get('tier') || stash?.tier || 'call',
     sessionId: p.get('session_id') || null,
     expert: stash?.expert || null,
@@ -74,6 +74,28 @@ export function readCheckoutReturn(page) {
     slotIso: stash?.slotIso || null,
     canceled: checkout === 'cancel',
   };
+
+  /* The journey modal's resume payload, assembled HERE rather than by each
+     caller.
+
+     It used to be built by hand at both call sites (App and the dashboard), and
+     both of them forwarded `tier`, `sessionId`, `expert` and `canceled` while
+     silently dropping `leadId`, `slotBooked` and `slotIso` — the three fields
+     this function goes to the trouble of reading out of the stash. A paid call
+     therefore came back to an empty slot picker, made the customer book a second
+     time, and filed a second lead row against the same payment.
+
+     Anything added to the stash goes in here once, and every caller gets it. */
+  out.resume = {
+    tier: out.tier,
+    sessionId: out.sessionId,
+    expert: out.expert,
+    canceled: out.canceled,
+    leadId: out.leadId,
+    slotBooked: out.slotBooked,
+    slotIso: out.slotIso,
+  };
+  return out;
 }
 
 // Only ever a hash on our own origin, from the fixed table above.

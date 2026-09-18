@@ -865,7 +865,12 @@ Kind regards,
                   setHoldUntil(null);
                 });
               })
-              .catch(() => { /* the support queue still shows the held slot */ });
+              .catch(() => {
+                // They have paid and the hold will lapse, so this cannot fail
+                // quietly. The row still carries the held slot, so support can
+                // see it — but the customer needs to know to act.
+                setSlotErr('Your payment went through, but we could not lock the time in. Pick your time again below — you will not be charged twice.');
+              });
           }
           applyUnlock(resume.tier);
         });
@@ -1361,7 +1366,17 @@ Kind regards,
                     <p className="jny-sub__sub">
                       <span className="jny-pill">{priceOf('call', 'S$99')}</span> A FeeOptima specialist reviews your numbers and coaches you through the negotiation.
                     </p>
-                    {paidTier === 'call' && <div className="jny-note jny-note--ok">✓ Payment received — pick a time below.</div>}
+                    {/* Two different post-payment states. Coming back from
+                        Stripe with a held time is the normal path — telling that
+                        customer to "pick a time below" is what made people book
+                        twice. Only someone who paid WITHOUT a time still has to
+                        choose one. */}
+                    {paidTier === 'call' && !slotIso && (
+                      <div className="jny-note jny-note--ok">✓ Payment received — pick a time below.</div>
+                    )}
+                    {paidTier === 'call' && slotIso && !slotBooked && !slotErr && (
+                      <div className="jny-note jny-note--ok">✓ Payment received — confirming your time…</div>
+                    )}
                     {/* The phone number is what the specialist actually calls, so
                         it is asked for before a slot is taken rather than after. */}
                     {!phone ? <PhoneGate onSaved={setPhone} /> : (
