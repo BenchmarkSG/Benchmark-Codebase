@@ -4,7 +4,7 @@ import { formatMoney, getReference, createCheckout, getCheckoutSession, getTierP
 import { safeHttpUrl, isStripeCheckoutUrl } from '../lib/safeUrl.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { supabase, isSupabaseConfigured } from '../lib/supabase.js';
-import { listAdvisorDirectory, listAdvisorAvailability, createLead, recordBooking, updateBenchmark, submitFeedback, getMyProfile } from '../lib/dashboardApi.js';
+import { listAdvisorDirectory, listAdvisorAvailability, createLead, recordBooking, updateBenchmark, submitFeedback, getMyProfile, updateMyProfile } from '../lib/dashboardApi.js';
 import Certificate from './Certificate.jsx';
 import { buildCertificateImage } from '../lib/certificateImage.js';
 import { SITE_URL } from '../lib/site.js';
@@ -13,6 +13,8 @@ import { useConfirm } from './ConfirmProvider.jsx';
 import { stashJourney, clearJourney } from '../lib/checkoutReturn.js';
 import { markUnlocked } from '../lib/unlocks.js';
 import { getAccessToken } from '../lib/supabase.js';
+import { confirmLink, verificationCode, whatsappReady, looksDialable, missingCountryCode } from '../lib/whatsapp.js';
+import { logoForBank } from './BankLogos.jsx';
 
 /* Screen 3 — the "reveal + act on it" screen. Three vertical tiers: negotiate
    yourself ($1), get a coaching call ($99), or hire an expert ($199). The paid
@@ -34,13 +36,13 @@ const TIERS = [
     id: 'call', price: 'S$99', accent: 'blue', // price shown is FX-localized at runtime
     title: 'Help me negotiate with my bank',
     desc: 'A FeeOptima specialist reviews your numbers and coaches you through the call. Fees fully refundable if no savings.',
-    cta: 'Book a Call',
+    cta: 'Pick a Time',   // payment follows the slot now, so don't promise a booking yet
   },
   {
     id: 'expert', price: 'S$199', accent: 'violet', // price shown is FX-localized at runtime
     title: 'I need an expert (ex-banker) to negotiate on my behalf',
     desc: 'A specialist ex-banker prepares and leads the negotiation with your bank for you. Fee fully refundable if no savings.',
-    cta: 'Book an Expert',
+    cta: 'Choose an Expert',
   },
 ];
 
@@ -192,6 +194,126 @@ function FeedbackCard({ source, benchmarkId }) {
 // Booking panel: the Calendly embed if a URL is available, else a clear placeholder.
 // `onDone` is called with 'home' | 'dashboard' once a slot is booked — the modal
 // is a dead end otherwise, since the only way out is the × in the corner.
+/* The WhatsApp mark, inline so the button needs no asset. Decorative — the
+   button's own text already says where it goes. */
+const WhatsAppGlyph = () => (
+  <svg viewBox="0 0 32 32" width="18" height="18" fill="currentColor" aria-hidden="true">
+    <path d="M16.04 3.5c-6.9 0-12.5 5.6-12.5 12.5 0 2.2.58 4.35 1.68 6.25L3.5 28.5l6.42-1.68a12.46 12.46 0 0 0 6.12 1.56c6.9 0 12.5-5.6 12.5-12.5S22.94 3.5 16.04 3.5Zm0 22.83c-1.9 0-3.77-.51-5.4-1.48l-.39-.23-3.81 1 1.02-3.71-.25-.4a10.34 10.34 0 0 1-1.59-5.5c0-5.72 4.66-10.38 10.4-10.38 5.73 0 10.38 4.66 10.38 10.39 0 5.73-4.65 10.38-10.37 10.38Zm5.7-7.77c-.31-.16-1.85-.91-2.14-1.02-.29-.1-.5-.16-.71.16-.21.31-.82 1.02-1 1.23-.19.21-.37.24-.68.08-.31-.16-1.32-.49-2.51-1.55-.93-.83-1.55-1.85-1.74-2.16-.18-.31-.02-.48.14-.64.14-.14.31-.37.47-.55.16-.19.21-.32.31-.53.1-.21.05-.4-.03-.55-.08-.16-.71-1.71-.97-2.34-.26-.62-.52-.53-.71-.54l-.6-.01c-.21 0-.55.08-.84.4-.29.31-1.1 1.08-1.1 2.63 0 1.55 1.13 3.05 1.29 3.26.16.21 2.22 3.39 5.38 4.76.75.32 1.34.51 1.8.66.76.24 1.44.21 1.99.13.61-.09 1.85-.76 2.11-1.48.26-.73.26-1.35.18-1.48-.08-.13-.29-.21-.6-.37Z" />
+  </svg>
+);
+
+/* WhatsApp is how we reach people, so this is where we ask for it.
+
+   WHAT THIS CAN AND CANNOT ESTABLISH
+   No API will tell us whether a number is on WhatsApp — Meta retired the
+   On-Premises /v1/contacts check in Oct 2025 and the Cloud API ships no
+   replacement, because an open registration check is an enumeration oracle.
+   Only a message proves it. So this gate does two separate things and keeps
+   them separate:
+     · asks the customer to CONFIRM the number is on WhatsApp — a claim, which
+       catches the honest mistakes (a desk line, a landline, an old SIM) at the
+       one moment the customer can still fix them; and
+     · offers a one-tap deep link that opens WhatsApp with a code already typed.
+       When they press send, a message arrives from their real WhatsApp number
+       and support marks it verified. That is the evidence.
+
+   The claim never masquerades as the evidence. A booking proceeds on the claim
+   alone — blocking on a round trip would cost more bookings than it saves bad
+   numbers — but the support queue shows which of the two we actually have.
+
+   Saved to BOTH the profile row and auth user_metadata, the same pair account
+   settings writes, so the next booking never asks again. */
+function PhoneGate({ onSaved }) {
+  const { updateUserMetadata } = useAuth();
+  const [phone, setPhone] = useState('');
+  const [onWhatsApp, setOnWhatsApp] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [code, setCode] = useState('');
+
+  const submit = async (e) => {
+    e.preventDefault();
+    // Deliberately loose: numbering plans differ across five markets and a
+    // strict pattern rejects more real numbers than fake ones. Enough digits to
+    // be dialable is the bar.
+    const clean = phone.trim();
+    if (!looksDialable(clean)) {
+      setError('Please enter a number we can reach you on, including the country code.');
+      return;
+    }
+    setBusy(true); setError('');
+    // Issued before the save so the same code lands in the profile and in the
+    // deep link — support matches the inbound message against it.
+    const issued = onWhatsApp && whatsappReady ? verificationCode() : null;
+    try {
+      const patch = { phone: clean, whatsapp_opt_in: onWhatsApp };
+      if (issued) { patch.whatsapp_code = issued; patch.whatsapp_code_sent_at = new Date().toISOString(); }
+      await updateMyProfile(patch);
+      await updateUserMetadata({ phone: clean, whatsapp_opt_in: onWhatsApp });
+      if (issued) setCode(issued);
+      onSaved(clean);
+    } catch {
+      setError('We couldn’t save that. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Saved, and WhatsApp is configured: offer the round trip that proves it.
+  if (code) {
+    const href = confirmLink(code);
+    return (
+      <div className="jny-phone jny-phone--confirm">
+        <h5>One tap to confirm WhatsApp</h5>
+        <p>
+          This opens WhatsApp with a message already written. Send it and we’ll know we can
+          reach you there — it also means you never have to repeat your details on a call.
+        </p>
+        <a className="btn btn--primary jny-wa-btn" href={href} target="_blank" rel="noopener noreferrer">
+          <WhatsAppGlyph /> Confirm on WhatsApp
+        </a>
+        <p className="jny-phone__code">Your code: <strong>{code}</strong></p>
+        <button type="button" className="jny-linkbtn" onClick={() => setCode('')}>
+          Skip for now — pick a time →
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form className="jny-phone" onSubmit={submit}>
+      <h5>What’s your WhatsApp number?</h5>
+      <p>
+        We do everything on WhatsApp — your callback, the bank’s reply, the paperwork.
+        It’s faster than email and nothing gets lost in a spam folder.
+      </p>
+      <label>
+        <span className="sr-only">WhatsApp number</span>
+        <input
+          type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
+          placeholder="+65 9123 4567" autoComplete="tel" required
+        />
+      </label>
+      {missingCountryCode(phone) && (
+        <p className="jny-phone__hint">Start with your country code, e.g. +65 or +91 — WhatsApp needs it.</p>
+      )}
+      <label className="jny-phone__check">
+        <input type="checkbox" checked={onWhatsApp} onChange={(e) => setOnWhatsApp(e.target.checked)} />
+        <span>This number is on WhatsApp</span>
+      </label>
+      {!onWhatsApp && (
+        <p className="jny-phone__hint">
+          No problem — we’ll call you instead, and use email for anything in writing.
+        </p>
+      )}
+      {error && <div className="jny-note jny-note--warn" role="alert">{error}</div>}
+      <button className="btn btn--primary" disabled={busy}>
+        {busy ? 'Saving…' : 'Save & pick a time →'}
+      </button>
+    </form>
+  );
+}
+
 function Scheduler({ url, prefill, note, onDone, feedback, onScheduled }) {
   const [scheduled, setScheduled] = useState(false);
   const safeUrl = safeHttpUrl(url); // block javascript:/data: from advisor-controlled links
@@ -301,6 +423,8 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
       ? `${context.percentileBeaten}% of the providers we benchmark`
       : 'the market'; // dashboard-saved rows don't carry the percentile fields
   const bank = context?.bestBank || null;
+  // The revealed bank's mark, looked up in the market it was benchmarked in.
+  const bankLogo = useMemo(() => logoForBank(context?.country, bank), [context?.country, bank]);
   const withUnit = (v) => {
     const u = context?.unit;
     if (!u) return `${v}%`;
@@ -309,6 +433,18 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
   const productLabel = context?.product || 'banking product';
 
   // Identity used to prefill Calendly + attribute the booking (set once signed in).
+  /* The callback number. Seeded from the profile, filled by PhoneGate when it
+     is missing. Held locally because auth user_metadata does not refresh in
+     place after updateUser, and the lead is filed moments later. */
+  const [phone, setPhone] = useState('');
+  useEffect(() => { setPhone(user?.user_metadata?.phone || ''); }, [user]);
+  useEffect(() => {
+    if (!open || !user || phone) return;
+    // The profile row is the other place a number may already live.
+    getMyProfile().then((p) => { if (p?.phone) setPhone(p.phone); }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, user]);
+
   const bookingPrefill = user ? { name: user.user_metadata?.full_name || '', email: user.email || '' } : undefined;
 
   // Headline savings % for the shareable certificate (best vs your rate).
@@ -359,7 +495,8 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
         annual_saving: context?.annualSaving ?? null,
         full_name: u.user_metadata?.full_name || null,
         email: u.email || null,
-        phone: u.user_metadata?.phone || null,
+        phone: phone || u.user_metadata?.phone || null,
+        whatsapp_opt_in: u.user_metadata?.whatsapp_opt_in ?? null,
         booked: false, // flipped by record_booking() once a slot is actually picked
       });
       leadRef.current = row?.id || null;
@@ -369,6 +506,11 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
   // A slot was picked in the Calendly widget. Calendly's message carries only
   // opaque URIs — scripts/sync-calendly.mjs turns the event URI into the actual
   // start time later. Best-effort: the booking is already made either way.
+  /* The call tier now books the time BEFORE taking payment, so the modal has to
+     remember that a slot exists — across a Stripe round trip, which throws away
+     component state. Stashed on the way out, read back on the way in. */
+  const [slotBooked, setSlotBooked] = useState(false);
+
   const stampBooking = (payload) => {
     const id = leadRef.current;
     if (!id) return;
@@ -551,6 +693,7 @@ Kind regards,
       setView(VIEW_FOR_TIER[resume.tier] || resume.tier || 'options');
       setExpert(resume.expert || null);
       setSentTo(resume.expert?.id || null);
+      setSlotBooked(!!resume.slotBooked);
       if (resume.canceled) { setPaidTier(null); setPayError('Payment canceled — you can try again below.'); return; }
       setPayError(''); setPaidTier(resume.tier); // optimistic; verify below
       if (resume.sessionId) {
@@ -570,7 +713,7 @@ Kind regards,
         });
       }
     } else {
-      setView('options'); setExpert(null); setSentTo(null); setPaidTier(null); setPayError('');
+      setView('options'); setExpert(null); setSentTo(null); setPaidTier(null); setPayError(''); setSlotBooked(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, resume]);
@@ -658,7 +801,8 @@ Kind regards,
         annual_saving: context?.annualSaving ?? null,
         full_name: user.user_metadata?.full_name || null,
         email: user.email,
-        phone: user.user_metadata?.phone || null,
+        phone: phone || user.user_metadata?.phone || null,
+        whatsapp_opt_in: user.user_metadata?.whatsapp_opt_in ?? null,
         // Picking a specialist isn't a booking — record_booking() flips this
         // once they actually choose a slot, which is what the admin list reads.
         booked: false,
@@ -691,7 +835,7 @@ Kind regards,
       years: adv.years, blurb: adv.blurb, photo: adv.photo, accent: adv.accent, calendly_url: adv.calendly_url,
     } : null;
     try {
-      stashJourney({ tier, expert: snap, context, leadId: leadRef.current });
+      stashJourney({ tier, expert: snap, context, leadId: leadRef.current, slotBooked });
       const { url } = await createCheckout({
         tier,
         currency: context?.currency || 'SGD', // bill in the currency we showed
@@ -823,7 +967,7 @@ Kind regards,
   return (
     <div className="jny" role="dialog" aria-modal="true" aria-label="Your next steps">
       <div className="jny__backdrop" onClick={requestClose} />
-      <div className="jny__panel" ref={cardRef}>
+      <div className={`jny__panel${view === 'options' ? ' jny__panel--wide' : ''}`} ref={cardRef}>
         <div className="jny__head">
           <div className="jny__head-title">Your result</div>
           <div className="jny__head-sub">{SEG_LABEL[segment]} · {productLabel}</div>
@@ -846,11 +990,19 @@ Kind regards,
             )}
           </div>
           {/* The unlocked bank itself. This is what the reveal was paid for, so
-              it leads the screen — everything below is what you do about it. */}
+              it leads the screen — everything below is what you do about it.
+              The logo carries the recognition: a name in text reads as a claim,
+              a mark reads as the bank. Falls back to the name alone when we hold
+              no logo for that market, never to a broken image. */}
           {bank && (
             <div className="jny-unlock jny-unlock--reveal">
-              <span className="jny-unlock__label">Your best-match bank</span>
-              <span className="jny-unlock__name">{bank}</span>
+              <span className="jny-unlock__label">Here’s the best bank that beats your bank</span>
+              <span className="jny-unlock__bank">
+                {bankLogo && (
+                  <img className="jny-unlock__logo" src={bankLogo.img} alt="" width="120" height="40" />
+                )}
+                <span className="jny-unlock__name">{bank}</span>
+              </span>
               {context?.benchmarkRate != null && (
                 <span className="jny-unlock__rate">Best price · {withUnit(context.benchmarkRate)}</span>
               )}
@@ -864,13 +1016,15 @@ Kind regards,
                running the full panel width, and the band is centred as a whole. */
             <div className="jny-reveal__summary">
               <p className="jny-reveal__headline">
-                {isYield ? 'Earn the money your bank isn’t paying you.' : 'Save the money your bank is making off you.'}
+                {savings
+                  ? 'Three ways to get the savings of'
+                  : (isYield ? 'Earn the money your bank isn’t paying you.' : 'Save the money your bank is making off you.')}
               </p>
               {/* The amount and its rule shrink-wrap together inside the band,
                   so the rule underlines the figure at exactly its width. */}
               <div className="jny-reveal__amtline">
                 {savings
-                  ? <div className="jny-reveal__amt">{fmtSaving(savings)}<span> {isYield ? 'extra / year' : 'per year'}</span></div>
+                  ? <div className="jny-reveal__amt">{fmtSaving(savings)}<span> {isYield ? 'extra / year' : 'a year'}</span></div>
                   : <div className="jny-reveal__amt jny-reveal__amt--sm">Pick how you’d like to act below</div>}
                 <div className="jny-reveal__rule jny-reveal__rule--thick" />
               </div>
@@ -897,11 +1051,12 @@ Kind regards,
                     puts the purchase on your account, on any device.</>}
               </div>
             )}
-            <h4 className="jny-sectlabel">
-              {paidTier && !TIERS.some((t) => TIER_RANK[t.id] > TIER_RANK[paidTier])
-                ? 'You’re on our top tier — everything below is already yours.'
-                : 'Your bank is unlocked — how would you like to act on it?'}
-            </h4>
+            {/* Only when there is something to say that the headline above does
+                not already say. "Three ways to get the savings of $X" is the
+                instruction; repeating it here just pushed the options down. */}
+            {paidTier && !TIERS.some((t) => TIER_RANK[t.id] > TIER_RANK[paidTier]) && (
+              <h4 className="jny-sectlabel">You’re on our top tier — everything below is already yours.</h4>
+            )}
             <div className="jny-tiers">
               {TIERS.map((t, i) => {
                 // Anything at or below what they've already paid for is theirs.
@@ -994,26 +1149,86 @@ Kind regards,
                 <a href={checkoutUrl} rel="noopener noreferrer">Open secure checkout →</a>
               </div>
             )}
-            {paymentsEnabled && paidTier !== 'call' ? (
+            {/* ORDER: time first, payment second. Nobody is asked for S$99
+                before they know a slot exists that suits them.
+
+                The trade-off is real and deliberate: the Calendly booking is
+                made for good at the moment they pick, so an abandoned checkout
+                leaves a held slot with no payment behind it. That is why the
+                paid confirmation below is explicit about what is and isn't
+                settled. */}
+            {paidTier === 'call' ? (
+              <>
+                {slotBooked ? (
+                  /* Paid AND already timed — the whole job is done. Showing the
+                     scheduler again here is how you get two bookings for one
+                     call. */
+                  <>
+                    <div className="jny-note jny-note--ok">
+                      ✓ Payment received — your call is confirmed for the time you picked.
+                      The calendar invite is on its way, and we'll message you on WhatsApp beforehand.
+                    </div>
+                    <div className="jny-done">
+                      <FeedbackCard source="call" benchmarkId={context?.benchmarkId} />
+                      <p className="jny-done__title">You&apos;re all set. Where next?</p>
+                      <div className="jny-actions">
+                        <button type="button" className="btn btn--primary" onClick={() => finishTo('dashboard')}>Go to my dashboard →</button>
+                        <button type="button" className="btn btn--ghost" onClick={() => finishTo('home')}>Back to home</button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="jny-note jny-note--ok">✓ Payment received — pick a time below.</div>
+                    <p className="jny-sub__sub"><span className="jny-pill">{priceOf('call', 'S$99')}</span> A FeeOptima specialist coaches you through the negotiation.</p>
+                    {phone
+                      ? <Scheduler url={CALENDLY_URL} prefill={bookingPrefill} onDone={finishTo} onScheduled={stampBooking} feedback={{ source: 'call', benchmarkId: context?.benchmarkId }} note="You and the specialist both receive the calendar invite from Calendly." />
+                      : <PhoneGate onSaved={setPhone} />}
+                  </>
+                )}
+              </>
+            ) : !paymentsEnabled ? (
+              /* Stripe not configured — booking is all there is to do. */
+              <>
+                <p className="jny-sub__sub"><span className="jny-pill">{priceOf('call', 'S$99')}</span> A FeeOptima specialist coaches you through the negotiation.</p>
+                {phone
+                  ? <Scheduler url={CALENDLY_URL} prefill={bookingPrefill} onDone={finishTo} onScheduled={stampBooking} feedback={{ source: 'call', benchmarkId: context?.benchmarkId }} note="You and the specialist both receive the calendar invite from Calendly." />
+                  : <PhoneGate onSaved={setPhone} />}
+              </>
+            ) : (
               <>
                 <p className="jny-sub__sub">
                   <span className="jny-pill">{priceOf('call', 'S$99')}</span> A FeeOptima specialist reviews your numbers and coaches you through the negotiation.
                 </p>
                 {!user && (
                   <div className="jny-note jny-note--warn">
-                    Sign in first so your booking is linked to your account — then pay and pick a time.
+                    Sign in first so your booking is linked to your account — then pick your time.
                   </div>
                 )}
-                <button className="btn btn--primary jny-pay" disabled={busy} onClick={() => pay('call')}>
-                  {!user ? 'Sign in to book your call →' : busy ? 'Redirecting to secure checkout…' : `Pay ${priceOf('call', 'S$99')} & pick a time →`}
-                </button>
-                <p className="jny-note">🔒 Secure payment via Stripe. You'll choose your slot right after.</p>
-              </>
-            ) : (
-              <>
-                {paidTier === 'call' && <div className="jny-note jny-note--ok">✓ Payment received — pick a time below.</div>}
-                <p className="jny-sub__sub"><span className="jny-pill">{priceOf('call', 'S$99')}</span> A FeeOptima specialist coaches you through the negotiation.</p>
-                <Scheduler url={CALENDLY_URL} prefill={bookingPrefill} onDone={finishTo} onScheduled={stampBooking} feedback={{ source: 'call', benchmarkId: context?.benchmarkId }} note="You and the specialist both receive the calendar invite from Calendly." />
+                {!phone ? <PhoneGate onSaved={setPhone} /> : (
+                  <>
+                    {/* No onDone: they are NOT finished after picking a time,
+                        they still have to pay. A "you're all set" here would be
+                        a lie and would lose the sale. */}
+                    <Scheduler
+                      url={CALENDLY_URL} prefill={bookingPrefill}
+                      onScheduled={(payload) => { stampBooking(payload); setSlotBooked(true); }}
+                      note={slotBooked ? null : 'Pick a time that suits you — you pay on the next step.'}
+                    />
+                    {slotBooked && (
+                      <div className="jny-confirmpay">
+                        <p className="jny-confirmpay__lead">
+                          <strong>Your time is held.</strong> Confirm it with payment and the
+                          specialist is booked — you&apos;ll get the calendar invite and a WhatsApp message before the call.
+                        </p>
+                        <button className="btn btn--primary jny-pay" disabled={busy} onClick={() => pay('call')}>
+                          {!user ? 'Sign in to confirm →' : busy ? 'Redirecting to secure checkout…' : `Confirm & pay ${priceOf('call', 'S$99')} →`}
+                        </button>
+                        <p className="jny-note">🔒 Secure payment via Stripe. Your slot is held while you pay.</p>
+                      </div>
+                    )}
+                  </>
+                )}
               </>
             )}
           </div>
@@ -1097,7 +1312,9 @@ Kind regards,
                   <>
                     {paidTier === 'expert' && <div className="jny-note jny-note--ok">✓ Payment received — pick a time below.</div>}
                     <AwayNote windows={expert.away} name={expert.name} />
-                    <Scheduler url={(expert.real && expert.calendly_url) || CALENDLY_URL} prefill={bookingPrefill} onDone={finishTo} onScheduled={stampBooking} feedback={{ source: 'expert', benchmarkId: context?.benchmarkId }} note={expert.real ? `${expert.name} and you both receive the calendar invite from Calendly.` : 'Your matched expert and you both receive the calendar invite from Calendly.'} />
+                    {phone
+                      ? <Scheduler url={(expert.real && expert.calendly_url) || CALENDLY_URL} prefill={bookingPrefill} onDone={finishTo} onScheduled={stampBooking} feedback={{ source: 'expert', benchmarkId: context?.benchmarkId }} note={expert.real ? `${expert.name} and you both receive the calendar invite from Calendly.` : 'Your matched expert and you both receive the calendar invite from Calendly.'} />
+                      : <PhoneGate onSaved={setPhone} />}
                   </>
                 )}
               </>

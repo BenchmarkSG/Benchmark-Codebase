@@ -64,6 +64,10 @@ export function readCheckoutReturn(page) {
     // The lead row opened before payment (expert tier), so the return doesn't
     // file the same engagement a second time.
     leadId: stash?.leadId || null,
+    // The call tier books the slot BEFORE paying, so the return has to know a
+    // time already exists — otherwise it shows the scheduler again and the
+    // customer books a second one.
+    slotBooked: !!stash?.slotBooked,
     canceled: checkout === 'cancel',
   };
 }

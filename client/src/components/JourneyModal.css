@@ -60,6 +60,10 @@
 
   position: relative;
   width: 100%;
+  /* 600px is a phone-width reading column, which is right for every sub-view:
+     the email draft, the scheduler, the expert list. The options screen is the
+     exception — three cards side by side need real width or every title wraps
+     to three lines and the screen scrolls. Widened only there, via --wide. */
   max-width: 600px;
   max-height: 92vh;
   overflow-y: auto;
@@ -171,12 +175,49 @@ body.jny-open .needhelp { display: none; }
 .jny-sectlabel { text-align: center; font-size: 14px; font-weight: 800; color: var(--ink); margin: 24px 0 28px; }
 
 /* Vertical tiers */
-.jny-tiers { display: flex; flex-direction: column; gap: 30px; }
+/* Three across, as drawn. Equal columns so no option looks like the default.
+   Stacks below 720px, where three columns would each be too narrow to read. */
+.jny-tiers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+/* Rows shared across the three cards, so price sits level with price and the
+   three CTAs land on one line however long the titles run. Without this the
+   CTA floats to wherever its own description leaves room, and the buttons
+   stagger — which is what makes three cards read as three unrelated boxes.
+   The badge is absolutely positioned, so the in-flow rows are exactly four:
+   price, title, CTA, description. */
+@supports (grid-template-rows: subgrid) {
+  .jny-tiers { grid-template-rows: auto auto auto auto; }
+  .jny-tiers .jny-tier {
+    display: grid;
+    grid-template-rows: subgrid;
+    grid-row: span 4;
+    justify-items: center;
+  }
+  /* The flex fallback's bottom-pinning would fight the grid row. */
+  .jny-tiers .jny-tier__cta { margin-top: 0; align-self: center; }
+  .jny-tiers .jny-tier__desc { margin-top: 0; }
+}
+
+@media (max-width: 720px) {
+  /* One column: the shared rows must go, or three stacked cards would try to
+     share four row tracks between them. */
+  .jny-tiers { grid-template-columns: 1fr; grid-template-rows: none; gap: 26px; }
+  .jny-tiers .jny-tier { display: flex; grid-row: auto; }
+}
 .jny-tier {
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  /* Centred inside its column, and stretched to the tallest card so the three
+     CTAs sit on one line however long the descriptions run. */
+  align-items: center;
+  text-align: center;
+  height: 100%;
   gap: 10px;
   /* The tier's colour frames the whole card rather than capping one edge. */
   border: 2px solid var(--line);
@@ -478,3 +519,82 @@ body.jny-open .needhelp { display: none; }
   }
   .jny-paths__or span { padding: 0 12px; }
 }
+
+/* ---- Callback number gate ------------------------------------------------
+   Stands in for the scheduler until we have a number to call. Deliberately
+   plain: it is a blocker, not a feature to admire. */
+.jny-phone {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+  background: var(--surface-2);
+  margin-top: 12px;
+}
+.jny-phone h5 { font-size: 15px; font-weight: 800; }
+.jny-phone p { font-size: 13.5px; line-height: 1.6; color: var(--muted); }
+.jny-phone input {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 15px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: inherit;
+}
+.jny-phone button { align-self: flex-start; }
+
+/* The checkbox is a claim about the number, not a marketing opt-in, so it sits
+   tight under the field it describes rather than down with the button. */
+.jny-phone__check {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 13.5px; font-weight: 600; cursor: pointer;
+}
+.jny-phone__check input { width: auto; flex: none; margin: 0; accent-color: var(--accent); }
+.jny-phone__hint { font-size: 12.5px; color: var(--muted); margin: -2px 0 0; }
+
+/* The confirm step. Green, because it is the only WhatsApp ACTION on the
+   screen — everything else here is a form. */
+.jny-phone--confirm { border-color: #25d366; background: rgba(37, 211, 102, 0.06); }
+.jny-wa-btn {
+  display: inline-flex; align-items: center; gap: 9px;
+  background: #25d366; border-color: #25d366; color: #0b1a10;
+  text-decoration: none;
+}
+.jny-wa-btn:hover { background: #1eb855; border-color: #1eb855; }
+.jny-phone__code {
+  font-size: 13px; color: var(--muted);
+}
+.jny-phone__code strong { letter-spacing: 0.14em; font-size: 15px; color: var(--ink); }
+
+/* Horizontal tiers: the CTA is pushed to the foot of every card so the three
+   buttons align, and the description follows it as the footnote it is. */
+.jny-tiers .jny-tier__cta { margin-top: auto; width: 100%; }
+.jny-tiers .jny-tier__desc { margin-top: 10px; }
+
+/* The revealed bank: mark above name, which is how a bank is recognised. */
+.jny-unlock__bank { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.jny-unlock__logo {
+  height: 40px; width: auto; max-width: 160px;
+  object-fit: contain;
+  /* Logos ship as flat PNGs on white; a light plate keeps a dark mark legible
+     in dark mode without us re-cutting fifty assets. */
+  background: #fff; border-radius: 8px; padding: 6px 10px;
+}
+
+/* The confirm-and-pay step that now follows slot selection. Framed, because it
+   is a second decision on a screen the user may think they have finished. */
+.jny-confirmpay {
+  margin-top: 16px;
+  border: 2px solid var(--accent);
+  border-radius: 14px;
+  padding: 16px;
+  background: var(--surface);
+}
+.jny-confirmpay__lead { font-size: 14px; line-height: 1.6; margin: 0 0 12px; }
+
+/* The options screen only — see .jny__panel's max-width note. */
+.jny__panel--wide { max-width: 1000px; }
