@@ -524,6 +524,102 @@ lists exactly what to read where. Singapore, Malaysia, India and the other
 Thai banks publish no FX table a browser can read either; their spreads and
 fees are a tariff-reading job too, loadable with `import:remit`.
 
+### Singapore cross-border — re-probed 18 Sep 2026
+
+A benchmark for `SG / cross_border` returns "No benchmark data for this
+selection yet." for two stacked reasons, both correct behaviour:
+
+1. **`remittance_charges` holds 150 rows and 0 real ones** — every row is
+   `is_indicative = true` from [seed-rates.mjs](scripts/seed-rates.mjs), and
+   `RATES_REAL_ONLY` defaults to **true** ([ratesRepo.js:33](server/ratesRepo.js#L33)),
+   so the server refuses to serve them. The guard is working: those FX spreads
+   are generated numbers and must never reach a customer.
+2. **A corridor-key bug hid them even with the guard off** (fixed 18 Sep 2026).
+   The seeder wrote `counterparty: 'US'` / `'UK'` — country codes — while the
+   form sends `receive_currency: 'USD'` and [import-remit.mjs](scripts/import-remit.mjs)
+   validates `/^[A-Z]{3}$/`. The filter in `getCrossBorderCostPool` therefore
+   dropped all 15 SG rows. Seeder corrected to `USD`/`GBP` and the 150 live rows
+   were backfilled to match.
+
+**What SG banks actually publish** (each URL fetched and parsed, not searched):
+
+| Bank | Public two-sided TT board? | Evidence |
+|------|---------------------------|----------|
+| OCBC | **Yes** — "Against SGD", SGD per 1 USD, Bank Sell/Buy in two amount bands | `ocbc.com/rates/daily_price_fx.html`, read once in full; now configured in [scrape-remit.mjs](scripts/scrape-remit.mjs) |
+| DBS | No — a single converter rate, self-labelled "indicative", no mid and no two-sided quote, so no spread is derivable | `dbs.com.sg/personal/rates-online/foreign-currency-foreign-exchange.page` |
+| UOB · CIMB · Bank of China | No page found (404 / redirect to a non-SG site) | probed 18 Sep 2026 |
+
+This corrects the row above that lists OCBC among banks whose rates "a browser
+cannot read" — OCBC's table renders and parses cleanly. The obstacle is
+different: **the page stalls automated loads after a few hits** (`document.body`
+null, table never renders), so the spread cannot be re-verified on demand. Our
+own rule is that a figure is loaded only when it can be checked against the live
+page, so nothing was written. Re-run `node scripts/scrape-remit.mjs --preview SG`
+from another network, or space the runs out.
+
+Even with OCBC reading, **a pool of one bank is not a benchmark** — "best
+available rate" across a single provider is a tautology. SG needs 4+ before this
+product should go live, which on today's evidence means the tariff-reading job
+(**W1**) or the Wise Comparison API (**W7**), not more scraping.
+
+### Wise Comparison API — live, 8 real rows (18 Sep 2026)
+
+`SG` and `MY` cross-border now serve **real** data. [wise-remit.mjs](scripts/wise-remit.mjs)
+reads the endpoint behind Wise's public comparison page
+(`api.wise.com/v4/comparisons/`, no key) and emits the CSV
+[import-remit.mjs](scripts/import-remit.mjs) already validates, so every row
+still passes one schema check and one `public.banks` lookup.
+
+    npm run wise:remit:dry        # print, write nothing
+    npm run wise:remit            # → data/rate-templates/remit-<CC>.csv
+    npm run import:remit -- data/rate-templates/remit-SG.csv
+
+**The markup is recomputed, never trusted.** Each response carries a zero-markup
+quote (Wise's own) which is that run's mid; we recompute
+`(mid − rate) / mid × 100` from the rates in the same payload and drop any
+provider whose published `markup` disagrees by more than 0.05pp.
+
+**Loaded (collected 18 Sep 2026):**
+
+| Market | Corridor | Banks |
+|---|---|---|
+| 🇸🇬 SG | SGD→USD | Citibank 0.587% + S$30 · HSBC 0.754% + S$0 |
+| 🇸🇬 SG | SGD→INR, SGD→MYR | HSBC 0.872% / 0.081% |
+| 🇲🇾 MY | MYR→USD | Maybank 1.62% · Public Bank 1.615% · HSBC 0% · Hong Leong 0% |
+
+**Not covered:** `IN` and `ID` return zero providers. `TH` returns two banks but
+no zero-markup quote, so there is no mid to measure against and the corridor is
+skipped rather than guessed.
+
+**Rows clamped to 0%.** Hong Leong (0.21% inside mid) and HSBC Malaysia (0.004%)
+price *better* than Wise's mid. `fx_spread_pct` is a cost over mid and a negative
+cost is not one, so both are recorded as 0%. This understates how good those
+banks are, which understates the saving we quote — the safe direction. Dropping
+them would have been far worse: it removes the cheapest providers and inflates
+every benchmark.
+
+> ⚠️ **Two different mids — this overstates savings. Not yet fixed.**
+> The pool's spread is measured against **Wise's mid at collection time**; the
+> customer's own cost is measured against the **ECB daily fix**
+> ([server/fx.js](server/fx.js)). On 18 Sep 2026 those were 0.783055 and
+> 0.78411 — a **0.135% gap, against bank spreads of 0.59–0.87%**, so roughly a
+> fifth of the signal is reference noise, and it inflates the customer's
+> measured cost rather than cancelling out.
+>
+> Worked example (S$10,000 → US$7,750, S$100,000 annual volume): we quote a
+> **S$410** annual saving; measured consistently against Wise's mid it is
+> **S$279**. A **47% overstatement**, in the unsafe direction.
+>
+> This could not happen before 18 Sep 2026 because no real remittance row
+> existed. Fix by storing the reference mid on each `remittance_charges` row and
+> pricing the customer's leg against that same figure, rather than against
+> whatever ECB last fixed.
+
+**Licensing is unresolved.** The endpoint is public and unauthenticated, but it
+is not a documented product with terms we have accepted, and there is no
+attribution on our pages today. Confirm permitted use (and whether Wise requires
+credit) before this data is shown to paying customers.
+
 ## Cross-cutting: products with no public source *anywhere*
 
 Some products are unpublished by design in **every** market — no regulator or

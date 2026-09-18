@@ -1,0 +1,5 @@
+country,bank,direction,counterparty,amount,amount_currency,upfront_fee,intermediary_fee,lifting_fee,fee_currency,fx_spread_pct,settlement_time_hours
+MY,"Maybank",outgoing,USD,10000,MYR,10,0,0,MYR,1.62,
+MY,"HSBC",outgoing,USD,10000,MYR,31,0,0,MYR,0,
+MY,"Public Bank",outgoing,USD,10000,MYR,32,0,0,MYR,1.615,
+MY,"Hong Leong Bank",outgoing,USD,10000,MYR,20,0,0,MYR,0,

@@ -1,0 +1,5 @@
+country,bank,direction,counterparty,amount,amount_currency,upfront_fee,intermediary_fee,lifting_fee,fee_currency,fx_spread_pct,settlement_time_hours
+SG,"Citibank",outgoing,USD,10000,SGD,30,0,0,SGD,0.587,
+SG,"HSBC",outgoing,USD,10000,SGD,0,0,0,SGD,0.754,
+SG,"HSBC",outgoing,INR,10000,SGD,0,0,0,SGD,0.872,
+SG,"HSBC",outgoing,MYR,10000,SGD,0,0,0,SGD,0.081,

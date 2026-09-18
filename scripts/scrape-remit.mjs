@@ -83,6 +83,18 @@ const SOURCES = [
     header: /Mata Uang.*Bank Notes.*Telegraphic Transfers/i, row: /^USD /, buy: 3, sell: 4, style: 'id', label: 'OCBC Indonesia TT USD',
     fee: { amount: null, currency: 'IDR', note: 'not yet read from the tariff' } },
 
+  /* Singapore — OCBC "Against SGD" board, SGD per 1 USD, two amount bands.
+     Cols: 0 currency, 1 unit, 2/3 Bank Sell/Buy under 40k, 4/5 Bank Sell/Buy
+     40k-100k. We read the UNDER-40K band (cols 2/3): it is the retail band a
+     benchmark user is in, and the wider of the two, so it never flatters.
+     OCBC is the only SG retail bank found publishing a two-sided TT board —
+     DBS exposes a single converter rate, UOB/CIMB/BOC publish none. See
+     DATA_GAPS.md. */
+  { country: 'SG', bank: 'OCBC', render: true,
+    url: 'https://www.ocbc.com/rates/daily_price_fx.html',
+    header: /Currency.*Unit.*Bank Sell.*Bank Buy/i, row: /^USD \(American Dollar\)/, buy: 3, sell: 2, style: 'en', label: 'OCBC Against-SGD board, USD, under-40k band',
+    fee: { amount: null, currency: 'SGD', note: 'not yet read from the tariff' } },
+
   // Thailand — Bangkok Bank: "TT Buying Rates" and "Bill - DD - TT Selling
   // Rates" columns; the USD row is split by note denomination and the TT
   // rates sit on the "USD: 50-100" row.

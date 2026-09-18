@@ -161,9 +161,13 @@ function build() {
         }
       }
 
-      // Cross-border remittance (outgoing to US, incoming from UK), notional 1,000,000 local
-      remittance.push({ bank_id: id, direction: 'outgoing', counterparty: 'US', amount: 1000000, amount_currency: ccyLocal, upfront_fee: round(25 + unit(id + 'rou') * 35), intermediary_fee: round(18 + unit(id + 'roi') * 22), lifting_fee: round(10 + unit(id + 'rol') * 15), fee_currency: 'USD', fx_spread_pct: round(0.35 + unit(id + 'rox') * 0.95, 2), settlement_time_hours: round(6 + unit(id + 'rot') * 66) });
-      remittance.push({ bank_id: id, direction: 'incoming', counterparty: 'UK', amount: 1000000, amount_currency: ccyLocal, upfront_fee: round(10 + unit(id + 'riu') * 20), intermediary_fee: round(15 + unit(id + 'rii') * 20), lifting_fee: round(8 + unit(id + 'ril') * 12), fee_currency: 'USD', fx_spread_pct: round(0.3 + unit(id + 'rix') * 0.85, 2), settlement_time_hours: round(2 + unit(id + 'rit') * 46) });
+      /* Cross-border remittance, notional 1,000,000 local.
+         `counterparty` is the CURRENCY on the other side, never a country: the
+         corridor filter in getCrossBorderCostPool compares it with the form's
+         receive_currency, and import-remit.mjs validates it as /^[A-Z]{3}$/.
+         Seeding 'US'/'UK' here made every seeded row unmatchable. */
+      remittance.push({ bank_id: id, direction: 'outgoing', counterparty: 'USD', amount: 1000000, amount_currency: ccyLocal, upfront_fee: round(25 + unit(id + 'rou') * 35), intermediary_fee: round(18 + unit(id + 'roi') * 22), lifting_fee: round(10 + unit(id + 'rol') * 15), fee_currency: 'USD', fx_spread_pct: round(0.35 + unit(id + 'rox') * 0.95, 2), settlement_time_hours: round(6 + unit(id + 'rot') * 66) });
+      remittance.push({ bank_id: id, direction: 'incoming', counterparty: 'GBP', amount: 1000000, amount_currency: ccyLocal, upfront_fee: round(10 + unit(id + 'riu') * 20), intermediary_fee: round(15 + unit(id + 'rii') * 20), lifting_fee: round(8 + unit(id + 'ril') * 12), fee_currency: 'USD', fx_spread_pct: round(0.3 + unit(id + 'rix') * 0.85, 2), settlement_time_hours: round(2 + unit(id + 'rit') * 46) });
     });
 
     // Negotiation thresholds (target: save 25,000 local per annum per product)
