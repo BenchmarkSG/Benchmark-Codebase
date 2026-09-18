@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import './userDashboard.css';
 import DashboardLayout from './DashboardLayout.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
-import { formatMoney, getReference, createCheckout, getRevealPrice } from '../api.js';
+import { formatMoney, getReference, createCheckout, getRevealPrice, getBanks } from '../api.js';
 import { listBenchmarks, updateBenchmark, deleteBenchmark, listMyLeads } from '../lib/dashboardApi.js';
 import { contextFromBenchmark } from '../lib/journeyContext.js';
 import { isStripeCheckoutUrl } from '../lib/safeUrl.js';
@@ -13,6 +13,7 @@ import { readCheckoutReturn, stashJourney, clearJourney } from '../lib/checkoutR
 import { markUnlocked } from '../lib/unlocks.js';
 import { getAccessToken } from '../lib/supabase.js';
 import AccountSettings from './AccountSettings.jsx';
+import ComplaintLadder from '../components/ComplaintLadder.jsx';
 
 // A rate value with its unit (defaults to %), so "3.5" never renders unit-less.
 const rate = (v, unit) => (v == null || v === '' ? '—' : `${v}${unit ? ` ${unit}` : '%'}`);
@@ -52,8 +53,54 @@ function RevealPriceLabel({ currency }) {
 // links and the Back button all work.
 const USER_TABS = [
   { key: 'benchmarks', label: 'My benchmarks' },
+  { key: 'complaints', label: 'Complain to my bank' },
   { key: 'account', label: 'Account settings' },
 ];
+
+/* The escalation path for the user's own bank. Defaults to the market of their
+   most recent benchmark, because that is almost always the one they want. */
+function ComplaintsTab({ defaultCountry }) {
+  const [country, setCountry] = useState(defaultCountry || 'SG');
+  const [countries, setCountries] = useState([]);
+  const [banks, setBanks] = useState([]);
+  const [bankId, setBankId] = useState('');
+
+  useEffect(() => {
+    getReference().then((r) => setCountries(r.countries || [])).catch(() => setCountries([]));
+  }, []);
+  useEffect(() => {
+    let alive = true;
+    setBanks([]); setBankId('');
+    getBanks(country).then((b) => { if (alive) setBanks(b || []); });
+    return () => { alive = false; };
+  }, [country]);
+
+  const bank = banks.find((b) => b.id === bankId) || null;
+
+  return (
+    <>
+      <p className="dash__subtitle">
+        Unhappy with a charge or a rate? Complain in the right order — skipping a step is the
+        most common reason a complaint gets bounced back.
+      </p>
+      <div className="udash-cmpl__pickers">
+        <label>Country
+          <select value={country} onChange={(e) => setCountry(e.target.value)}>
+            {(countries.length ? countries : [{ code: country, name: country }])
+              .map((c) => <option key={c.code} value={c.code}>{c.code} — {c.name}</option>)}
+          </select>
+        </label>
+        <label>Your bank
+          <select value={bankId} onChange={(e) => setBankId(e.target.value)} disabled={!banks.length}>
+            <option value="">Not listed / show the general path</option>
+            {banks.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+          </select>
+        </label>
+      </div>
+      <ComplaintLadder country={country} bankId={bankId || null} bankName={bank?.name || null} />
+    </>
+  );
+}
 const readUserTab = () => {
   const seg = window.location.hash.replace(/^#\/?/, '').replace(/\/+$/, '').split('/')[1] || 'benchmarks';
   return USER_TABS.some((t) => t.key === seg) ? seg : 'benchmarks';
@@ -254,6 +301,8 @@ export default function UserDashboard() {
     >
       {tab === 'account' ? (
         <AccountSettings role="user" />
+      ) : tab === 'complaints' ? (
+        <ComplaintsTab defaultCountry={rows?.[0]?.country_code} />
       ) : (
       <>
       <p className="dash__subtitle">Let’s optimise your banking costs.</p>

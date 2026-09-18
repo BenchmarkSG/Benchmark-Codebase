@@ -202,3 +202,35 @@
 .ureco__title { font-size: 15px; font-weight: 800; color: var(--d-text); }
 .ureco__blurb { font-size: 13px; color: var(--d-muted); margin-top: 4px; }
 .ureco__cta { font-size: 13px; font-weight: 800; color: var(--d-accent); margin-top: 10px; }
+
+/* ---- Complain to my bank -------------------------------------------------
+   Pickers above the shared ComplaintLadder. Matches the dashboard's own field
+   styling rather than the ladder's, which defines only its own internals. */
+.udash-cmpl__pickers {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin: 0 0 18px;
+}
+.udash-cmpl__pickers label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 800;
+}
+.udash-cmpl__pickers select {
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 14px;
+  min-width: 210px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: inherit;
+}
+@media (max-width: 560px) {
+  .udash-cmpl__pickers label { flex: 1 1 100%; }
+  .udash-cmpl__pickers select { min-width: 0; width: 100%; }
+}

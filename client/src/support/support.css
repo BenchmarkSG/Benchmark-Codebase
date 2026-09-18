@@ -259,3 +259,313 @@
   .sup-pickers select { min-width: 0; width: 100%; }
   .sup-pickers label { flex: 1 1 100%; }
 }
+
+/* ---- Queue: the customer's own answers ----------------------------------- */
+.sup-queue__sort {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 700;
+  margin-right: auto;
+}
+.sup-lead__answers {
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1px dashed var(--line);
+}
+.sup-lead__answers h5 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+.sup-lead__answers .sup-lead__grid { margin-top: 0; }
+/* The number the whole queue is ranked on — make it findable at a glance. */
+.sup-lead__gap { font-weight: 800; }
+.sup-lead__gap span { font-weight: 800; color: var(--navy); }
+.sup-lead__grid--contact {
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1px dashed var(--line);
+}
+.sup-lead__missing { color: var(--red); font-style: normal; font-weight: 700; }
+
+/* ---- Overdue: slot passed, no outcome recorded --------------------------- */
+.sup-lead--overdue {
+  border-color: var(--red);
+  background: #fff5f5;
+  box-shadow: inset 4px 0 0 var(--red);
+}
+.sup-lead__overdue {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--red);
+  color: #fff;
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+
+/* ---- Dates, in two zones ------------------------------------------------- */
+.sup-lead__grid--when {
+  margin-top: 12px;
+  padding-bottom: 11px;
+  border-bottom: 1px dashed var(--line);
+}
+.sup-when { display: flex; flex-direction: column; gap: 1px; font-size: 13.5px; }
+.sup-when strong { font-weight: 700; }
+/* The customer's clock: what the agent says out loud, so it must be legible,
+   not a footnote. */
+.sup-when em {
+  font-style: normal;
+  font-size: 12px;
+  color: #0c6b62;
+  font-weight: 700;
+}
+
+/* ---- Call log ------------------------------------------------------------ */
+.sup-log {
+  margin-top: 13px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.sup-log h5 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+.sup-log__contacts > div {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  flex-wrap: wrap;
+  font-size: 13.5px;
+  padding: 2px 0;
+}
+.sup-log__rel {
+  font-size: 11px;
+  background: var(--surface-2);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-weight: 700;
+}
+.sup-log__notes > div {
+  border-left: 3px solid var(--line);
+  padding: 2px 0 2px 10px;
+  margin-bottom: 8px;
+}
+.sup-log__notes p { font-size: 13.5px; line-height: 1.6; }
+.sup-log__notes span { font-size: 11.5px; color: var(--muted); }
+
+.sup-log__form { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
+.sup-log__comment { flex: 1 1 320px; }
+.sup-log__when { flex: 0 1 230px; }
+.sup-log__form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-weight: 800;
+}
+.sup-log__form textarea,
+.sup-log__form input {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-family: inherit;
+  background: var(--surface);
+  color: var(--navy);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+  resize: vertical;
+}
+.sup-link {
+  align-self: flex-start;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--blue);
+  cursor: pointer;
+}
+.sup-log__actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sup-log__hint { font-size: 11.5px; color: var(--muted); }
+
+.sup-log__contact-form {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+}
+.sup-log__contact-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-weight: 800;
+  flex: 1 1 150px;
+}
+.sup-log__contact-form input {
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-family: inherit;
+  background: var(--surface);
+  color: var(--navy);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+
+/* ---- Call script ----------------------------------------------------------
+   Read while someone is on the line. Every line must be findable in about a
+   second, so the kind tag sits in a fixed left gutter and SAY lines are the
+   heaviest thing on the page. */
+.scr { display: flex; flex-direction: column; gap: 12px; }
+.scr-generic {
+  font-size: 12.5px;
+  color: var(--muted);
+  background: var(--surface-2);
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.scr-panel {
+  background: var(--surface);
+  border: 2px solid #0c6b62;
+  border-radius: 14px;
+  padding: 14px 16px;
+  position: sticky;
+  top: 58px;
+  z-index: 2;
+}
+
+.scr-step {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+.scr-step header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.scr-step__num {
+  flex: none;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  background: #0c6b62; color: #fff;
+  font-size: 12px; font-weight: 800;
+}
+.scr-step h3 { font-size: 14px; font-weight: 800; }
+.scr-step__time { margin-left: auto; font-size: 11.5px; color: var(--muted); font-weight: 700; }
+
+.scr-lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.scr-line { display: flex; gap: 10px; align-items: flex-start; }
+.scr-tag {
+  flex: none;
+  width: 42px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 3px 0;
+  text-align: center;
+  border-radius: 6px;
+  margin-top: 1px;
+}
+.scr-line--say  .scr-tag { background: #e6f3ff; color: #0b4a8f; }
+.scr-line--ask  .scr-tag { background: #ede4ff; color: #4b2e7f; }
+.scr-line--do   .scr-tag { background: #e3f6ee; color: #0c6b62; }
+.scr-line--warn .scr-tag { background: #fff1cc; color: #8a5a00; }
+
+.scr-text { font-size: 14.5px; line-height: 1.5; }
+/* The words actually spoken carry the most weight on the page. */
+.scr-line--say .scr-text { font-weight: 700; }
+.scr-line--warn .scr-text { color: #8a5a00; }
+.scr-note { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+.scr-branches {
+  list-style: none;
+  margin: 7px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.scr-branches li {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  border-left: 3px solid var(--line);
+  padding-left: 9px;
+}
+.scr-branches strong { flex: none; min-width: 130px; }
+.scr-branches span { color: var(--muted); }
+
+.scr-quote {
+  margin: 0 0 10px;
+  font-size: 16px;
+  line-height: 1.55;
+  font-weight: 700;
+  background: var(--blue-50, #eef4ff);
+  border: 1px solid #c3d8f5;
+  border-left: 4px solid var(--blue);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.scr-obj { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.scr-obj__they { font-size: 13px; color: var(--muted); font-weight: 700; }
+.scr-obj__you { font-size: 14.5px; font-weight: 700; line-height: 1.5; margin-top: 2px; }
+
+.scr-words { font-size: 12px; color: var(--muted); line-height: 1.6; padding: 0 2px; }
+
+@media (max-width: 560px) {
+  .scr-panel { position: static; }
+  .scr-branches li { flex-direction: column; gap: 1px; }
+  .scr-branches strong { min-width: 0; }
+}
+
+/* Contact cell: WhatsApp first, the number beside it, and an explicit statement
+   of WHICH of the two things we know — claimed, or confirmed by a message. */
+.sup-lead__contact { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.sup-wa {
+  display: inline-flex; align-items: center;
+  background: #25d366; color: #0b1a10;
+  font-weight: 800; font-size: 12px;
+  padding: 3px 10px; border-radius: 999px; text-decoration: none;
+}
+.sup-wa:hover { background: #1eb855; }
+.sup-flag {
+  font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+  background: var(--s-chip, rgba(127, 127, 127, 0.14)); color: var(--s-muted, #667);
+}
+.sup-flag--ok   { background: rgba(37, 211, 102, 0.16); color: #0f7a3d; }
+.sup-flag--warn { background: rgba(245, 158, 11, 0.18); color: #92600a; }
