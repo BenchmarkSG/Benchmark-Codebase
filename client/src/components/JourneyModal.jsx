@@ -15,6 +15,7 @@ import { markUnlocked } from '../lib/unlocks.js';
 import { getAccessToken } from '../lib/supabase.js';
 import { confirmLink, verificationCode, whatsappReady, looksDialable, missingCountryCode } from '../lib/whatsapp.js';
 import { logoForBank } from './BankLogos.jsx';
+import StepBar from './StepBar.jsx';
 
 /* Screen 3 — the "reveal + act on it" screen. Three vertical tiers: negotiate
    yourself ($1), get a coaching call ($99), or hire an expert ($199). The paid
@@ -973,6 +974,10 @@ Kind regards,
           <div className="jny__head-sub">{SEG_LABEL[segment]} · {productLabel}</div>
         </div>
         <button className="jny__close" onClick={requestClose} aria-label="Close">×</button>
+
+        {/* Last step of the funnel, on every view in here: the reveal is paid
+            for by the time this modal opens, so Unlock is behind us. */}
+        <StepBar current="action" className="steps--jny" />
 
         {/* Reveal panel — the winning bank + saving, with a share button. Only on
             the options screen: once the user has picked an action, the sub-view

@@ -1,0 +1,109 @@
+/* ---------------------------------------------------------------------------
+   Five-step progress bar — Details · Compare · Savings · Unlock · Action
+
+   Colours come from --step-ok / --step-ok-on, declared in global.css for both
+   themes AND again on .jny__panel (which forces light in either theme). The bar
+   itself draws no background, so it takes the tone of whatever screen it sits
+   on; only the hairline under it marks it off.
+   --------------------------------------------------------------------------- */
+.steps {
+  --step-size: 26px;
+  --step-gap: 6px;           /* air between a circle and the rule leading to it */
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: flex-start;
+}
+
+.steps__item {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+/* The connector runs from the PREVIOUS circle's centre to this one's. Items are
+   equal-width flex children, so -50% → +50% is exactly that span; the inset
+   stops it short of both circles instead of running under them. */
+.steps__item::before {
+  content: '';
+  position: absolute;
+  top: calc(var(--step-size) / 2 - 1px);
+  left: calc(-50% + var(--step-size) / 2 + var(--step-gap));
+  right: calc(50% + var(--step-size) / 2 + var(--step-gap));
+  height: 2px;
+  border-radius: 2px;
+  background: var(--line);
+}
+.steps__item:first-child::before { content: none; }
+/* A step's connector is the one BEHIND it, so it greens as soon as that step is
+   reached — the trail always ends at the circle you're on. */
+.steps__item.is-done::before,
+.steps__item.is-now::before { background: var(--step-ok); }
+
+.steps__dot {
+  width: var(--step-size);
+  height: var(--step-size);
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  background: var(--line);
+  color: var(--muted);
+  transition: background 0.18s ease, color 0.18s ease;
+}
+.steps__label {
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.steps__item.is-done .steps__dot,
+.steps__item.is-now .steps__dot { background: var(--step-ok); color: var(--step-ok-on); }
+.steps__item.is-done .steps__label { color: var(--ink-3); }
+.steps__item.is-now .steps__label { color: var(--step-ok); font-weight: 800; }
+
+/* A ring on the current step, so which one you're on survives being printed,
+   screenshotted in greyscale, or read by someone who can't separate the greens
+   from the greys. */
+.steps__item.is-now .steps__dot {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--step-ok) 22%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .steps__dot { transition: none; }
+}
+
+/* ---- In the calculator's phone mock: a full-bleed band under the blue head -- */
+.steps--card {
+  padding: 13px 14px 11px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* ---- In the journey modal: inside the padded body, under the blue head.
+        Capped and centred because the options screen widens the panel to
+        1000px, and five circles stretched across that read as five unrelated
+        badges rather than one track. ------------------------------------------ */
+.steps--jny {
+  max-width: 620px;
+  margin: 0 auto 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* Narrow phones: the labels are what runs out of room first. */
+@media (max-width: 400px) {
+  .steps { --step-size: 22px; --step-gap: 4px; }
+  .steps__dot { font-size: 11px; }
+  .steps__label { font-size: 9.5px; }
+  .steps--card { padding: 11px 8px 9px; }
+}

@@ -41,6 +41,11 @@
   --warn-bg: #fff8e8; --warn-line: #e6cf88; --warn-ink: #8a5a00;
   --err-bg: #fdeaea;  --err-line: #f6c9cc; --err-ink: var(--red-600);
 
+  /* Step bar (StepBar.jsx). A separate pair from --ok-*, because these two are
+     a FILL and the text that sits on it: --ok-ink is tuned to be readable AS
+     text, which makes it the wrong colour to write white on. */
+  --step-ok: #12855a;  --step-ok-on: #ffffff;
+
   --radius: 16px;
   --radius-sm: 10px;
   --shadow-sm: 0 2px 8px rgba(11, 31, 58, 0.06);
@@ -82,6 +87,10 @@
   --ok-bg: #10261c;   --ok-line: #1e5c3d;  --ok-ink: #5fd39a;
   --warn-bg: #2b2312; --warn-line: #6b5320; --warn-ink: #e6b95c;
   --err-bg: #2c1618;  --err-line: #6d2c32; --err-ink: #f08b92;
+
+  /* Lifted so the filled circle reads on a dark page; the text on it goes dark
+     to match, since white on a light green is unreadable. */
+  --step-ok: #3cc98c;  --step-ok-on: #08241a;
 
   /* Shadows need real darkness on a dark ground; navy-tinted ones vanish. */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);

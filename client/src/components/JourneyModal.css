@@ -47,6 +47,7 @@
   --ok-bg: #ecfaf1;   --ok-line: #b6e6ca;  --ok-ink: #0f7a44;
   --warn-bg: #fff8e8; --warn-line: #e6cf88; --warn-ink: #8a5a00;
   --err-bg: #fdeaea;  --err-line: #f6c9cc; --err-ink: var(--red-600);
+  --step-ok: #12855a;  --step-ok-on: #ffffff;
 
   /* Navy-tinted again: the panel is light, so the dark theme's black shadows
      would read as smudges on it. */

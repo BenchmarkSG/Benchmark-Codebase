@@ -5,6 +5,7 @@ import { BANK_LOGOS } from './BankLogos.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { saveBenchmark } from '../lib/dashboardApi.js';
 import { unlockedTierFor } from '../lib/unlocks.js';
+import StepBar from './StepBar.jsx';
 
 // A–Z by name so people can scan the picker for their own bank. `base`
 // sensitivity keeps case/accents from splitting otherwise-equal names, and
@@ -386,6 +387,16 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
     }
   }
 
+  // Which of the five funnel steps this card is showing (see StepBar.jsx).
+  // Exactly one is ever current. 'compare' is the compute itself, which is why
+  // it only holds while loading; the result screen leads with the saving, so it
+  // is 'savings'. The unlock is read from the same place the result card reads
+  // it, so paying for the reveal advances the bar with no round-trip.
+  const step = loading ? 'compare'
+    : !result ? 'details'
+    : unlockedTierFor(revealContext()) ? 'unlock'
+    : 'savings';
+
   return (
     <section className={compact ? 'calc-sec calc-sec--compact' : 'section calc-sec'} id="calculator">
       <div className={compact ? 'calc-card' : 'container'}>
@@ -421,6 +432,10 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
             </p>
           </>
         )}
+
+        {/* Only in the phone mock. The full-width section below renders the form
+            and the result side by side, so there is no single step to be "on". */}
+        {compact && <StepBar current={step} className="steps--card" />}
 
         <div className={`calcbox ${compact ? 'calcbox--compact' : ''}`}>
           {(!compact || !result) && (
