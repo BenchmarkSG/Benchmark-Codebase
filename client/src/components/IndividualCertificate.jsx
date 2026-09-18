@@ -1,4 +1,5 @@
 import './IndividualCertificate.css';
+import { SITE_HOST } from '../lib/site.js';
 import { ornamentDataUri } from '../lib/certOrnament.js';
 import { useSiteQr } from './useSiteQr.js';
 
@@ -72,7 +73,7 @@ export default function IndividualCertificate({ holderName, product, savingPct, 
               <span className="icert__seal-ring">
                 <em>Certified</em>
                 <strong>Smart Saver</strong>
-                <i>feeoptima.com</i>
+                <i>{SITE_HOST}</i>
               </span>
             </div>
 

@@ -38,7 +38,7 @@ Tier chosen ──► POST /api/checkout ──► Stripe-hosted Checkout page
    STRIPE_CURRENCY=sgd                # default sgd
    STRIPE_PRICE_CALL_CENTS=9900       # $99 coaching call
    STRIPE_PRICE_EXPERT_CENTS=19900    # $199 expert-led
-   PUBLIC_BASE_URL=https://bankbenchmark.sg   # success/cancel origin (else the request origin)
+   PUBLIC_BASE_URL=https://feeoptima.vercel.app   # success/cancel origin (else the request origin)
    ```
 3. **Test with Stripe's card** `4242 4242 4242 4242`, any future expiry / CVC.
 4. **Go live**: swap in `sk_live_…` and set `PUBLIC_BASE_URL` to the production URL.

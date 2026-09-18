@@ -70,12 +70,13 @@
      wider text is only ever on screen behind the menu itself. */
   width: 76px;
   padding: 0 32px 0 14px;
-  border: 1.5px solid rgba(255, 255, 255, 0.34);
-  /* .btn's radius, not a pill: Sign in sits beside these, and every filled CTA
-     on the site uses 12px. */
+  /* Kept at 1.5px and TRANSPARENT rather than removed: box-sizing is border-box,
+     so dropping the border outright would hand 3px back to the content box and
+     shift the chevron. Transparent keeps the geometry identical. */
+  border: 1.5px solid transparent;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.10);
-  color: #fff;
+  background-color: transparent;
+  color: rgba(255, 255, 255, 0.86);
   font: inherit; font-size: 14.5px; font-weight: 700;
   cursor: pointer;
   /* The chevron, drawn inline so it needs no asset and inherits nothing from
@@ -86,17 +87,22 @@
   background-size: 10px 7px;
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
-.nav .nav__pick select:hover { background-color: rgba(255, 255, 255, 0.20); border-color: rgba(255, 255, 255, 0.6); }
+.nav .nav__pick select:hover { color: #fff; }
 .nav .nav__pick select:disabled { opacity: 0.6; cursor: default; }
 /* The menu itself is drawn by the OS, so its options need readable colours of
    their own — white-on-white otherwise. */
 .nav .nav__pick option { color: var(--ink); background: var(--surface); }
 
-/* Round icon buttons: a translucent white chip, the usual treatment on a
-   coloured bar. Listed together because they're the same control at different
-   breakpoints. */
+/* Theme toggle and the phone-only profile icon read as part of the link row,
+   not as buttons parked beside it: no outline, no fill, the same white as
+   .nav__links, brightening to #fff on hover. The burger keeps its chip - it is
+   the only way to open the mobile menu and needs to look pressable. */
 .nav .nav__theme,
-.nav .nav__signin-icon,
+.nav .nav__signin-icon {
+  background: transparent;
+  border-color: transparent;
+  color: rgba(255, 255, 255, 0.86);
+}
 .nav .nav__burger {
   background: rgba(255, 255, 255, 0.10);
   border-color: rgba(255, 255, 255, 0.34);
@@ -104,16 +110,17 @@
 }
 .nav .nav__theme:hover,
 .nav .nav__signin-icon:hover {
-  background: rgba(255, 255, 255, 0.20);
-  border-color: rgba(255, 255, 255, 0.6);
+  background: transparent;
+  border-color: transparent;
   color: #fff;
 }
 .nav .nav__burger span { background: #fff; }
 
-/* "Sign in" is .btn--ghost — a light surface with a grey border. Same chip
-   treatment so it sits with the pickers beside it.
+/* "Sign in" is .btn--ghost, which off this bar is a light surface with a grey
+   border. On the bar it is stripped to plain text so the whole row from "How it
+   works" to the country picker reads as one set of links.
 
-   Height and padding are set HERE, not in the unscoped .nav__signin rule
+   Height and padding are still set HERE, not in the unscoped .nav__signin rule
    further down: that one is a single class, same as global.css's `.btn`, which
    is bundled later and won it — which is why this button rendered 48px tall
    against the pickers' 38px. */
@@ -121,11 +128,11 @@
   height: 42px;
   padding: 0 18px;
   font-size: 14.5px;
-  background: rgba(255, 255, 255, 0.10);
-  border: 1.5px solid rgba(255, 255, 255, 0.34);
-  color: #fff;
+  background: transparent;
+  border: 1.5px solid transparent;
+  color: rgba(255, 255, 255, 0.86);
 }
-.nav .nav__signin:hover { background: rgba(255, 255, 255, 0.20); border-color: rgba(255, 255, 255, 0.6); }
+.nav .nav__signin:hover { background: transparent; border-color: transparent; color: #fff; }
 .nav__inner {
   display: flex;
   align-items: center;

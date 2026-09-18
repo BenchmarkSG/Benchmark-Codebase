@@ -5,7 +5,7 @@
 //
 // Keep the copy/design here in sync with Certificate.jsx.
 
-import { SITE_URL } from './site.js';
+import { SITE_URL, SITE_HOST } from './site.js';
 import { ornamentDataUri, ORNAMENT } from './certOrnament.js';
 
 const C = {
@@ -244,7 +244,7 @@ function paintCorporate(ctx, { W, H, PAD, cx, qr, holder, bdLines, BD }) {
   const feeW = ctx.measureText('Fee').width;
   ctx.fillStyle = C.navy900; ctx.fillText('Optima', bx + feeW, y + 12);
   ctx.font = fontStr(600, 11); ctx.fillStyle = C.muted;
-  ctx.fillText('@FeeOptima · feeoptima.com', bx, y + 35);
+  ctx.fillText(`@FeeOptima · ${SITE_HOST}`, bx, y + 35);
 
   const qs = 58, qx = W - PAD - qs;
   roundRect(ctx, qx, y + 1, qs, qs, 6);
@@ -388,7 +388,7 @@ export async function buildCertificateImage({ segment = 'individual', product, s
   ctx.lineWidth = 1; ctx.strokeStyle = '#f0d78d'; ctx.stroke();
   centerText(ctx, 'CERTIFIED', cx, sealCy - 15, fontStr(700, 7), '#f0d78d');
   centerText(ctx, 'SMART SAVER', cx, sealCy - 4, fontStr(800, 9.5), '#ffffff');
-  centerText(ctx, 'feeoptima.com', cx, sealCy + 8, fontStr(600, 6), 'rgba(255,255,255,0.65)');
+  centerText(ctx, SITE_HOST, cx, sealCy + 8, fontStr(600, 6), 'rgba(255,255,255,0.65)');
 
   const date = (() => {
     try { return new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }); }

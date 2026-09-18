@@ -14,12 +14,7 @@ const SLIDES = [
     title: (
       <>Your Bank is Quietly Overcharging You.<br /><span className="hero__title-accent">Did you know?</span></>
     ),
-    lead: (
-      <>
-        We uncover the hidden FX markups and loan margins that Banks never advertise.{' '}
-        <span className="hero__underline">See how much you overpaid</span> — in 60 secs.
-      </>
-    ),
+    lead: 'Independent benchmarking for individuals, SMEs, and corporates — see how your bank’s fees and rates compare to the best in the industry. No bank bias. Just the best deal for you!',
   },
   {
     title: (

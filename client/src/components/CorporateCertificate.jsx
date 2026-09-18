@@ -1,5 +1,5 @@
 import './CorporateCertificate.css';
-import { SITE_URL } from '../lib/site.js';
+import { SITE_URL, SITE_HOST } from '../lib/site.js';
 import { useSiteQr } from './useSiteQr.js';
 
 // The SME / corporate certificate: a formal award document rather than the
@@ -96,7 +96,7 @@ export default function CorporateCertificate({ company, product, savingPct, onSh
           </div>
           <div className="ccert__brand">
             <span className="ccert__logo"><span>Fee</span>Optima</span>
-            <span className="ccert__handle">@FeeOptima · feeoptima.com</span>
+            <span className="ccert__handle">@FeeOptima · {SITE_HOST}</span>
           </div>
           {qrSrc
             ? <img className="ccert__qr" src={qrSrc} alt="Scan to benchmark your bank" onError={onError} />
