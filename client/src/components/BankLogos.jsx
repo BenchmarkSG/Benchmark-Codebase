@@ -67,6 +67,25 @@ const B = {
   kkp:          { img: 'kiatnakinPhatra.png',          el: wrap(text('KKP', '#4b2e6f', 75, 24)) },
   lhb:          { img: 'lhBank.png',                   el: wrap(text('LHB', '#939598', 75, 24)) },
   icbc:         { img: 'icbc.png',                     el: wrap(text('ICBC', '#c7000b', 75, 24)) },
+
+  /* Banks that appear in the RATE DATA but not in any market's 15-bank carousel.
+     Fetched by scripts/fetch-bank-logos.mjs; used only by logoForBank below. */
+  canara:       { img: 'canara.png',                   el: wrap(text('Canara Bank', '#1a5fa8', 75, 15)) },
+  centralBank:  { img: 'centralBank.png',              el: wrap(text('Central Bank of India', '#12377e', 75, 12)) },
+  idfcFirst:    { img: 'idfcFirst.png',                el: wrap(text('IDFC FIRST', '#9c1b28', 75, 16)) },
+  indianBank:   { img: 'indianBank.png',               el: wrap(text('Indian Bank', '#14367d', 75, 15)) },
+  indusind:     { img: 'indusind.png',                 el: wrap(text('IndusInd Bank', '#9e2a2b', 75, 15)) },
+  unionBank:    { img: 'unionBank.png',                el: wrap(text('Union Bank of India', '#e03127', 75, 13)) },
+  alRajhi:      { img: 'alRajhi.png',                  el: wrap(text('alrajhi bank', '#3b1e8f', 75, 15)) },
+  alliance:     { img: 'alliance.png',                 el: wrap(text('ALLIANCE BANK', '#0d2b57', 75, 14)) },
+  bankRakyat:   { img: 'bankRakyat.png',               el: wrap(text('BANK RAKYAT', '#1257a6', 75, 15)) },
+  bsn:          { img: 'bsn.jpg',                      el: wrap(text('BSN', '#3aa8a0', 75, 22)) },
+  kfh:          { img: 'kfh.png',                      el: wrap(text('KFH', '#3fae2a', 75, 22)) },
+  megaIcbc:     { img: 'megaIcbc.png',                 el: wrap(text('Mega Intl Commercial', '#8a6b2f', 75, 12)) },
+  smtb:         { img: 'smtb.png',                     el: wrap(text('Sumitomo Mitsui Trust', '#2f7a63', 75, 12)) },
+  tisco:        { img: 'tisco.png',                    el: wrap(text('TISCO', '#12569e', 75, 20)) },
+  gxs:          { img: 'GxsBank.png',                  el: wrap(text('GXS', '#c02a8f', 75, 22)) },
+  trustBank:    { img: 'trustBank.png',                el: wrap(text('trust', '#29a3dc', 75, 20)) },
 };
 
 /* The marquee mirrors public.banks: the same institutions, under the same
@@ -125,3 +144,135 @@ const TH_LOGOS = set([
    the Singapore set for any market we don't have a curated list for. */
 export const MARKET_LOGOS = { SG: BANK_LOGOS, IN: IN_LOGOS, MY: MY_LOGOS, ID: ID_LOGOS, TH: TH_LOGOS };
 export const logosForMarket = (code) => MARKET_LOGOS[String(code || 'SG').toUpperCase()] || BANK_LOGOS;
+
+/* Banks the RATE DATA can name that the carousel does not carry.
+ *
+ * Kept separate from MARKET_LOGOS on purpose. That list mirrors public.banks
+ * exactly — same institutions, same names, same display_order — so every logo
+ * on the marquee is a bank a visitor can actually benchmark. The rate pools
+ * reach wider than those 15, and pouring the extras into the same array would
+ * quietly break that guarantee and put banks in the marquee that the calculator
+ * has no dropdown entry for.
+ *
+ * So: the carousel reads MARKET_LOGOS, the reveal reads both.
+ */
+const EXTRA_LOGOS = {
+  SG: set([['gxs', 'GXS Bank'], ['trustBank', 'Trust Bank'], ['icbc', 'ICBC']]),
+  IN: set([
+    ['canara', 'Canara Bank'], ['centralBank', 'Central Bank of India'],
+    ['idfcFirst', 'IDFC First Bank'], ['indianBank', 'Indian Bank'],
+    ['indusind', 'IndusInd Bank'], ['unionBank', 'Union Bank of India'],
+  ]),
+  MY: set([
+    ['alliance', 'Alliance Bank'], ['bankRakyat', 'Bank Rakyat'],
+    ['bsn', 'Bank Simpanan Nasional'], ['alRajhi', 'Al Rajhi Bank'],
+    ['kfh', 'Kuwait Finance House'], ['citi', 'Citibank'],
+    ['bangkokBank', 'Bangkok Bank'], ['icbc', 'ICBC'],
+  ]),
+  ID: [],
+  TH: set([
+    ['bankOfChina', 'Bank of China'], ['megaIcbc', 'Mega International Commercial Bank'],
+    ['smtb', 'Sumitomo Mitsui Trust Bank'], ['tisco', 'TISCO Bank'],
+  ]),
+};
+
+/* One bank's logo, for a bank NAME that came from the rate data.
+ *
+ * THE MISMATCH THIS SOLVES
+ *   The lists above are brand names ("Krungthai Bank", "Maybank", "UOB"). The
+ *   names on a benchmark come from product_rates.bank, which is whatever the
+ *   published rate table called the legal entity — "Krung Thai Bank",
+ *   "Malayan Banking Berhad", "United Overseas Bank (Malaysia) Bhd.". Matching
+ *   the two strings directly finds almost nothing, which is why the reveal
+ *   showed a name with no mark beside it.
+ *
+ * WHY NOT FUZZY MATCHING
+ *   Because this runs on the screen someone has just PAID for. Putting one
+ *   bank's logo next to another bank's name is worse than showing no logo at
+ *   all — it is a false statement about who is offering the rate. So there are
+ *   exactly two ways to match, both exact:
+ *     1. both names reduce to the same key under normalise(), or
+ *     2. a human wrote the pair into ALIASES below.
+ *   No substring matching, no edit distance, no "close enough". A bank we have
+ *   not mapped shows its name alone, which is honest and looks fine.
+ */
+
+/* Strip a name down to the brand inside it. Every removal here is a word that
+   appears in a LEGAL name but never distinguishes one bank from another in the
+   same market: entity forms (Berhad, Bhd, PCL, Tbk), the word "bank" itself,
+   and the country qualifier a foreign branch carries ("(Thai)", "Malaysia").
+   Applied to BOTH sides, so it only has to be consistent, not clever. */
+const NOISE = /\b(?:bank|banking|berhad|bhd|public company limited|limited|ltd|plc|pcl|tbk|persero|corporation|corp|company|co|group|holdings|incorporated|inc|nv|sa|ag)\b/g;
+/* Country words a FOREIGN BRANCH carries but the brand does not. "thai" is
+   deliberately absent: it is part of real brand names here — Krung Thai Bank,
+   CIMB Thai, Thai Credit Bank — and stripping it turned "Krung Thai Bank" into
+   "krung", which matched nothing. A "(Thai)" suffix is removed by the
+   parenthetical rule above instead, which is where that qualifier actually
+   lives. */
+const QUALIFIER = /\b(?:malaysia|malaysian|indonesia|indonesian|india|indian|singapore|amanah|islamic|saadiq|al-amin)\b/g;
+
+function normalise(name) {
+  return String(name || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // drop diacritics
+    .replace(/\([^)]*\)/g, ' ')                         // "(Malaysia)", "(Thai)"
+    .replace(NOISE, ' ')
+    .replace(QUALIFIER, ' ')
+    .replace(/[^a-z0-9]/g, '');                         // "krung thai" -> "krungthai"
+}
+
+/* Pairs normalise() cannot bridge, because the legal name and the brand share
+   no words. Each line is a deliberate statement that these are the same bank in
+   that market — the only place a human judgement belongs in this file.
+
+   Written as the FULL name on the left, not a pre-reduced key, and normalised
+   at load. Hand-computed keys are how the first version of this table silently
+   did nothing: "Malayan Banking Berhad" reduces to "malayan", not to
+   "malayanbanking", and the entry never fired. */
+const ALIAS_PAIRS = {
+  MY: [
+    ['Malayan Banking Berhad', 'Maybank'],
+    ['United Overseas Bank (Malaysia) Bhd.', 'UOB'],
+    ['Al Rajhi Banking & Investment Corporation (Malaysia) Berhad', 'Al Rajhi Bank'],
+    ['Bank Kerjasama Rakyat Malaysia Berhad', 'Bank Rakyat'],
+    ['Industrial and Commercial Bank of China (Malaysia) Berhad', 'ICBC'],
+  ],
+  TH: [
+    ['Land and Houses Bank', 'LH Bank'],
+    ['United Overseas Bank (Thai)', 'UOB Thailand'],
+    ['Industrial and Commercial Bank of China (Thai)', 'ICBC Thai'],
+  ],
+  ID: [],
+  IN: [],
+  SG: [],
+};
+
+const ALIASES = Object.fromEntries(
+  Object.entries(ALIAS_PAIRS).map(([cc, pairs]) =>
+    [cc, Object.fromEntries(pairs.map(([legal, brand]) => [normalise(legal), brand]))]),
+);
+
+export function logoForBank(country, name) {
+  const raw = String(name || '').trim();
+  if (!raw) return null;
+  const cc = String(country || 'SG').toUpperCase();
+  const list = [...logosForMarket(cc), ...(EXTRA_LOGOS[cc] || [])];
+
+  const byName = (n) => list.find((b) => b.name === n) || null;
+
+  // 1. Exact, as stored.
+  const exact = list.find((b) => b.name.toLowerCase() === raw.toLowerCase());
+  if (exact) return exact;
+
+  // 2. A human-declared alias for this market.
+  const key = normalise(raw);
+  if (!key) return null;
+  const aliased = ALIASES[cc]?.[key];
+  if (aliased) return byName(aliased);
+
+  // 3. Same brand once both sides are reduced. Ambiguity is treated as failure:
+  //    if two banks in one market reduce to the same key we cannot tell them
+  //    apart, so neither gets a logo.
+  const hits = list.filter((b) => normalise(b.name) === key);
+  return hits.length === 1 ? hits[0] : null;
+}
