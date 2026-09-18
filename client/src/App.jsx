@@ -122,14 +122,6 @@ export default function App() {
   }, []);
   const closeTiers = useCallback(() => { setTiersOpen(false); setResume(null); }, []);
 
-  // Reopen something already paid for, in read/manage mode — the same route the
-  // dashboard uses for an unlocked row, so no tier is offered for sale again.
-  const reopenUnlocked = useCallback((ctx, tier) => {
-    setContext(ctx);
-    setResume({ afterAuth: true, view: 'options', unlockedTier: tier });
-    setTiersOpen(true);
-  }, []);
-
   /* Fetch the thing that was actually bought.
 
      The bank's name is no longer in the free benchmark response, so it has to be
@@ -177,8 +169,21 @@ export default function App() {
 
     // Already bought — reopen it instead of selling it again. Closing the modal
     // (or mis-clicking its ✕) must never cost a second payment.
+    // This reopens through openRevealed rather than just re-showing what the
+    // browser already has, because what the browser already has no longer
+    // contains a bank. The free benchmark stopped carrying `bestBank` when the
+    // paywall was closed — naming the winner IS the product — so the name now
+    // exists only behind /api/reveal. Reopening without re-fetching it brought
+    // the screen back with the three options and no bank, no logo and no rate,
+    // which is what a buyer saw the second time they opened something they had
+    // paid for. Proof is the Stripe session id (bought anonymously) or the saved
+    // row (signed in); openRevealed sends whichever exists, and opens the screen
+    // either way if neither is accepted.
     const owned = unlockedTierFor(ready);
-    if (owned) { reopenUnlocked(ready, owned); return; }
+    if (owned) {
+      await openRevealed(ready, { sessionId: revealSessionFor(ready) || undefined, tier: owned });
+      return;
+    }
 
     // Bought anonymously, earlier. The Stripe session id outlives the tab, so a
     // returning payer re-unlocks for free instead of being charged again — the
@@ -231,7 +236,7 @@ export default function App() {
       setResume({ tier: 'reveal', demo: true });
       setTiersOpen(true);
     }
-  }, [user, reopenUnlocked, openRevealed]);
+  }, [user, openRevealed]);
 
   /* Attach a reveal that was bought without an account.
 
