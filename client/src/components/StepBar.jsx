@@ -8,12 +8,12 @@
  *   differently when you can see it's step 4 of 5 rather than an open-ended ask.
  *
  * WHICH SCREEN IS WHICH STEP
- *   details  the calculator form
- *   compare  computing — the moment the pool is actually compared
- *   savings  the free result: "you're losing $X a year" + the rate comparison
- *   unlock   the reveal has been paid for (the result card knows this from
- *            unlockedTierFor(), so the bar advances without a round-trip)
- *   action   the journey modal: the three ways to act on the saving
+ *   input      the calculator form
+ *   compare    computing, and the free result: "you're losing $X a year" plus
+ *              the rate comparison. One screen, one step.
+ *   unlock     the reveal has been paid for (the result card knows this from
+ *              unlockedTierFor(), so the bar advances without a round-trip)
+ *   negotiate  the journey modal: the three ways to act on the saving
  *
  *   Exactly one step is ever `now`, so there is never more than one green
  *   circle on screen. Everything before it is `done`; everything after, `todo`.
@@ -24,14 +24,13 @@
 import './StepBar.css';
 
 export const STEPS = [
-  { key: 'details', label: 'Details' },
-  { key: 'compare', label: 'Compare' },
-  { key: 'savings', label: 'Savings' },
-  { key: 'unlock',  label: 'Unlock'  },
-  { key: 'action',  label: 'Action'  },
+  { key: 'input',     label: 'Input' },
+  { key: 'compare',   label: 'Compare' },
+  { key: 'unlock',    label: 'Unlock savings' },
+  { key: 'negotiate', label: 'Negotiate' },
 ];
 
-export default function StepBar({ current = 'details', className = '' }) {
+export default function StepBar({ current = 'input', className = '' }) {
   // An unknown key falls back to the first step rather than rendering a bar
   // with nothing lit — findIndex returns -1 for a typo.
   const idx = STEPS.findIndex((s) => s.key === current);

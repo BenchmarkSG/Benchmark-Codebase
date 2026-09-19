@@ -9,6 +9,14 @@
 .steps {
   --step-size: 26px;
   --step-gap: 6px;           /* air between a circle and the rule leading to it */
+  /* One indirection so a surface restates the SET rather than each rule: the
+     bar sits on white inside the journey panel and on the navy band inside the
+     calculator, and those need different greys, not different structure. */
+  --steps-line: var(--line);
+  --steps-dot-bg: var(--line);
+  --steps-dot-ink: var(--muted);
+  --steps-label: var(--muted);
+  --steps-label-done: var(--ink-3);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -38,7 +46,7 @@
   right: calc(50% + var(--step-size) / 2 + var(--step-gap));
   height: 2px;
   border-radius: 2px;
-  background: var(--line);
+  background: var(--steps-line);
 }
 .steps__item:first-child::before { content: none; }
 /* A step's connector is the one BEHIND it, so it greens as soon as that step is
@@ -55,21 +63,21 @@
   font-size: 12px;
   font-weight: 800;
   line-height: 1;
-  background: var(--line);
-  color: var(--muted);
+  background: var(--steps-dot-bg);
+  color: var(--steps-dot-ink);
   transition: background 0.18s ease, color 0.18s ease;
 }
 .steps__label {
   font-size: 10.5px;
   font-weight: 700;
   line-height: 1.2;
-  color: var(--muted);
+  color: var(--steps-label);
   white-space: nowrap;
 }
 
 .steps__item.is-done .steps__dot,
 .steps__item.is-now .steps__dot { background: var(--step-ok); color: var(--step-ok-on); }
-.steps__item.is-done .steps__label { color: var(--ink-3); }
+.steps__item.is-done .steps__label { color: var(--steps-label-done); }
 .steps__item.is-now .steps__label { color: var(--step-ok); font-weight: 800; }
 
 /* A ring on the current step, so which one you're on survives being printed,
@@ -83,11 +91,23 @@
   .steps__dot { transition: none; }
 }
 
-/* ---- In the calculator's phone mock: a full-bleed band under the blue head -- */
-.steps--card {
-  padding: 13px 14px 11px;
-  border-bottom: 1px solid var(--line);
+/* ---- On the calculator's navy heading band ------------------------------- */
+/* The band is a fixed navy gradient in both themes, so these are literal values
+   rather than tokens — there is nothing for them to follow. The green lifts to
+   the dark-mode one and takes dark text, because white on a light green is
+   unreadable at 12px. */
+.steps--onblue {
+  --step-ok: #3cc98c;
+  --step-ok-on: #08241a;
+  --steps-line: rgba(255, 255, 255, 0.22);
+  --steps-dot-bg: rgba(255, 255, 255, 0.15);
+  --steps-dot-ink: rgba(255, 255, 255, 0.75);
+  --steps-label: rgba(255, 255, 255, 0.72);
+  --steps-label-done: rgba(255, 255, 255, 0.92);
+  margin-top: 14px;
 }
+/* The ring reads as a smudge on navy; a plain circle is clear enough there. */
+.steps--onblue .steps__item.is-now .steps__dot { box-shadow: none; }
 
 /* ---- In the journey modal: inside the padded body, under the blue head.
         Capped and centred because the options screen widens the panel to
@@ -105,5 +125,5 @@
   .steps { --step-size: 22px; --step-gap: 4px; }
   .steps__dot { font-size: 11px; }
   .steps__label { font-size: 9.5px; }
-  .steps--card { padding: 11px 8px 9px; }
+  .steps--onblue { margin-top: 12px; }
 }

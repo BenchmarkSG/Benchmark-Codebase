@@ -1145,7 +1145,7 @@ Kind regards,
 
         {/* Last step of the funnel, on every view in here: the reveal is paid
             for by the time this modal opens, so Unlock is behind us. */}
-        <StepBar current="action" className="steps--jny" />
+        <StepBar current="negotiate" className="steps--jny" />
 
         {/* Reveal panel — the winning bank + saving, with a share button. Only on
             the options screen: once the user has picked an action, the sub-view

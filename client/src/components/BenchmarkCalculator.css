@@ -57,8 +57,9 @@
 .calc-card .calc-card__head {
   margin: 0;
   /* Was 36px, to clear the dynamic-island pill. With the pill gone the heading
-     sits where it should, and the band is no longer half empty space. */
-  padding: 18px 22px 10px;
+     sits where it should. The bottom is sized for the step bar that now lives
+     inside this band, not for the title alone. */
+  padding: 16px 14px 14px;
   background: linear-gradient(150deg, var(--blue-600) 0%, var(--navy-800) 100%);
   color: #fff;
 }
@@ -70,7 +71,8 @@
 /* Navbar variant — same band, shown on the result (and later) screens so the
    phone chrome never disappears mid-flow. Keeps the 40px top padding that
    clears the dynamic island. */
-.calc-card .calc-card__head--nav { padding-bottom: 14px; }
+/* The nav row is taller than the title, so it needs no extra bottom room. */
+.calc-card .calc-card__head--nav { padding-bottom: 12px; }
 .calc-card .calc-card__nav {
   display: flex;
   align-items: center;

@@ -393,15 +393,14 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
     }
   }
 
-  // Which of the five funnel steps this card is showing (see StepBar.jsx).
-  // Exactly one is ever current. 'compare' is the compute itself, which is why
-  // it only holds while loading; the result screen leads with the saving, so it
-  // is 'savings'. The unlock is read from the same place the result card reads
-  // it, so paying for the reveal advances the bar with no round-trip.
-  const step = loading ? 'compare'
-    : !result ? 'details'
-    : unlockedTierFor(revealContext()) ? 'unlock'
-    : 'savings';
+  // Which of the four funnel steps this card is showing (see StepBar.jsx).
+  // Exactly one is ever current. The comparison and the saving are one screen,
+  // so they are one step: it becomes current the moment Compute is pressed. The
+  // unlock is read from the same place the result card reads it, so paying for
+  // the reveal advances the bar with no round-trip.
+  const step = !result && !loading ? 'input'
+    : result && unlockedTierFor(revealContext()) ? 'unlock'
+    : 'compare';
 
   return (
     <section className={compact ? 'calc-sec calc-sec--compact' : 'section calc-sec'} id="calculator">
@@ -426,6 +425,10 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
                 <h2 className="calc-card__title">Free Benchmarking Calculator</h2>
               </>
             )}
+            {/* Inside the band, not under it: the progress is chrome, and the
+                band is the card's chrome. It shows on the result screen too,
+                where the band swaps its contents for the back button. */}
+            <StepBar current={step} className="steps--onblue" />
           </div>
         ) : (
           <>
@@ -437,10 +440,6 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
             </p>
           </>
         )}
-
-        {/* Only in the phone mock. The full-width section below renders the form
-            and the result side by side, so there is no single step to be "on". */}
-        {compact && <StepBar current={step} className="steps--card" />}
 
         <div className={`calcbox ${compact ? 'calcbox--compact' : ''}`}>
           {(!compact || !result) && (
