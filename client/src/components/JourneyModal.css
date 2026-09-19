@@ -130,15 +130,11 @@
    out to the panel's edges without restructuring the padded body around it. */
 .jny__head {
   margin: calc(-1 * var(--jny-pad-y)) calc(-1 * var(--jny-pad-x)) 20px;
-  padding: 18px var(--jny-pad-x) 14px;
+  /* Just the step bar now (no title): tight above, and clear of the × on the right. */
+  padding: 14px calc(var(--jny-pad-x) + 44px) 12px var(--jny-pad-x);
   background: var(--surface);
   color: var(--ink);
   border-bottom: 1px solid var(--line);
-}
-.jny__head-title { font-size: 19px; font-weight: 800; color: var(--ink); line-height: 1.15; }
-.jny__head-sub {
-  margin-top: 3px; font-size: 11.5px; font-weight: 700;
-  letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
 }
 
 /* Hide the floating WhatsApp "Need Help?" widget while the journey modal is open. */
@@ -397,7 +393,13 @@ body.jny-open .needhelp { display: none; }
 }
 /* In the reveal panel everything is centred, and the card sits between the
    headline amount and the options. */
-.jny-unlock--reveal { align-items: center; text-align: center; margin: 18px 0 2px; }
+/* Shrink-wrapped to the bank rather than spanning the panel, so the box frames
+   the logo and name instead of reading as a full-width banner. */
+.jny-unlock--reveal {
+  align-items: center; text-align: center;
+  width: fit-content; max-width: 100%;
+  margin: 18px auto 2px; padding: 14px 28px;
+}
 
 /* The certificate is a keepsake, not a fourth option — narrower than the tier
    cards so it reads as a different kind of thing. The cap only binds on wide
@@ -588,8 +590,13 @@ body.jny-open .needhelp { display: none; }
 .jny-tiers .jny-tier__cta { margin-top: auto; width: 100%; }
 .jny-tiers .jny-tier__desc { margin-top: 0; }
 
-/* The revealed bank: mark above name, which is how a bank is recognised. */
-.jny-unlock__bank { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+/* The revealed bank: mark on the left, name beside it. Wraps to stacked only
+   when a long name can't fit beside the logo on a narrow phone. */
+.jny-unlock__bank {
+  display: flex; flex-direction: row; flex-wrap: wrap;
+  align-items: center; justify-content: center; gap: 8px 12px;
+  margin-top: 6px; text-align: left;
+}
 .jny-unlock__logo {
   height: 40px; width: auto; max-width: 160px;
   object-fit: contain;

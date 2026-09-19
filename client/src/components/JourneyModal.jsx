@@ -1144,8 +1144,6 @@ Kind regards,
       <div className="jny__backdrop" onClick={requestClose} />
       <div className={`jny__panel${view === 'options' ? ' jny__panel--wide' : ''}`} ref={cardRef}>
         <div className="jny__head">
-          <div className="jny__head-title">Your result</div>
-          <div className="jny__head-sub">{SEG_LABEL[segment]} · {productLabel}</div>
           {/* Last step of the funnel, on every view in here: the reveal is paid
               for by the time this modal opens, so Unlock is behind us. It lives
               in the header because the progress is chrome, exactly as it is in

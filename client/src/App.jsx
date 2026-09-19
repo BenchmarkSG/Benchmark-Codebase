@@ -26,7 +26,7 @@ import { readCheckoutReturn, stashJourney, clearJourney, goToPage } from './lib/
 import { recoverPaidContext } from './lib/journeyContext.js';
 import {
   markUnlocked, unlockedTierFor,
-  rememberRevealSession, revealSessionFor, forgetRevealSession,
+  rememberRevealSession, revealSessionFor, forgetRevealSession, revealPayload,
 } from './lib/unlocks.js';
 import { getAccessToken } from './lib/supabase.js';
 
@@ -34,24 +34,6 @@ import { getAccessToken } from './lib/supabase.js';
 // which clears a pending intent when the user dismisses sign-in without
 // authenticating — so a stale intent can't reopen a pay screen later).
 import { readAfterAuth, storeAfterAuth, clearAfterAuth } from './lib/afterAuth.js';
-
-/* What /api/reveal has to be asked.
-
-   The reveal recomputes the benchmark server-side and hands back only the name,
-   so it must be asked the SAME question the free benchmark was — otherwise it
-   answers about a different comparison. For cross-border that means the corridor
-   and the amount sent: pricing is per receive-currency, and a flat fee is 2% of
-   S$1,000 but 0.2% of S$10,000. Both ride in the context's `inputs` (the raw
-   form values), which the saved row stores too, so they survive the Stripe hop
-   and a reopen from the dashboard. */
-const revealPayload = (ctx) => ({
-  country: ctx?.country || 'SG',
-  product: ctx?.productId || undefined,
-  currency: ctx?.currency || undefined,
-  send_currency: ctx?.inputs?.send_currency || undefined,
-  receive_currency: ctx?.inputs?.receive_currency || undefined,
-  sent_amount: ctx?.inputs?.sent_amount || undefined,
-});
 
 export default function App() {
   const { user } = useAuth();

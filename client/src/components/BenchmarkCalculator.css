@@ -187,9 +187,9 @@
    comparison, two buttons and their fine print inside one screen beside the
    hero copy. Nothing here changes what is said — only the air between. */
 .calc-card .res__overpay { margin-top: 4px; }
-.calc-card .res__overpay-amt { margin-top: 13px; font-size: 28px; }
+.calc-card .res__overpay-amt { margin-top: 11px; font-size: 28px; padding: 11px 14px; }
 .calc-card .res__overpay-sub { margin-top: 7px; font-size: 13.5px; }
-.calc-card .res__cmp { margin-top: 12px; padding: 12px 14px; row-gap: 8px; }
+.calc-card .res__cmp { margin-top: 12px; row-gap: 8px; }
 .calc-card .res__tagline { margin-top: 12px; font-size: 15.5px; }
 .calc-card .res__findout { margin-top: 10px; margin-bottom: 8px; font-size: 13.5px; }
 .calc-card .res__locked { margin-top: 10px; }
@@ -392,11 +392,17 @@
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 18' fill='none'%3E%3Cpath d='M5 11 C40 5 95 15 135 7' stroke='%23d81e29' stroke-width='7' stroke-linecap='round'/%3E%3Cpath d='M9 14 C46 10 92 16 129 11' stroke='%23d81e29' stroke-width='3.2' stroke-linecap='round' opacity='0.6'/%3E%3C/svg%3E") no-repeat center / 100% 100%;
   pointer-events: none;
 }
-/* Bigger, thicker brush swoosh under the headline amount. inline-block so the
-   stroke hugs the number's width, not the full centred row. */
+/* The saving is the one number on this screen that decides anything, so it is
+   the thing that gets a panel. It used to be inline-block to fit a brush swoosh
+   that has since gone; as a block it takes the card's width and the wash reads
+   as a band behind the figure rather than a highlighter behind the digits. */
 .res__overpay-amt {
-  display: inline-block;
-  margin-top: 20px; font-size: 30px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em;
+  display: block;
+  margin-top: 16px; font-size: 30px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em;
+  background: var(--blue-50);
+  border: 1px solid #c3d8f5;
+  border-radius: 16px;
+  padding: 14px 16px;
 }
 /* Second half of the headline, under the amount: it introduces the comparison
    panel below, so it is sized between the amount and the panel's labels. */
@@ -408,28 +414,71 @@
 /* "You vs best" — two rows of label + figure. One shared 2-column grid (rows
    are display:contents) so both figures line up whatever the label width, and
    the pair is centred as a block rather than pushed out to the card's edges.
-   Neutral surface on both figures: the numbers carry the comparison. */
+   No panel of its own: the wash is on the amount above, and two blue boxes
+   stacked would have split the screen between them instead of pointing at the
+   number that matters. The chips' own borders carry the rows. */
 .res__cmp {
-  margin-top: 20px;
+  margin-top: 16px;
   display: grid;
-  grid-template-columns: auto max-content;
+  grid-template-columns: auto max-content max-content;
   justify-content: center;
   align-items: center;
-  column-gap: 14px;
+  column-gap: 10px;
   row-gap: 10px;
-  /* Was on .res__overpay. The white value chips keep their contrast on this
-     wash, so the pair reads as one block. */
-  background: var(--blue-50);
-  border: 1px solid #c3d8f5;
-  border-radius: 16px;
-  padding: 18px 16px;
 }
 .res__cmp-row { display: contents; }
 .res__cmp-label { font-size: 13px; font-weight: 700; color: var(--ink-2); text-align: left; }
+/* Tinted, not white: these were white chips read against the blue wash that
+   used to sit behind this block. With the wash on the amount above, a white
+   chip on a white card is carried by its border alone. */
 .res__cmp-val {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   min-width: 62px; text-align: center;
   border-radius: 9px; padding: 6px 10px; font-size: 15px; font-weight: 800;
-  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--ink);
+}
+.res__cmp-logo {
+  display: block; width: auto; height: 18px; object-fit: contain;
+  border-radius: 4px; background: rgba(255, 255, 255, 0.2);
+}
+/* Third column: whose rate it is. The user's own bank sits here in the open;
+   the best bank sits behind a frosted mask until the reveal is paid for. The
+   mask hides nothing real — the name isn't on the client until then. */
+.res__cmp-bank {
+  position: relative; overflow: hidden;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 96px; height: 34px; padding: 0 8px;
+  border-radius: 9px; border: 1px solid var(--line); background: #fff;
+}
+.res__cmp-bank:empty { border-color: transparent; background: transparent; }
+.res__cmp-bank .res__cmp-logo { max-width: 100%; }
+.res__cmp-bankname {
+  font-size: 11.5px; font-weight: 800; color: var(--ink-2); line-height: 1.15;
+  text-align: center; overflow: hidden; display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.res__cmp-bank--masked { background: var(--surface-2); }
+/* A blurred stand-in "logo" — a wordmark-shaped smudge — under a frost. */
+.res__cmp-mask {
+  position: absolute; inset: 9px 12px;
+  border-radius: 6px;
+  background:
+    linear-gradient(90deg, #1f5fbf 0 22%, transparent 22% 30%, #6b87b5 30% 100%) left center / 100% 55% no-repeat;
+  filter: blur(4px); opacity: 0.55;
+}
+.res__cmp-bank--masked::after {
+  content: ''; position: absolute; inset: 0;
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+}
+.res__cmp-lock { position: relative; z-index: 1; font-size: 13px; }
+.res__cmp-bank--revealed { animation: res-unmask 0.45s ease-out; }
+@keyframes res-unmask {
+  from { filter: blur(6px); opacity: 0.4; }
+  to { filter: none; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .res__cmp-bank--revealed { animation: none; }
 }
 
 .res__tagline { margin-top: 16px; text-align: center; font-size: 17px; line-height: 1.35; font-weight: 800; color: var(--ink-2); }
@@ -443,6 +492,9 @@
 /* Primary result CTA — blue (overrides the global red .btn* unification) */
 .res .res__detail { background: var(--blue-600); color: #fff; box-shadow: 0 8px 20px rgba(29, 99, 196, 0.26); }
 .res .res__detail:hover { background: var(--blue-700); }
+/* The paid reveal is the one red call to action on the result. */
+.res .res__detail--reveal { background: var(--red-600); box-shadow: 0 8px 20px rgba(216, 30, 41, 0.26); }
+.res .res__detail--reveal:hover { background: #b8141e; }
 .res__rates { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; margin-top: 14px; }
 .res__rate { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; text-align: center; }
 .res__rate--best { border-color: #c3d8f5; background: var(--blue-50); }

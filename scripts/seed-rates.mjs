@@ -37,55 +37,13 @@ if (!DRY && (!url || !key)) {
 }
 const db = DRY ? null : createClient(url, key, { auth: { persistSession: false } });
 
-// --- deterministic pseudo-random in [0,1) from a string seed -----------------
-const unit = (seed) => {
-  let h = 2166136261;
-  for (let i = 0; i < seed.length; i++) { h ^= seed.charCodeAt(i); h = Math.imul(h, 16777619); }
-  return ((h >>> 0) % 100000) / 100000;
-};
-const round = (n, d = 2) => Math.round(n * 10 ** d) / 10 ** d;
-const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-
-// Countries + per-country provider roster (shared with the import-template tool).
-import { COUNTRIES, BANKS } from './lib/roster.mjs';
-
-// Category pricing tilt: how a bank tends to price vs the country base (± p.a.).
-const CAT_ADJ = { local: 0.35, foreign: -0.15, european: -0.25, japanese: -0.35, indian: 0.15, digital: -0.6, public: 0.2, private: 0.3, fintech: -0.5 };
-
-// Categories listed as a provider option but NOT benchmarked (no published pool).
-const DIRECTORY_ONLY = new Set(['fintech']);
-
-const FUNDED = ['import_finance', 'export_finance', 'supplier_finance', 'bill_discounting'];
-const UNFUNDED = ['lc', 'bg', 'sblc'];
-
-// Unified rate pool config. base = local-currency % per country; usd = USD %.
-// rateType 'apr' (lower better) | 'yield' (higher better). variants split a
-// product into sub-pools (funded / unfunded facility types).
-// Products the generator must NEVER invent numbers for, with the reason. These
-// are excluded from the coverage check below so they don't warn on every run.
-const NO_SYNTHETIC = new Map([
-  ['current_account_fees',
-   'benchmarked in real money (metricMode: amount) — a plausible made-up figure ' +
-   'reads as a real quote for a real bank\'s charges. Must be sourced.'],
-]);
-
-const RATE_PRODUCTS = [
-  { product: 'housing_loan',       rateType: 'apr',   ccy: ['local'],        base: { SG: 3.5, IN: 8.8, MY: 4.2, ID: 9.0, TH: 6.0 } },
-  { product: 'personal_loan',      rateType: 'apr',   ccy: ['local'],        base: { SG: 8.5, IN: 12.5, MY: 7.5, ID: 12.0, TH: 9.0 } },
-  { product: 'vehicle_loan',       rateType: 'apr',   ccy: ['local'],        base: { SG: 3.2, IN: 9.5, MY: 3.8, ID: 8.5, TH: 5.0 } },
-  { product: 'fixed_deposit',      rateType: 'yield', ccy: ['local'],        base: { SG: 3.0, IN: 6.8, MY: 3.2, ID: 5.5, TH: 1.8 } },
-  // SG only — `onlyCountries` in the catalog confines this product, and the loop
-  // below honours it. The base map is trimmed to match so it can't look as
-  // though the other markets are merely awaiting a run. Previous values, kept
-  // for whenever a market is confirmed to permit credit interest:
-  // IN 3.0 (prohibited by the RBI — do not restore), MY 1.5, ID 2.5, TH 0.5.
-  { product: 'current_account',    rateType: 'yield', ccy: ['local'],        base: { SG: 0.8 } },
-  { product: 'overdraft',          rateType: 'apr',   ccy: ['local', 'USD'], base: { SG: 6.6, IN: 9.6, MY: 6.9, ID: 9.9, TH: 7.1 }, usd: 7.9 },
-  { product: 'short_term_finance', rateType: 'apr',   ccy: ['local', 'USD'], base: { SG: 5.0, IN: 8.2, MY: 5.4, ID: 8.6, TH: 5.6 }, usd: 6.6,
-    variants: FUNDED, variantAdj: { import_finance: 0, export_finance: -0.1, supplier_finance: 0.15, bill_discounting: -0.2 } },
-  { product: 'unfunded_facility',  rateType: 'apr',   ccy: ['USD'],          usd: 1.0,
-    variants: UNFUNDED, variantAdj: { lc: -0.2, bg: 0, sblc: 0.2 } },
-];
+// The rate model — bases, category tilts, jitter — lives in one place so the
+// gap filler (scripts/fill-gaps.mjs) writes the SAME number into the same pool.
+// See scripts/lib/rate-model.mjs for why that matters.
+import {
+  COUNTRIES, BANKS, CAT_ADJ, DIRECTORY_ONLY, FUNDED, UNFUNDED,
+  NO_SYNTHETIC, RATE_PRODUCTS, indicativeRate, round, slug, unit,
+} from './lib/rate-model.mjs';
 
 // Negotiation-threshold products (admin data) → achievable improvement per annum.
 const IMPROVEMENT = {
@@ -144,18 +102,17 @@ function build() {
         // The catalog decides where a product exists. Skipping here is what stops
         // a base rate for a market that bars the product from being written.
         if (!isProductInCountry(getProduct(p.product), c.code)) continue;
-        const isYield = p.rateType === 'yield';
-        const catTilt = catAdj * (isYield ? -1 : 1); // keener banks pay more / charge less
         for (const mode of p.ccy) {
           const currency = mode === 'USD' ? 'USD' : ccyLocal;
-          const baseRate = mode === 'USD' ? p.usd : p.base[c.code];
-          if (baseRate == null) continue;
+          if ((mode === 'USD' ? p.usd : p.base[c.code]) == null) continue;
           for (const v of p.variants || [null]) {
-            const vAdj = v && p.variantAdj ? (p.variantAdj[v] || 0) : 0;
-            const jitter = (unit(id + p.product + currency + (v || '')) - 0.5) * 1.2;
             productRates.push({
               country_code: c.code, product: p.product, bank: name, currency,
-              rate: round(baseRate + catTilt + vAdj + jitter, 3), rate_type: p.rateType, variant: v,
+              rate: indicativeRate({
+                bankId: id, category, product: p.product, currency, variant: v,
+                countryCode: c.code, isUsd: mode === 'USD',
+              }),
+              rate_type: p.rateType, variant: v,
             });
           }
         }

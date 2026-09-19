@@ -1,0 +1,2131 @@
+FEEOPTIMA — RATES WE DO NOT HAVE
+==============================================================================
+Generated 2026-09-19 08:36 UTC from the live database.
+
+WHAT "MISSING" MEANS HERE
+  A rate counts as HAVE only if it is SOURCED — is_indicative = false in
+  product_rates. The app serves only sourced rows (RATES_REAL_ONLY defaults
+  true), so a generated / indicative row is not a rate we have. Most lines
+  below do have an indicative row sitting behind them. It is not served, and
+  it must never be published as a market rate.
+
+HOW TO FILL IT IN
+  Write the rate after the "=", the way the bank publishes it:
+      6.25            a plain figure
+      8.00-9.50       a published range  (stored as the midpoint, shown ~8.75%)
+      from 7.5        a published floor
+      n/a             the bank does not offer this
+  Put the source URL after the "#" if you have it. Blank lines are skipped on
+  import, so a partly filled file is fine — send it back whenever.
+
+  Every figure must come off the bank's own published rate sheet. Do not
+  estimate, interpolate, or copy one from a comparison site.
+
+SUMMARY
+  SG  Singapore    missing 300    have 15
+  IN  India        missing 296    have 19
+  MY  Malaysia     missing 291    have 9
+  ID  Indonesia    missing 290    have 10
+  TH  Thailand     missing 284    have 16
+      TOTAL          missing 1461   have 69
+
+==============================================================================
+SG · SINGAPORE  (local currency SGD)
+==============================================================================
+missing 300 · have 15
+
+--- housing_loan · Housing loan · SGD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                =           #
+  POSB                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Standard Chartered                 =           #
+  Citibank                           =           #
+  HSBC                               =           #
+  Maybank                            =           #
+  Bank of China                      =           #
+  CIMB                               =           #
+  RHB                                =           #
+  MUFG Bank                          =           #
+  Mizuho                             =           #
+  State Bank of India                =           #
+  BNP Paribas                        =           #
+
+--- personal_loan · Personal loan · SGD · % p.a. ---
+    have 5/15, missing 10
+  POSB                               =           #
+  Citibank                           =           #
+  Maybank                            =           #
+  Bank of China                      =           #
+  CIMB                               =           #
+  RHB                                =           #
+  MUFG Bank                          =           #
+  Mizuho                             =           #
+  State Bank of India                =           #
+  BNP Paribas                        =           #
+
+--- vehicle_loan · Vehicle loan · SGD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                =           #
+  POSB                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Standard Chartered                 =           #
+  Citibank                           =           #
+  HSBC                               =           #
+  Maybank                            =           #
+  Bank of China                      =           #
+  CIMB                               =           #
+  RHB                                =           #
+  MUFG Bank                          =           #
+  Mizuho                             =           #
+  State Bank of India                =           #
+  BNP Paribas                        =           #
+
+--- fixed_deposit · Fixed deposit · SGD · % p.a. ---
+    have 8/15, missing 7
+  POSB                               =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  MUFG Bank                          =           #
+  Mizuho                             =           #
+  State Bank of India                =           #
+  BNP Paribas                        =           #
+
+--- fixed_deposit · Fixed deposit · USD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                =           #
+  POSB                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Standard Chartered                 =           #
+  Citibank                           =           #
+  HSBC                               =           #
+  Maybank                            =           #
+  Bank of China                      =           #
+  CIMB                               =           #
+  RHB                                =           #
+  MUFG Bank                          =           #
+  Mizuho                             =           #
+  State Bank of India                =           #
+  BNP Paribas                        =           #
+
+--- current_account · Current account · SGD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                =           #
+  POSB                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Standard Chartered                 =           #
+  Citibank                           =           #
+  HSBC                               =           #
+  Maybank                            =           #
+  Bank of China                      =           #
+  CIMB                               =           #
+  RHB                                =           #
+  MUFG Bank                          =           #
+  Mizuho                             =           #
+  State Bank of India                =           #
+  BNP Paribas                        =           #
+
+--- overdraft · Overdraft facility · SGD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                =           #
+  POSB                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Standard Chartered                 =           #
+  Citibank                           =           #
+  HSBC                               =           #
+  Maybank                            =           #
+  Bank of China                      =           #
+  CIMB                               =           #
+  RHB                                =           #
+  MUFG Bank                          =           #
+  Mizuho                             =           #
+  State Bank of India                =           #
+  BNP Paribas                        =           #
+
+--- overdraft · Overdraft facility · USD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                =           #
+  POSB                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Standard Chartered                 =           #
+  Citibank                           =           #
+  HSBC                               =           #
+  Maybank                            =           #
+  Bank of China                      =           #
+  CIMB                               =           #
+  RHB                                =           #
+  MUFG Bank                          =           #
+  Mizuho                             =           #
+  State Bank of India                =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Import finance · SGD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                =           #
+  POSB                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Standard Chartered                 =           #
+  Citibank                           =           #
+  HSBC                               =           #
+  Maybank                            =           #
+  Bank of China                      =           #
+  CIMB                               =           #
+  RHB                                =           #
+  MUFG Bank                          =           #
+  Mizuho                             =           #
+  State Bank of India                =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Export finance · SGD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                =           #
+  POSB                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Standard Chartered                 =           #
+  Citibank                           =           #
+  HSBC                               =           #
+  Maybank                            =           #
+  Bank of China                      =           #
+  CIMB                               =           #
+  RHB                                =           #
+  MUFG Bank                          =           #
+  Mizuho                             =           #
+  State Bank of India                =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Supplier finance · SGD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                =           #
+  POSB                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Standard Chartered                 =           #
+  Citibank                           =           #
+  HSBC                               =           #
+  Maybank                            =           #
+  Bank of China                      =           #
+  CIMB                               =           #
+  RHB                                =           #
+  MUFG Bank                          =           #
+  Mizuho                             =           #
+  State Bank of India                =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Bill discounting · SGD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                =           #
+  POSB                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Standard Chartered                 =           #
+  Citibank                           =           #
+  HSBC                               =           #
+  Maybank                            =           #
+  Bank of China                      =           #
+  CIMB                               =           #
+  RHB                                =           #
+  MUFG Bank                          =           #
+  Mizuho                             =           #
+  State Bank of India                =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Import finance · USD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                =           #
+  POSB                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Standard Chartered                 =           #
+  Citibank                           =           #
+  HSBC                               =           #
+  Maybank                            =           #
+  Bank of China                      =           #
+  CIMB                               =           #
+  RHB                                =           #
+  MUFG Bank                          =           #
+  Mizuho                             =           #
+  State Bank of India                =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Export finance · USD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                =           #
+  POSB                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Standard Chartered                 =           #
+  Citibank                           =           #
+  HSBC                               =           #
+  Maybank                            =           #
+  Bank of China                      =           #
+  CIMB                               =           #
+  RHB                                =           #
+  MUFG Bank                          =           #
+  Mizuho                             =           #
+  State Bank of India                =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Supplier finance · USD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                =           #
+  POSB                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Standard Chartered                 =           #
+  Citibank                           =           #
+  HSBC                               =           #
+  Maybank                            =           #
+  Bank of China                      =           #
+  CIMB                               =           #
+  RHB                                =           #
+  MUFG Bank                          =           #
+  Mizuho                             =           #
+  State Bank of India                =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Bill discounting · USD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                =           #
+  POSB                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Standard Chartered                 =           #
+  Citibank                           =           #
+  HSBC                               =           #
+  Maybank                            =           #
+  Bank of China                      =           #
+  CIMB                               =           #
+  RHB                                =           #
+  MUFG Bank                          =           #
+  Mizuho                             =           #
+  State Bank of India                =           #
+  BNP Paribas                        =           #
+
+--- unfunded_facility · Unfunded facility · Letter of Credit (L/C) · USD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                =           #
+  POSB                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Standard Chartered                 =           #
+  Citibank                           =           #
+  HSBC                               =           #
+  Maybank                            =           #
+  Bank of China                      =           #
+  CIMB                               =           #
+  RHB                                =           #
+  MUFG Bank                          =           #
+  Mizuho                             =           #
+  State Bank of India                =           #
+  BNP Paribas                        =           #
+
+--- unfunded_facility · Unfunded facility · Bank Guarantee (BG) · USD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                =           #
+  POSB                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Standard Chartered                 =           #
+  Citibank                           =           #
+  HSBC                               =           #
+  Maybank                            =           #
+  Bank of China                      =           #
+  CIMB                               =           #
+  RHB                                =           #
+  MUFG Bank                          =           #
+  Mizuho                             =           #
+  State Bank of India                =           #
+  BNP Paribas                        =           #
+
+--- unfunded_facility · Unfunded facility · Standby L/C (SBLC) · USD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                =           #
+  POSB                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Standard Chartered                 =           #
+  Citibank                           =           #
+  HSBC                               =           #
+  Maybank                            =           #
+  Bank of China                      =           #
+  CIMB                               =           #
+  RHB                                =           #
+  MUFG Bank                          =           #
+  Mizuho                             =           #
+  State Bank of India                =           #
+  BNP Paribas                        =           #
+
+--- cross_border · Cross-border transfer · outgoing · SGD → USD ---
+    have 2/15, missing 13
+    fx_spread_% = the margin over the mid-market rate. fee = upfront fee in SGD.
+  DBS                                  fx_spread_% =         fee =         #
+  POSB                                 fx_spread_% =         fee =         #
+  OCBC                                 fx_spread_% =         fee =         #
+  UOB                                  fx_spread_% =         fee =         #
+  Standard Chartered                   fx_spread_% =         fee =         #
+  Maybank                              fx_spread_% =         fee =         #
+  Bank of China                        fx_spread_% =         fee =         #
+  CIMB                                 fx_spread_% =         fee =         #
+  RHB                                  fx_spread_% =         fee =         #
+  MUFG Bank                            fx_spread_% =         fee =         #
+  Mizuho                               fx_spread_% =         fee =         #
+  State Bank of India                  fx_spread_% =         fee =         #
+  BNP Paribas                          fx_spread_% =         fee =         #
+
+--- cross_border · Cross-border transfer · incoming · GBP → SGD ---
+    have 0/15, missing 15
+    fx_spread_% = the margin over the mid-market rate. fee = upfront fee in SGD.
+  DBS                                  fx_spread_% =         fee =         #
+  POSB                                 fx_spread_% =         fee =         #
+  OCBC                                 fx_spread_% =         fee =         #
+  UOB                                  fx_spread_% =         fee =         #
+  Standard Chartered                   fx_spread_% =         fee =         #
+  Citibank                             fx_spread_% =         fee =         #
+  HSBC                                 fx_spread_% =         fee =         #
+  Maybank                              fx_spread_% =         fee =         #
+  Bank of China                        fx_spread_% =         fee =         #
+  CIMB                                 fx_spread_% =         fee =         #
+  RHB                                  fx_spread_% =         fee =         #
+  MUFG Bank                            fx_spread_% =         fee =         #
+  Mizuho                               fx_spread_% =         fee =         #
+  State Bank of India                  fx_spread_% =         fee =         #
+  BNP Paribas                          fx_spread_% =         fee =         #
+
+==============================================================================
+IN · INDIA  (local currency INR)
+==============================================================================
+missing 296 · have 19
+
+--- housing_loan · Housing loan · INR · % p.a. ---
+    have 6/15, missing 9
+  Punjab National Bank               =           #
+  Yes Bank                           =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  Citibank                           =           #
+  DBS Bank India                     =           #
+  MUFG Bank                          =           #
+  Deutsche Bank                      =           #
+  BNP Paribas                        =           #
+
+--- personal_loan · Personal loan · INR · % p.a. ---
+    have 5/15, missing 10
+  Axis Bank                          =           #
+  Punjab National Bank               =           #
+  Bank of Baroda                     =           #
+  Yes Bank                           =           #
+  Standard Chartered                 =           #
+  Citibank                           =           #
+  DBS Bank India                     =           #
+  MUFG Bank                          =           #
+  Deutsche Bank                      =           #
+  BNP Paribas                        =           #
+
+--- vehicle_loan · Vehicle loan · INR · % p.a. ---
+    have 2/15, missing 13
+  ICICI Bank                         =           #
+  Axis Bank                          =           #
+  Kotak Mahindra Bank                =           #
+  Punjab National Bank               =           #
+  Bank of Baroda                     =           #
+  Yes Bank                           =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  Citibank                           =           #
+  DBS Bank India                     =           #
+  MUFG Bank                          =           #
+  Deutsche Bank                      =           #
+  BNP Paribas                        =           #
+
+--- fixed_deposit · Fixed deposit · INR · % p.a. ---
+    have 6/15, missing 9
+  ICICI Bank                         =           #
+  Yes Bank                           =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  Citibank                           =           #
+  DBS Bank India                     =           #
+  MUFG Bank                          =           #
+  Deutsche Bank                      =           #
+  BNP Paribas                        =           #
+
+--- fixed_deposit · Fixed deposit · USD · % p.a. ---
+    have 0/15, missing 15
+  State Bank of India                =           #
+  HDFC Bank                          =           #
+  ICICI Bank                         =           #
+  Axis Bank                          =           #
+  Kotak Mahindra Bank                =           #
+  Punjab National Bank               =           #
+  Bank of Baroda                     =           #
+  Yes Bank                           =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  Citibank                           =           #
+  DBS Bank India                     =           #
+  MUFG Bank                          =           #
+  Deutsche Bank                      =           #
+  BNP Paribas                        =           #
+
+--- current_account_fees · Current account (charges) · INR · total charges per year ---
+    have 0/15, missing 15
+  State Bank of India                =           #
+  HDFC Bank                          =           #
+  ICICI Bank                         =           #
+  Axis Bank                          =           #
+  Kotak Mahindra Bank                =           #
+  Punjab National Bank               =           #
+  Bank of Baroda                     =           #
+  Yes Bank                           =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  Citibank                           =           #
+  DBS Bank India                     =           #
+  MUFG Bank                          =           #
+  Deutsche Bank                      =           #
+  BNP Paribas                        =           #
+
+--- overdraft · Overdraft facility · INR · % p.a. ---
+    have 0/15, missing 15
+  State Bank of India                =           #
+  HDFC Bank                          =           #
+  ICICI Bank                         =           #
+  Axis Bank                          =           #
+  Kotak Mahindra Bank                =           #
+  Punjab National Bank               =           #
+  Bank of Baroda                     =           #
+  Yes Bank                           =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  Citibank                           =           #
+  DBS Bank India                     =           #
+  MUFG Bank                          =           #
+  Deutsche Bank                      =           #
+  BNP Paribas                        =           #
+
+--- overdraft · Overdraft facility · USD · % p.a. ---
+    have 0/15, missing 15
+  State Bank of India                =           #
+  HDFC Bank                          =           #
+  ICICI Bank                         =           #
+  Axis Bank                          =           #
+  Kotak Mahindra Bank                =           #
+  Punjab National Bank               =           #
+  Bank of Baroda                     =           #
+  Yes Bank                           =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  Citibank                           =           #
+  DBS Bank India                     =           #
+  MUFG Bank                          =           #
+  Deutsche Bank                      =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Import finance · INR · % p.a. ---
+    have 0/15, missing 15
+  State Bank of India                =           #
+  HDFC Bank                          =           #
+  ICICI Bank                         =           #
+  Axis Bank                          =           #
+  Kotak Mahindra Bank                =           #
+  Punjab National Bank               =           #
+  Bank of Baroda                     =           #
+  Yes Bank                           =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  Citibank                           =           #
+  DBS Bank India                     =           #
+  MUFG Bank                          =           #
+  Deutsche Bank                      =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Export finance · INR · % p.a. ---
+    have 0/15, missing 15
+  State Bank of India                =           #
+  HDFC Bank                          =           #
+  ICICI Bank                         =           #
+  Axis Bank                          =           #
+  Kotak Mahindra Bank                =           #
+  Punjab National Bank               =           #
+  Bank of Baroda                     =           #
+  Yes Bank                           =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  Citibank                           =           #
+  DBS Bank India                     =           #
+  MUFG Bank                          =           #
+  Deutsche Bank                      =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Supplier finance · INR · % p.a. ---
+    have 0/15, missing 15
+  State Bank of India                =           #
+  HDFC Bank                          =           #
+  ICICI Bank                         =           #
+  Axis Bank                          =           #
+  Kotak Mahindra Bank                =           #
+  Punjab National Bank               =           #
+  Bank of Baroda                     =           #
+  Yes Bank                           =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  Citibank                           =           #
+  DBS Bank India                     =           #
+  MUFG Bank                          =           #
+  Deutsche Bank                      =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Bill discounting · INR · % p.a. ---
+    have 0/15, missing 15
+  State Bank of India                =           #
+  HDFC Bank                          =           #
+  ICICI Bank                         =           #
+  Axis Bank                          =           #
+  Kotak Mahindra Bank                =           #
+  Punjab National Bank               =           #
+  Bank of Baroda                     =           #
+  Yes Bank                           =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  Citibank                           =           #
+  DBS Bank India                     =           #
+  MUFG Bank                          =           #
+  Deutsche Bank                      =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Import finance · USD · % p.a. ---
+    have 0/15, missing 15
+  State Bank of India                =           #
+  HDFC Bank                          =           #
+  ICICI Bank                         =           #
+  Axis Bank                          =           #
+  Kotak Mahindra Bank                =           #
+  Punjab National Bank               =           #
+  Bank of Baroda                     =           #
+  Yes Bank                           =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  Citibank                           =           #
+  DBS Bank India                     =           #
+  MUFG Bank                          =           #
+  Deutsche Bank                      =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Export finance · USD · % p.a. ---
+    have 0/15, missing 15
+  State Bank of India                =           #
+  HDFC Bank                          =           #
+  ICICI Bank                         =           #
+  Axis Bank                          =           #
+  Kotak Mahindra Bank                =           #
+  Punjab National Bank               =           #
+  Bank of Baroda                     =           #
+  Yes Bank                           =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  Citibank                           =           #
+  DBS Bank India                     =           #
+  MUFG Bank                          =           #
+  Deutsche Bank                      =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Supplier finance · USD · % p.a. ---
+    have 0/15, missing 15
+  State Bank of India                =           #
+  HDFC Bank                          =           #
+  ICICI Bank                         =           #
+  Axis Bank                          =           #
+  Kotak Mahindra Bank                =           #
+  Punjab National Bank               =           #
+  Bank of Baroda                     =           #
+  Yes Bank                           =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  Citibank                           =           #
+  DBS Bank India                     =           #
+  MUFG Bank                          =           #
+  Deutsche Bank                      =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Bill discounting · USD · % p.a. ---
+    have 0/15, missing 15
+  State Bank of India                =           #
+  HDFC Bank                          =           #
+  ICICI Bank                         =           #
+  Axis Bank                          =           #
+  Kotak Mahindra Bank                =           #
+  Punjab National Bank               =           #
+  Bank of Baroda                     =           #
+  Yes Bank                           =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  Citibank                           =           #
+  DBS Bank India                     =           #
+  MUFG Bank                          =           #
+  Deutsche Bank                      =           #
+  BNP Paribas                        =           #
+
+--- unfunded_facility · Unfunded facility · Letter of Credit (L/C) · USD · % p.a. ---
+    have 0/15, missing 15
+  State Bank of India                =           #
+  HDFC Bank                          =           #
+  ICICI Bank                         =           #
+  Axis Bank                          =           #
+  Kotak Mahindra Bank                =           #
+  Punjab National Bank               =           #
+  Bank of Baroda                     =           #
+  Yes Bank                           =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  Citibank                           =           #
+  DBS Bank India                     =           #
+  MUFG Bank                          =           #
+  Deutsche Bank                      =           #
+  BNP Paribas                        =           #
+
+--- unfunded_facility · Unfunded facility · Bank Guarantee (BG) · USD · % p.a. ---
+    have 0/15, missing 15
+  State Bank of India                =           #
+  HDFC Bank                          =           #
+  ICICI Bank                         =           #
+  Axis Bank                          =           #
+  Kotak Mahindra Bank                =           #
+  Punjab National Bank               =           #
+  Bank of Baroda                     =           #
+  Yes Bank                           =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  Citibank                           =           #
+  DBS Bank India                     =           #
+  MUFG Bank                          =           #
+  Deutsche Bank                      =           #
+  BNP Paribas                        =           #
+
+--- unfunded_facility · Unfunded facility · Standby L/C (SBLC) · USD · % p.a. ---
+    have 0/15, missing 15
+  State Bank of India                =           #
+  HDFC Bank                          =           #
+  ICICI Bank                         =           #
+  Axis Bank                          =           #
+  Kotak Mahindra Bank                =           #
+  Punjab National Bank               =           #
+  Bank of Baroda                     =           #
+  Yes Bank                           =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  Citibank                           =           #
+  DBS Bank India                     =           #
+  MUFG Bank                          =           #
+  Deutsche Bank                      =           #
+  BNP Paribas                        =           #
+
+--- cross_border · Cross-border transfer · outgoing · INR → USD ---
+    have 0/15, missing 15
+    fx_spread_% = the margin over the mid-market rate. fee = upfront fee in INR.
+  State Bank of India                  fx_spread_% =         fee =         #
+  HDFC Bank                            fx_spread_% =         fee =         #
+  ICICI Bank                           fx_spread_% =         fee =         #
+  Axis Bank                            fx_spread_% =         fee =         #
+  Kotak Mahindra Bank                  fx_spread_% =         fee =         #
+  Punjab National Bank                 fx_spread_% =         fee =         #
+  Bank of Baroda                       fx_spread_% =         fee =         #
+  Yes Bank                             fx_spread_% =         fee =         #
+  Standard Chartered                   fx_spread_% =         fee =         #
+  HSBC                                 fx_spread_% =         fee =         #
+  Citibank                             fx_spread_% =         fee =         #
+  DBS Bank India                       fx_spread_% =         fee =         #
+  MUFG Bank                            fx_spread_% =         fee =         #
+  Deutsche Bank                        fx_spread_% =         fee =         #
+  BNP Paribas                          fx_spread_% =         fee =         #
+
+--- cross_border · Cross-border transfer · incoming · GBP → INR ---
+    have 0/15, missing 15
+    fx_spread_% = the margin over the mid-market rate. fee = upfront fee in INR.
+  State Bank of India                  fx_spread_% =         fee =         #
+  HDFC Bank                            fx_spread_% =         fee =         #
+  ICICI Bank                           fx_spread_% =         fee =         #
+  Axis Bank                            fx_spread_% =         fee =         #
+  Kotak Mahindra Bank                  fx_spread_% =         fee =         #
+  Punjab National Bank                 fx_spread_% =         fee =         #
+  Bank of Baroda                       fx_spread_% =         fee =         #
+  Yes Bank                             fx_spread_% =         fee =         #
+  Standard Chartered                   fx_spread_% =         fee =         #
+  HSBC                                 fx_spread_% =         fee =         #
+  Citibank                             fx_spread_% =         fee =         #
+  DBS Bank India                       fx_spread_% =         fee =         #
+  MUFG Bank                            fx_spread_% =         fee =         #
+  Deutsche Bank                        fx_spread_% =         fee =         #
+  BNP Paribas                          fx_spread_% =         fee =         #
+
+==============================================================================
+MY · MALAYSIA  (local currency MYR)
+==============================================================================
+missing 291 · have 9
+
+--- housing_loan · Housing loan · MYR · % p.a. ---
+    have 2/15, missing 13
+  Maybank                            =           #
+  CIMB                               =           #
+  Public Bank                        =           #
+  RHB                                =           #
+  Hong Leong Bank                    =           #
+  Bank Islam                         =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Bank of China                      =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- personal_loan · Personal loan · MYR · % p.a. ---
+    have 0/15, missing 15
+  Maybank                            =           #
+  CIMB                               =           #
+  Public Bank                        =           #
+  RHB                                =           #
+  Hong Leong Bank                    =           #
+  AmBank                             =           #
+  Bank Islam                         =           #
+  Affin Bank                         =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Bank of China                      =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- vehicle_loan · Vehicle loan · MYR · % p.a. ---
+    have 0/15, missing 15
+  Maybank                            =           #
+  CIMB                               =           #
+  Public Bank                        =           #
+  RHB                                =           #
+  Hong Leong Bank                    =           #
+  AmBank                             =           #
+  Bank Islam                         =           #
+  Affin Bank                         =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Bank of China                      =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- fixed_deposit · Fixed deposit · MYR · % p.a. ---
+    have 3/15, missing 12
+  Maybank                            =           #
+  CIMB                               =           #
+  Public Bank                        =           #
+  Bank Islam                         =           #
+  Affin Bank                         =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Bank of China                      =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- fixed_deposit · Fixed deposit · USD · % p.a. ---
+    have 0/15, missing 15
+  Maybank                            =           #
+  CIMB                               =           #
+  Public Bank                        =           #
+  RHB                                =           #
+  Hong Leong Bank                    =           #
+  AmBank                             =           #
+  Bank Islam                         =           #
+  Affin Bank                         =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Bank of China                      =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- overdraft · Overdraft facility · MYR · % p.a. ---
+    have 0/15, missing 15
+  Maybank                            =           #
+  CIMB                               =           #
+  Public Bank                        =           #
+  RHB                                =           #
+  Hong Leong Bank                    =           #
+  AmBank                             =           #
+  Bank Islam                         =           #
+  Affin Bank                         =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Bank of China                      =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- overdraft · Overdraft facility · USD · % p.a. ---
+    have 0/15, missing 15
+  Maybank                            =           #
+  CIMB                               =           #
+  Public Bank                        =           #
+  RHB                                =           #
+  Hong Leong Bank                    =           #
+  AmBank                             =           #
+  Bank Islam                         =           #
+  Affin Bank                         =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Bank of China                      =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Import finance · MYR · % p.a. ---
+    have 0/15, missing 15
+  Maybank                            =           #
+  CIMB                               =           #
+  Public Bank                        =           #
+  RHB                                =           #
+  Hong Leong Bank                    =           #
+  AmBank                             =           #
+  Bank Islam                         =           #
+  Affin Bank                         =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Bank of China                      =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Export finance · MYR · % p.a. ---
+    have 0/15, missing 15
+  Maybank                            =           #
+  CIMB                               =           #
+  Public Bank                        =           #
+  RHB                                =           #
+  Hong Leong Bank                    =           #
+  AmBank                             =           #
+  Bank Islam                         =           #
+  Affin Bank                         =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Bank of China                      =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Supplier finance · MYR · % p.a. ---
+    have 0/15, missing 15
+  Maybank                            =           #
+  CIMB                               =           #
+  Public Bank                        =           #
+  RHB                                =           #
+  Hong Leong Bank                    =           #
+  AmBank                             =           #
+  Bank Islam                         =           #
+  Affin Bank                         =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Bank of China                      =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Bill discounting · MYR · % p.a. ---
+    have 0/15, missing 15
+  Maybank                            =           #
+  CIMB                               =           #
+  Public Bank                        =           #
+  RHB                                =           #
+  Hong Leong Bank                    =           #
+  AmBank                             =           #
+  Bank Islam                         =           #
+  Affin Bank                         =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Bank of China                      =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Import finance · USD · % p.a. ---
+    have 0/15, missing 15
+  Maybank                            =           #
+  CIMB                               =           #
+  Public Bank                        =           #
+  RHB                                =           #
+  Hong Leong Bank                    =           #
+  AmBank                             =           #
+  Bank Islam                         =           #
+  Affin Bank                         =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Bank of China                      =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Export finance · USD · % p.a. ---
+    have 0/15, missing 15
+  Maybank                            =           #
+  CIMB                               =           #
+  Public Bank                        =           #
+  RHB                                =           #
+  Hong Leong Bank                    =           #
+  AmBank                             =           #
+  Bank Islam                         =           #
+  Affin Bank                         =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Bank of China                      =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Supplier finance · USD · % p.a. ---
+    have 0/15, missing 15
+  Maybank                            =           #
+  CIMB                               =           #
+  Public Bank                        =           #
+  RHB                                =           #
+  Hong Leong Bank                    =           #
+  AmBank                             =           #
+  Bank Islam                         =           #
+  Affin Bank                         =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Bank of China                      =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Bill discounting · USD · % p.a. ---
+    have 0/15, missing 15
+  Maybank                            =           #
+  CIMB                               =           #
+  Public Bank                        =           #
+  RHB                                =           #
+  Hong Leong Bank                    =           #
+  AmBank                             =           #
+  Bank Islam                         =           #
+  Affin Bank                         =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Bank of China                      =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- unfunded_facility · Unfunded facility · Letter of Credit (L/C) · USD · % p.a. ---
+    have 0/15, missing 15
+  Maybank                            =           #
+  CIMB                               =           #
+  Public Bank                        =           #
+  RHB                                =           #
+  Hong Leong Bank                    =           #
+  AmBank                             =           #
+  Bank Islam                         =           #
+  Affin Bank                         =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Bank of China                      =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- unfunded_facility · Unfunded facility · Bank Guarantee (BG) · USD · % p.a. ---
+    have 0/15, missing 15
+  Maybank                            =           #
+  CIMB                               =           #
+  Public Bank                        =           #
+  RHB                                =           #
+  Hong Leong Bank                    =           #
+  AmBank                             =           #
+  Bank Islam                         =           #
+  Affin Bank                         =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Bank of China                      =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- unfunded_facility · Unfunded facility · Standby L/C (SBLC) · USD · % p.a. ---
+    have 0/15, missing 15
+  Maybank                            =           #
+  CIMB                               =           #
+  Public Bank                        =           #
+  RHB                                =           #
+  Hong Leong Bank                    =           #
+  AmBank                             =           #
+  Bank Islam                         =           #
+  Affin Bank                         =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Bank of China                      =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- cross_border · Cross-border transfer · outgoing · MYR → USD ---
+    have 4/15, missing 11
+    fx_spread_% = the margin over the mid-market rate. fee = upfront fee in MYR.
+  CIMB                                 fx_spread_% =         fee =         #
+  RHB                                  fx_spread_% =         fee =         #
+  AmBank                               fx_spread_% =         fee =         #
+  Bank Islam                           fx_spread_% =         fee =         #
+  Affin Bank                           fx_spread_% =         fee =         #
+  Standard Chartered                   fx_spread_% =         fee =         #
+  OCBC                                 fx_spread_% =         fee =         #
+  UOB                                  fx_spread_% =         fee =         #
+  Bank of China                        fx_spread_% =         fee =         #
+  MUFG Bank                            fx_spread_% =         fee =         #
+  BNP Paribas                          fx_spread_% =         fee =         #
+
+--- cross_border · Cross-border transfer · incoming · GBP → MYR ---
+    have 0/15, missing 15
+    fx_spread_% = the margin over the mid-market rate. fee = upfront fee in MYR.
+  Maybank                              fx_spread_% =         fee =         #
+  CIMB                                 fx_spread_% =         fee =         #
+  Public Bank                          fx_spread_% =         fee =         #
+  RHB                                  fx_spread_% =         fee =         #
+  Hong Leong Bank                      fx_spread_% =         fee =         #
+  AmBank                               fx_spread_% =         fee =         #
+  Bank Islam                           fx_spread_% =         fee =         #
+  Affin Bank                           fx_spread_% =         fee =         #
+  Standard Chartered                   fx_spread_% =         fee =         #
+  HSBC                                 fx_spread_% =         fee =         #
+  OCBC                                 fx_spread_% =         fee =         #
+  UOB                                  fx_spread_% =         fee =         #
+  Bank of China                        fx_spread_% =         fee =         #
+  MUFG Bank                            fx_spread_% =         fee =         #
+  BNP Paribas                          fx_spread_% =         fee =         #
+
+==============================================================================
+ID · INDONESIA  (local currency IDR)
+==============================================================================
+missing 290 · have 10
+
+--- housing_loan · Housing loan · IDR · % p.a. ---
+    have 5/15, missing 10
+  Bank Rakyat Indonesia              =           #
+  Bank Negara Indonesia              =           #
+  Permata Bank                       =           #
+  Panin Bank                         =           #
+  Maybank Indonesia                  =           #
+  UOB Indonesia                      =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- personal_loan · Personal loan · IDR · % p.a. ---
+    have 5/15, missing 10
+  Bank Rakyat Indonesia              =           #
+  Bank Negara Indonesia              =           #
+  Permata Bank                       =           #
+  Panin Bank                         =           #
+  Maybank Indonesia                  =           #
+  UOB Indonesia                      =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- vehicle_loan · Vehicle loan · IDR · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                       =           #
+  Bank Central Asia                  =           #
+  Bank Rakyat Indonesia              =           #
+  Bank Negara Indonesia              =           #
+  CIMB Niaga                         =           #
+  Bank Danamon                       =           #
+  Permata Bank                       =           #
+  Panin Bank                         =           #
+  Maybank Indonesia                  =           #
+  OCBC Indonesia                     =           #
+  UOB Indonesia                      =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- fixed_deposit · Fixed deposit · IDR · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                       =           #
+  Bank Central Asia                  =           #
+  Bank Rakyat Indonesia              =           #
+  Bank Negara Indonesia              =           #
+  CIMB Niaga                         =           #
+  Bank Danamon                       =           #
+  Permata Bank                       =           #
+  Panin Bank                         =           #
+  Maybank Indonesia                  =           #
+  OCBC Indonesia                     =           #
+  UOB Indonesia                      =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- fixed_deposit · Fixed deposit · USD · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                       =           #
+  Bank Central Asia                  =           #
+  Bank Rakyat Indonesia              =           #
+  Bank Negara Indonesia              =           #
+  CIMB Niaga                         =           #
+  Bank Danamon                       =           #
+  Permata Bank                       =           #
+  Panin Bank                         =           #
+  Maybank Indonesia                  =           #
+  OCBC Indonesia                     =           #
+  UOB Indonesia                      =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- overdraft · Overdraft facility · IDR · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                       =           #
+  Bank Central Asia                  =           #
+  Bank Rakyat Indonesia              =           #
+  Bank Negara Indonesia              =           #
+  CIMB Niaga                         =           #
+  Bank Danamon                       =           #
+  Permata Bank                       =           #
+  Panin Bank                         =           #
+  Maybank Indonesia                  =           #
+  OCBC Indonesia                     =           #
+  UOB Indonesia                      =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- overdraft · Overdraft facility · USD · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                       =           #
+  Bank Central Asia                  =           #
+  Bank Rakyat Indonesia              =           #
+  Bank Negara Indonesia              =           #
+  CIMB Niaga                         =           #
+  Bank Danamon                       =           #
+  Permata Bank                       =           #
+  Panin Bank                         =           #
+  Maybank Indonesia                  =           #
+  OCBC Indonesia                     =           #
+  UOB Indonesia                      =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Import finance · IDR · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                       =           #
+  Bank Central Asia                  =           #
+  Bank Rakyat Indonesia              =           #
+  Bank Negara Indonesia              =           #
+  CIMB Niaga                         =           #
+  Bank Danamon                       =           #
+  Permata Bank                       =           #
+  Panin Bank                         =           #
+  Maybank Indonesia                  =           #
+  OCBC Indonesia                     =           #
+  UOB Indonesia                      =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Export finance · IDR · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                       =           #
+  Bank Central Asia                  =           #
+  Bank Rakyat Indonesia              =           #
+  Bank Negara Indonesia              =           #
+  CIMB Niaga                         =           #
+  Bank Danamon                       =           #
+  Permata Bank                       =           #
+  Panin Bank                         =           #
+  Maybank Indonesia                  =           #
+  OCBC Indonesia                     =           #
+  UOB Indonesia                      =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Supplier finance · IDR · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                       =           #
+  Bank Central Asia                  =           #
+  Bank Rakyat Indonesia              =           #
+  Bank Negara Indonesia              =           #
+  CIMB Niaga                         =           #
+  Bank Danamon                       =           #
+  Permata Bank                       =           #
+  Panin Bank                         =           #
+  Maybank Indonesia                  =           #
+  OCBC Indonesia                     =           #
+  UOB Indonesia                      =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Bill discounting · IDR · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                       =           #
+  Bank Central Asia                  =           #
+  Bank Rakyat Indonesia              =           #
+  Bank Negara Indonesia              =           #
+  CIMB Niaga                         =           #
+  Bank Danamon                       =           #
+  Permata Bank                       =           #
+  Panin Bank                         =           #
+  Maybank Indonesia                  =           #
+  OCBC Indonesia                     =           #
+  UOB Indonesia                      =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Import finance · USD · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                       =           #
+  Bank Central Asia                  =           #
+  Bank Rakyat Indonesia              =           #
+  Bank Negara Indonesia              =           #
+  CIMB Niaga                         =           #
+  Bank Danamon                       =           #
+  Permata Bank                       =           #
+  Panin Bank                         =           #
+  Maybank Indonesia                  =           #
+  OCBC Indonesia                     =           #
+  UOB Indonesia                      =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Export finance · USD · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                       =           #
+  Bank Central Asia                  =           #
+  Bank Rakyat Indonesia              =           #
+  Bank Negara Indonesia              =           #
+  CIMB Niaga                         =           #
+  Bank Danamon                       =           #
+  Permata Bank                       =           #
+  Panin Bank                         =           #
+  Maybank Indonesia                  =           #
+  OCBC Indonesia                     =           #
+  UOB Indonesia                      =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Supplier finance · USD · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                       =           #
+  Bank Central Asia                  =           #
+  Bank Rakyat Indonesia              =           #
+  Bank Negara Indonesia              =           #
+  CIMB Niaga                         =           #
+  Bank Danamon                       =           #
+  Permata Bank                       =           #
+  Panin Bank                         =           #
+  Maybank Indonesia                  =           #
+  OCBC Indonesia                     =           #
+  UOB Indonesia                      =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Bill discounting · USD · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                       =           #
+  Bank Central Asia                  =           #
+  Bank Rakyat Indonesia              =           #
+  Bank Negara Indonesia              =           #
+  CIMB Niaga                         =           #
+  Bank Danamon                       =           #
+  Permata Bank                       =           #
+  Panin Bank                         =           #
+  Maybank Indonesia                  =           #
+  OCBC Indonesia                     =           #
+  UOB Indonesia                      =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- unfunded_facility · Unfunded facility · Letter of Credit (L/C) · USD · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                       =           #
+  Bank Central Asia                  =           #
+  Bank Rakyat Indonesia              =           #
+  Bank Negara Indonesia              =           #
+  CIMB Niaga                         =           #
+  Bank Danamon                       =           #
+  Permata Bank                       =           #
+  Panin Bank                         =           #
+  Maybank Indonesia                  =           #
+  OCBC Indonesia                     =           #
+  UOB Indonesia                      =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- unfunded_facility · Unfunded facility · Bank Guarantee (BG) · USD · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                       =           #
+  Bank Central Asia                  =           #
+  Bank Rakyat Indonesia              =           #
+  Bank Negara Indonesia              =           #
+  CIMB Niaga                         =           #
+  Bank Danamon                       =           #
+  Permata Bank                       =           #
+  Panin Bank                         =           #
+  Maybank Indonesia                  =           #
+  OCBC Indonesia                     =           #
+  UOB Indonesia                      =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- unfunded_facility · Unfunded facility · Standby L/C (SBLC) · USD · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                       =           #
+  Bank Central Asia                  =           #
+  Bank Rakyat Indonesia              =           #
+  Bank Negara Indonesia              =           #
+  CIMB Niaga                         =           #
+  Bank Danamon                       =           #
+  Permata Bank                       =           #
+  Panin Bank                         =           #
+  Maybank Indonesia                  =           #
+  OCBC Indonesia                     =           #
+  UOB Indonesia                      =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- cross_border · Cross-border transfer · outgoing · IDR → USD ---
+    have 0/15, missing 15
+    fx_spread_% = the margin over the mid-market rate. fee = upfront fee in IDR.
+  Bank Mandiri                         fx_spread_% =         fee =         #
+  Bank Central Asia                    fx_spread_% =         fee =         #
+  Bank Rakyat Indonesia                fx_spread_% =         fee =         #
+  Bank Negara Indonesia                fx_spread_% =         fee =         #
+  CIMB Niaga                           fx_spread_% =         fee =         #
+  Bank Danamon                         fx_spread_% =         fee =         #
+  Permata Bank                         fx_spread_% =         fee =         #
+  Panin Bank                           fx_spread_% =         fee =         #
+  Maybank Indonesia                    fx_spread_% =         fee =         #
+  OCBC Indonesia                       fx_spread_% =         fee =         #
+  UOB Indonesia                        fx_spread_% =         fee =         #
+  Standard Chartered                   fx_spread_% =         fee =         #
+  HSBC                                 fx_spread_% =         fee =         #
+  MUFG Bank                            fx_spread_% =         fee =         #
+  BNP Paribas                          fx_spread_% =         fee =         #
+
+--- cross_border · Cross-border transfer · incoming · GBP → IDR ---
+    have 0/15, missing 15
+    fx_spread_% = the margin over the mid-market rate. fee = upfront fee in IDR.
+  Bank Mandiri                         fx_spread_% =         fee =         #
+  Bank Central Asia                    fx_spread_% =         fee =         #
+  Bank Rakyat Indonesia                fx_spread_% =         fee =         #
+  Bank Negara Indonesia                fx_spread_% =         fee =         #
+  CIMB Niaga                           fx_spread_% =         fee =         #
+  Bank Danamon                         fx_spread_% =         fee =         #
+  Permata Bank                         fx_spread_% =         fee =         #
+  Panin Bank                           fx_spread_% =         fee =         #
+  Maybank Indonesia                    fx_spread_% =         fee =         #
+  OCBC Indonesia                       fx_spread_% =         fee =         #
+  UOB Indonesia                        fx_spread_% =         fee =         #
+  Standard Chartered                   fx_spread_% =         fee =         #
+  HSBC                                 fx_spread_% =         fee =         #
+  MUFG Bank                            fx_spread_% =         fee =         #
+  BNP Paribas                          fx_spread_% =         fee =         #
+
+==============================================================================
+TH · THAILAND  (local currency THB)
+==============================================================================
+missing 284 · have 16
+
+--- housing_loan · Housing loan · THB · % p.a. ---
+    have 4/15, missing 11
+  Krungthai Bank                     =           #
+  TMBThanachart                      =           #
+  Kiatnakin Phatra                   =           #
+  LH Bank                            =           #
+  UOB Thailand                       =           #
+  CIMB Thai                          =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  ICBC Thai                          =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- personal_loan · Personal loan · THB · % p.a. ---
+    have 4/15, missing 11
+  Krungthai Bank                     =           #
+  TMBThanachart                      =           #
+  Kiatnakin Phatra                   =           #
+  LH Bank                            =           #
+  UOB Thailand                       =           #
+  CIMB Thai                          =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  ICBC Thai                          =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- vehicle_loan · Vehicle loan · THB · % p.a. ---
+    have 0/15, missing 15
+  Bangkok Bank                       =           #
+  Kasikornbank                       =           #
+  Siam Commercial Bank               =           #
+  Krungthai Bank                     =           #
+  Bank of Ayudhya                    =           #
+  TMBThanachart                      =           #
+  Kiatnakin Phatra                   =           #
+  LH Bank                            =           #
+  UOB Thailand                       =           #
+  CIMB Thai                          =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  ICBC Thai                          =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- fixed_deposit · Fixed deposit · THB · % p.a. ---
+    have 4/15, missing 11
+  Krungthai Bank                     =           #
+  TMBThanachart                      =           #
+  Kiatnakin Phatra                   =           #
+  LH Bank                            =           #
+  UOB Thailand                       =           #
+  CIMB Thai                          =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  ICBC Thai                          =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- fixed_deposit · Fixed deposit · USD · % p.a. ---
+    have 0/15, missing 15
+  Bangkok Bank                       =           #
+  Kasikornbank                       =           #
+  Siam Commercial Bank               =           #
+  Krungthai Bank                     =           #
+  Bank of Ayudhya                    =           #
+  TMBThanachart                      =           #
+  Kiatnakin Phatra                   =           #
+  LH Bank                            =           #
+  UOB Thailand                       =           #
+  CIMB Thai                          =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  ICBC Thai                          =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- overdraft · Overdraft facility · THB · % p.a. ---
+    have 4/15, missing 11
+  Krungthai Bank                     =           #
+  TMBThanachart                      =           #
+  Kiatnakin Phatra                   =           #
+  LH Bank                            =           #
+  UOB Thailand                       =           #
+  CIMB Thai                          =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  ICBC Thai                          =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- overdraft · Overdraft facility · USD · % p.a. ---
+    have 0/15, missing 15
+  Bangkok Bank                       =           #
+  Kasikornbank                       =           #
+  Siam Commercial Bank               =           #
+  Krungthai Bank                     =           #
+  Bank of Ayudhya                    =           #
+  TMBThanachart                      =           #
+  Kiatnakin Phatra                   =           #
+  LH Bank                            =           #
+  UOB Thailand                       =           #
+  CIMB Thai                          =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  ICBC Thai                          =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Import finance · THB · % p.a. ---
+    have 0/15, missing 15
+  Bangkok Bank                       =           #
+  Kasikornbank                       =           #
+  Siam Commercial Bank               =           #
+  Krungthai Bank                     =           #
+  Bank of Ayudhya                    =           #
+  TMBThanachart                      =           #
+  Kiatnakin Phatra                   =           #
+  LH Bank                            =           #
+  UOB Thailand                       =           #
+  CIMB Thai                          =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  ICBC Thai                          =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Export finance · THB · % p.a. ---
+    have 0/15, missing 15
+  Bangkok Bank                       =           #
+  Kasikornbank                       =           #
+  Siam Commercial Bank               =           #
+  Krungthai Bank                     =           #
+  Bank of Ayudhya                    =           #
+  TMBThanachart                      =           #
+  Kiatnakin Phatra                   =           #
+  LH Bank                            =           #
+  UOB Thailand                       =           #
+  CIMB Thai                          =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  ICBC Thai                          =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Supplier finance · THB · % p.a. ---
+    have 0/15, missing 15
+  Bangkok Bank                       =           #
+  Kasikornbank                       =           #
+  Siam Commercial Bank               =           #
+  Krungthai Bank                     =           #
+  Bank of Ayudhya                    =           #
+  TMBThanachart                      =           #
+  Kiatnakin Phatra                   =           #
+  LH Bank                            =           #
+  UOB Thailand                       =           #
+  CIMB Thai                          =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  ICBC Thai                          =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Bill discounting · THB · % p.a. ---
+    have 0/15, missing 15
+  Bangkok Bank                       =           #
+  Kasikornbank                       =           #
+  Siam Commercial Bank               =           #
+  Krungthai Bank                     =           #
+  Bank of Ayudhya                    =           #
+  TMBThanachart                      =           #
+  Kiatnakin Phatra                   =           #
+  LH Bank                            =           #
+  UOB Thailand                       =           #
+  CIMB Thai                          =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  ICBC Thai                          =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Import finance · USD · % p.a. ---
+    have 0/15, missing 15
+  Bangkok Bank                       =           #
+  Kasikornbank                       =           #
+  Siam Commercial Bank               =           #
+  Krungthai Bank                     =           #
+  Bank of Ayudhya                    =           #
+  TMBThanachart                      =           #
+  Kiatnakin Phatra                   =           #
+  LH Bank                            =           #
+  UOB Thailand                       =           #
+  CIMB Thai                          =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  ICBC Thai                          =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Export finance · USD · % p.a. ---
+    have 0/15, missing 15
+  Bangkok Bank                       =           #
+  Kasikornbank                       =           #
+  Siam Commercial Bank               =           #
+  Krungthai Bank                     =           #
+  Bank of Ayudhya                    =           #
+  TMBThanachart                      =           #
+  Kiatnakin Phatra                   =           #
+  LH Bank                            =           #
+  UOB Thailand                       =           #
+  CIMB Thai                          =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  ICBC Thai                          =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Supplier finance · USD · % p.a. ---
+    have 0/15, missing 15
+  Bangkok Bank                       =           #
+  Kasikornbank                       =           #
+  Siam Commercial Bank               =           #
+  Krungthai Bank                     =           #
+  Bank of Ayudhya                    =           #
+  TMBThanachart                      =           #
+  Kiatnakin Phatra                   =           #
+  LH Bank                            =           #
+  UOB Thailand                       =           #
+  CIMB Thai                          =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  ICBC Thai                          =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- short_term_finance · Short-term finance (funded) · Bill discounting · USD · % p.a. ---
+    have 0/15, missing 15
+  Bangkok Bank                       =           #
+  Kasikornbank                       =           #
+  Siam Commercial Bank               =           #
+  Krungthai Bank                     =           #
+  Bank of Ayudhya                    =           #
+  TMBThanachart                      =           #
+  Kiatnakin Phatra                   =           #
+  LH Bank                            =           #
+  UOB Thailand                       =           #
+  CIMB Thai                          =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  ICBC Thai                          =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- unfunded_facility · Unfunded facility · Letter of Credit (L/C) · USD · % p.a. ---
+    have 0/15, missing 15
+  Bangkok Bank                       =           #
+  Kasikornbank                       =           #
+  Siam Commercial Bank               =           #
+  Krungthai Bank                     =           #
+  Bank of Ayudhya                    =           #
+  TMBThanachart                      =           #
+  Kiatnakin Phatra                   =           #
+  LH Bank                            =           #
+  UOB Thailand                       =           #
+  CIMB Thai                          =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  ICBC Thai                          =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- unfunded_facility · Unfunded facility · Bank Guarantee (BG) · USD · % p.a. ---
+    have 0/15, missing 15
+  Bangkok Bank                       =           #
+  Kasikornbank                       =           #
+  Siam Commercial Bank               =           #
+  Krungthai Bank                     =           #
+  Bank of Ayudhya                    =           #
+  TMBThanachart                      =           #
+  Kiatnakin Phatra                   =           #
+  LH Bank                            =           #
+  UOB Thailand                       =           #
+  CIMB Thai                          =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  ICBC Thai                          =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- unfunded_facility · Unfunded facility · Standby L/C (SBLC) · USD · % p.a. ---
+    have 0/15, missing 15
+  Bangkok Bank                       =           #
+  Kasikornbank                       =           #
+  Siam Commercial Bank               =           #
+  Krungthai Bank                     =           #
+  Bank of Ayudhya                    =           #
+  TMBThanachart                      =           #
+  Kiatnakin Phatra                   =           #
+  LH Bank                            =           #
+  UOB Thailand                       =           #
+  CIMB Thai                          =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  ICBC Thai                          =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- cross_border · Cross-border transfer · outgoing · THB → USD ---
+    have 0/15, missing 15
+    fx_spread_% = the margin over the mid-market rate. fee = upfront fee in THB.
+  Bangkok Bank                         fx_spread_% =         fee =         #
+  Kasikornbank                         fx_spread_% =         fee =         #
+  Siam Commercial Bank                 fx_spread_% =         fee =         #
+  Krungthai Bank                       fx_spread_% =         fee =         #
+  Bank of Ayudhya                      fx_spread_% =         fee =         #
+  TMBThanachart                        fx_spread_% =         fee =         #
+  Kiatnakin Phatra                     fx_spread_% =         fee =         #
+  LH Bank                              fx_spread_% =         fee =         #
+  UOB Thailand                         fx_spread_% =         fee =         #
+  CIMB Thai                            fx_spread_% =         fee =         #
+  Standard Chartered                   fx_spread_% =         fee =         #
+  HSBC                                 fx_spread_% =         fee =         #
+  ICBC Thai                            fx_spread_% =         fee =         #
+  MUFG Bank                            fx_spread_% =         fee =         #
+  BNP Paribas                          fx_spread_% =         fee =         #
+
+--- cross_border · Cross-border transfer · incoming · GBP → THB ---
+    have 0/15, missing 15
+    fx_spread_% = the margin over the mid-market rate. fee = upfront fee in THB.
+  Bangkok Bank                         fx_spread_% =         fee =         #
+  Kasikornbank                         fx_spread_% =         fee =         #
+  Siam Commercial Bank                 fx_spread_% =         fee =         #
+  Krungthai Bank                       fx_spread_% =         fee =         #
+  Bank of Ayudhya                      fx_spread_% =         fee =         #
+  TMBThanachart                        fx_spread_% =         fee =         #
+  Kiatnakin Phatra                     fx_spread_% =         fee =         #
+  LH Bank                              fx_spread_% =         fee =         #
+  UOB Thailand                         fx_spread_% =         fee =         #
+  CIMB Thai                            fx_spread_% =         fee =         #
+  Standard Chartered                   fx_spread_% =         fee =         #
+  HSBC                                 fx_spread_% =         fee =         #
+  ICBC Thai                            fx_spread_% =         fee =         #
+  MUFG Bank                            fx_spread_% =         fee =         #
+  BNP Paribas                          fx_spread_% =         fee =         #
+
+==============================================================================
+APPENDIX A · FOREIGN-CURRENCY FIXED DEPOSITS (EUR / GBP)
+==============================================================================
+The fixed-deposit picker offers the local currency, USD, EUR, GBP and every
+other market currency. The body above covers local + USD. EUR and GBP sit here
+because few banks in these markets publish them — fill the ones that do.
+
+--- SG · fixed_deposit · EUR ---
+  DBS                                =           #
+  POSB                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Standard Chartered                 =           #
+  Citibank                           =           #
+  HSBC                               =           #
+  Maybank                            =           #
+  Bank of China                      =           #
+  CIMB                               =           #
+  RHB                                =           #
+  MUFG Bank                          =           #
+  Mizuho                             =           #
+  State Bank of India                =           #
+  BNP Paribas                        =           #
+
+--- SG · fixed_deposit · GBP ---
+  DBS                                =           #
+  POSB                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Standard Chartered                 =           #
+  Citibank                           =           #
+  HSBC                               =           #
+  Maybank                            =           #
+  Bank of China                      =           #
+  CIMB                               =           #
+  RHB                                =           #
+  MUFG Bank                          =           #
+  Mizuho                             =           #
+  State Bank of India                =           #
+  BNP Paribas                        =           #
+
+--- IN · fixed_deposit · EUR ---
+  State Bank of India                =           #
+  HDFC Bank                          =           #
+  ICICI Bank                         =           #
+  Axis Bank                          =           #
+  Kotak Mahindra Bank                =           #
+  Punjab National Bank               =           #
+  Bank of Baroda                     =           #
+  Yes Bank                           =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  Citibank                           =           #
+  DBS Bank India                     =           #
+  MUFG Bank                          =           #
+  Deutsche Bank                      =           #
+  BNP Paribas                        =           #
+
+--- IN · fixed_deposit · GBP ---
+  State Bank of India                =           #
+  HDFC Bank                          =           #
+  ICICI Bank                         =           #
+  Axis Bank                          =           #
+  Kotak Mahindra Bank                =           #
+  Punjab National Bank               =           #
+  Bank of Baroda                     =           #
+  Yes Bank                           =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  Citibank                           =           #
+  DBS Bank India                     =           #
+  MUFG Bank                          =           #
+  Deutsche Bank                      =           #
+  BNP Paribas                        =           #
+
+--- MY · fixed_deposit · EUR ---
+  Maybank                            =           #
+  CIMB                               =           #
+  Public Bank                        =           #
+  RHB                                =           #
+  Hong Leong Bank                    =           #
+  AmBank                             =           #
+  Bank Islam                         =           #
+  Affin Bank                         =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Bank of China                      =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- MY · fixed_deposit · GBP ---
+  Maybank                            =           #
+  CIMB                               =           #
+  Public Bank                        =           #
+  RHB                                =           #
+  Hong Leong Bank                    =           #
+  AmBank                             =           #
+  Bank Islam                         =           #
+  Affin Bank                         =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  OCBC                               =           #
+  UOB                                =           #
+  Bank of China                      =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- ID · fixed_deposit · EUR ---
+  Bank Mandiri                       =           #
+  Bank Central Asia                  =           #
+  Bank Rakyat Indonesia              =           #
+  Bank Negara Indonesia              =           #
+  CIMB Niaga                         =           #
+  Bank Danamon                       =           #
+  Permata Bank                       =           #
+  Panin Bank                         =           #
+  Maybank Indonesia                  =           #
+  OCBC Indonesia                     =           #
+  UOB Indonesia                      =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- ID · fixed_deposit · GBP ---
+  Bank Mandiri                       =           #
+  Bank Central Asia                  =           #
+  Bank Rakyat Indonesia              =           #
+  Bank Negara Indonesia              =           #
+  CIMB Niaga                         =           #
+  Bank Danamon                       =           #
+  Permata Bank                       =           #
+  Panin Bank                         =           #
+  Maybank Indonesia                  =           #
+  OCBC Indonesia                     =           #
+  UOB Indonesia                      =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- TH · fixed_deposit · EUR ---
+  Bangkok Bank                       =           #
+  Kasikornbank                       =           #
+  Siam Commercial Bank               =           #
+  Krungthai Bank                     =           #
+  Bank of Ayudhya                    =           #
+  TMBThanachart                      =           #
+  Kiatnakin Phatra                   =           #
+  LH Bank                            =           #
+  UOB Thailand                       =           #
+  CIMB Thai                          =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  ICBC Thai                          =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+--- TH · fixed_deposit · GBP ---
+  Bangkok Bank                       =           #
+  Kasikornbank                       =           #
+  Siam Commercial Bank               =           #
+  Krungthai Bank                     =           #
+  Bank of Ayudhya                    =           #
+  TMBThanachart                      =           #
+  Kiatnakin Phatra                   =           #
+  LH Bank                            =           #
+  UOB Thailand                       =           #
+  CIMB Thai                          =           #
+  Standard Chartered                 =           #
+  HSBC                               =           #
+  ICBC Thai                          =           #
+  MUFG Bank                          =           #
+  BNP Paribas                        =           #
+
+==============================================================================
+APPENDIX B · BANKS IN THE ROSTER BUT NOT IN THE LIVE DIRECTORY
+==============================================================================
+scripts/lib/roster.mjs lists these providers, but the banks table the app
+actually serves holds only 15 per country. Nothing above asks for their rates,
+because the app cannot offer them. Add the bank to the directory first if you
+want it benchmarked — a rate for a bank nobody can select is unreachable.
+
+--- SG · 3 not in the directory ---
+  Trust Bank
+  GXS Bank
+  MariBank
+
+--- IN · 12 not in the directory ---
+  Canara Bank
+  Union Bank of India
+  Bank of India
+  Indian Bank
+  Central Bank of India
+  Indian Overseas Bank
+  UCO Bank
+  IndusInd Bank
+  IDFC First Bank
+  Federal Bank
+  RBL Bank
+  Bandhan Bank
+
+--- MY · 7 not in the directory ---
+  Alliance Bank
+  Bank Rakyat
+  GXBank
+  Boost Bank
+  AEON Bank
+  KAF Digital Bank
+  Ryt Bank
+
+--- ID · 12 not in the directory ---
+  Bank Tabungan Negara
+  OCBC NISP
+  Bank Jago
+  SeaBank
+  Allo Bank
+  blu by BCA Digital
+  Jenius (BTPN)
+  Bank Neo Commerce
+  LINE Bank
+  TMRW by UOB
+  Superbank
+  Krom Bank
+
+--- TH · 5 not in the directory ---
+  Government Savings Bank
+  LINE BK
+  Dime!
+  SCBX Virtual Bank
+  Krungthai-Gulf Virtual Bank
+
+==============================================================================
+APPENDIX C · SOURCED RATES HELD FOR BANKS THE DIRECTORY DOES NOT LIST
+==============================================================================
+These rows are real and sourced, but their bank is not in the banks table, so
+nobody can select it. Either add the bank to the directory or drop the rows.
+
+  IN  Canara Bank                            3 sourced rows
+  IN  Central Bank of India                  4 sourced rows
+  IN  IDFC First Bank                        3 sourced rows
+  IN  Indian Bank                            1 sourced row
+  IN  IndusInd Bank                          1 sourced row
+  IN  Union Bank of India                    3 sourced rows
+  MY  Affin Islamic Bank Berhad              1 sourced row
+  MY  Al Rajhi Banking & Investment Corporation (Malaysia) Berhad 1 sourced row
+  MY  Alliance Bank                          2 sourced rows
+  MY  Alliance Islamic Bank Berhad           1 sourced row
+  MY  AmBank Islamic Berhad                  1 sourced row
+  MY  Bangkok Bank Berhad                    1 sourced row
+  MY  Bank Islam Malaysia Berhad             1 sourced row
+  MY  Bank Kerjasama Rakyat Malaysia Berhad  1 sourced row
+  MY  Bank Muamalat Malaysia Berhad          1 sourced row
+  MY  Bank Rakyat                            1 sourced row
+  MY  Bank Simpanan Nasional                 1 sourced row
+  MY  Bank of China (Malaysia) Berhad        1 sourced row
+  MY  CIMB Bank Berhad                       1 sourced row
+  MY  CIMB Islamic Bank Berhad               1 sourced row
+  MY  Citibank Berhad                        1 sourced row
+  MY  HSBC Amanah Malaysia Berhad            1 sourced row
+  MY  HSBC Bank Malaysia Berhad              1 sourced row
+  MY  Hong Leong Bank Malaysia Berhad        1 sourced row
+  MY  Hong Leong Islamic Bank Berhad         1 sourced row
+  MY  Industrial and Commercial Bank of China (Malaysia) Berhad 1 sourced row
+  MY  Kuwait Finance House (Malaysia) Berhad 1 sourced row
+  MY  MBSB Bank Berhad                       1 sourced row
+  MY  Malayan Banking Berhad                 1 sourced row
+  MY  Maybank Islamic Berhad                 1 sourced row
+  MY  OCBC Al-Amin Bank Berhad               1 sourced row
+  MY  OCBC Bank (Malaysia) Berhad            1 sourced row
+  MY  Public Bank Berhad                     1 sourced row
+  MY  Public Islamic Bank Berhad             1 sourced row
+  MY  RHB Bank Berhad                        1 sourced row
+  MY  RHB Islamic Bank Berhad                1 sourced row
+  MY  Standard Chartered Bank Malaysia Berhad 1 sourced row
+  MY  Standard Chartered Saadiq Berhad       1 sourced row
+  MY  United Overseas Bank (Malaysia) Bhd.   1 sourced row
+  SG  GXS Bank                               1 sourced row
+  SG  Hong Leong Finance                     2 sourced rows
+  SG  ICBC                                   1 sourced row
+  SG  Trust Bank                             1 sourced row
+  TH  Bank of China (Thai)                   5 sourced rows
+  TH  CIMB THAI Bank                         5 sourced rows
+  TH  CLICX Bank                             1 sourced row
+  TH  Industrial and Commercial Bank of China (Thai) 5 sourced rows
+  TH  Kiatnakin Phatra Bank                  5 sourced rows
+  TH  Krung Thai Bank                        5 sourced rows
+  TH  Land and Houses Bank                   5 sourced rows
+  TH  Mega International Commercial Bank     5 sourced rows
+  TH  Standard Chartered Bank (Thai)         2 sourced rows
+  TH  Sumitomo Mitsui Trust Bank (Thai)      2 sourced rows
+  TH  TISCO Bank                             5 sourced rows
+  TH  TMBThanachart Bank                     5 sourced rows
+  TH  Thai Credit Bank                       5 sourced rows
+  TH  United Overseas Bank (Thai)            5 sourced rows
+

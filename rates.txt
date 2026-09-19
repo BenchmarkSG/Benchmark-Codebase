@@ -1,0 +1,2100 @@
+==============================================================================
+SG · SINGAPORE  (local currency SGD)
+==============================================================================
+missing 300 · have 15
+
+--- housing_loan · Housing loan · SGD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                 = 1.94
+  POSB                                = 2.02
+  OCBC                                = 2.14
+  UOB                                 = 2.08
+  Standard Chartered                  = 2.20
+  Citibank                            = 2.26
+  HSBC                                = 2.14
+  Maybank                             = 2.13
+  Bank of China                       = 2.25
+  CIMB                                = 2.10
+  RHB                                 = 2.16
+  MUFG Bank                           = 2.28
+  Mizuho                              = 2.11
+  State Bank of India                 = 2.02
+  BNP Paribas                         = 2.31
+
+--- personal_loan · Personal loan · SGD · % p.a. ---
+    have 5/15, missing 10
+  POSB                                = 2.06
+  Citibank                            = 2.32
+  Maybank                             = 2.29
+  Bank of China                       = 2.25
+  CIMB                                = 2.24
+  RHB                                 = 2.32
+  MUFG Bank                           = 2.28
+  Mizuho                              = 2.08
+  State Bank of India                 = 2.18
+  BNP Paribas                         = 2.31
+
+--- vehicle_loan · Vehicle loan · SGD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                 = 2.57
+  POSB                                = 2.62
+  OCBC                                = 2.71
+  UOB                                 = 2.71
+  Standard Chartered                  = 2.80
+  Citibank                            = 2.83
+  HSBC                                = 2.77
+  Maybank                             = 2.73
+  Bank of China                       = 2.82
+  CIMB                                = 2.73
+  RHB                                 = 2.76
+  MUFG Bank                           = 2.85
+  Mizuho                              = 2.70
+  State Bank of India                 = 2.62
+  BNP Paribas                         = 2.88
+
+--- fixed_deposit · Fixed deposit · SGD · % p.a. ---
+    have 8/15, missing 7
+  POSB                                = 1.06
+  Standard Chartered                  = 1.25
+  HSBC                                = 1.24
+  MUFG Bank                           = 1.28
+  Mizuho                              = 1.15
+  State Bank of India                 = 1.08
+  BNP Paribas                         = 1.31
+
+--- fixed_deposit · Fixed deposit · USD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                 = 2.51
+  POSB                                = 2.57
+  OCBC                                = 2.67
+  UOB                                 = 2.65
+  Standard Chartered                  = 2.75
+  Citibank                            = 2.79
+  HSBC                                = 2.71
+  Maybank                             = 2.68
+  Bank of China                       = 2.78
+  CIMB                                = 2.67
+  RHB                                 = 2.71
+  MUFG Bank                           = 2.81
+  Mizuho                              = 2.65
+  State Bank of India                 = 2.57
+  BNP Paribas                         = 2.84
+
+--- current_account · Current account · SGD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                 = 0.00
+  POSB                                = 0.00
+  OCBC                                = 0.05
+  UOB                                 = 0.07
+  Standard Chartered                  = 0.15
+  Citibank                            = 0.17
+  HSBC                                = 0.13
+  Maybank                             = 0.08
+  Bank of China                       = 0.16
+  CIMB                                = 0.09
+  RHB                                 = 0.11
+  MUFG Bank                           = 0.19
+  Mizuho                              = 0.05
+  State Bank of India                 = 0.00
+  BNP Paribas                         = 0.22
+
+--- overdraft · Overdraft facility · SGD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                 = 5.65
+  POSB                                = 5.72
+  OCBC                                = 5.83
+  UOB                                 = 5.79
+  Standard Chartered                  = 5.90
+  Citibank                            = 5.95
+  HSBC                                = 5.85
+  Maybank                             = 5.83
+  Bank of China                       = 5.94
+  CIMB                                = 5.81
+  RHB                                 = 5.86
+  MUFG Bank                           = 5.97
+  Mizuho                              = 5.81
+  State Bank of India                 = 5.72
+  BNP Paribas                         = 6.00
+
+--- overdraft · Overdraft facility · USD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                 = 6.05
+  POSB                                = 6.12
+  OCBC                                = 6.23
+  UOB                                 = 6.19
+  Standard Chartered                  = 6.30
+  Citibank                            = 6.35
+  HSBC                                = 6.25
+  Maybank                             = 6.23
+  Bank of China                       = 6.34
+  CIMB                                = 6.21
+  RHB                                 = 6.26
+  MUFG Bank                           = 6.37
+  Mizuho                              = 6.21
+  State Bank of India                 = 6.12
+  BNP Paribas                         = 6.40
+
+--- short_term_finance · Short-term finance (funded) · Import finance · SGD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                 = 4.20
+  POSB                                = 4.27
+  OCBC                                = 4.38
+  UOB                                 = 4.34
+  Standard Chartered                  = 4.45
+  Citibank                            = 4.50
+  HSBC                                = 4.40
+  Maybank                             = 4.38
+  Bank of China                       = 4.49
+  CIMB                                = 4.36
+  RHB                                 = 4.41
+  MUFG Bank                           = 4.52
+  Mizuho                              = 4.36
+  State Bank of India                 = 4.27
+  BNP Paribas                         = 4.55
+
+--- short_term_finance · Short-term finance (funded) · Export finance · SGD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                 = 4.20
+  POSB                                = 4.27
+  OCBC                                = 4.38
+  UOB                                 = 4.34
+  Standard Chartered                  = 4.45
+  Citibank                            = 4.50
+  HSBC                                = 4.40
+  Maybank                             = 4.38
+  Bank of China                       = 4.49
+  CIMB                                = 4.36
+  RHB                                 = 4.41
+  MUFG Bank                           = 4.52
+  Mizuho                              = 4.36
+  State Bank of India                 = 4.27
+  BNP Paribas                         = 4.55
+
+--- short_term_finance · Short-term finance (funded) · Supplier finance · SGD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                 = 4.20
+  POSB                                = 4.27
+  OCBC                                = 4.38
+  UOB                                 = 4.34
+  Standard Chartered                  = 4.45
+  Citibank                            = 4.50
+  HSBC                                = 4.40
+  Maybank                             = 4.38
+  Bank of China                       = 4.49
+  CIMB                                = 4.36
+  RHB                                 = 4.41
+  MUFG Bank                           = 4.52
+  Mizuho                              = 4.36
+  State Bank of India                 = 4.27
+  BNP Paribas                         = 4.55
+
+--- short_term_finance · Short-term finance (funded) · Bill discounting · SGD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                 = 4.20
+  POSB                                = 4.27
+  OCBC                                = 4.38
+  UOB                                 = 4.34
+  Standard Chartered                  = 4.45
+  Citibank                            = 4.50
+  HSBC                                = 4.40
+  Maybank                             = 4.38
+  Bank of China                       = 4.49
+  CIMB                                = 4.36
+  RHB                                 = 4.41
+  MUFG Bank                           = 4.52
+  Mizuho                              = 4.36
+  State Bank of India                 = 4.27
+  BNP Paribas                         = 4.55
+
+--- short_term_finance · Short-term finance (funded) · Import finance · USD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                 = 5.05
+  POSB                                = 5.12
+  OCBC                                = 5.23
+  UOB                                 = 5.19
+  Standard Chartered                  = 5.30
+  Citibank                            = 5.35
+  HSBC                                = 5.25
+  Maybank                             = 5.23
+  Bank of China                       = 5.34
+  CIMB                                = 5.21
+  RHB                                 = 5.26
+  MUFG Bank                           = 5.37
+  Mizuho                              = 5.21
+  State Bank of India                 = 5.12
+  BNP Paribas                         = 5.40
+
+--- short_term_finance · Short-term finance (funded) · Export finance · USD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                 = 5.05
+  POSB                                = 5.12
+  OCBC                                = 5.23
+  UOB                                 = 5.19
+  Standard Chartered                  = 5.30
+  Citibank                            = 5.35
+  HSBC                                = 5.25
+  Maybank                             = 5.23
+  Bank of China                       = 5.34
+  CIMB                                = 5.21
+  RHB                                 = 5.26
+  MUFG Bank                           = 5.37
+  Mizuho                              = 5.21
+  State Bank of India                 = 5.12
+  BNP Paribas                         = 5.40
+
+--- short_term_finance · Short-term finance (funded) · Supplier finance · USD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                 = 5.05
+  POSB                                = 5.12
+  OCBC                                = 5.23
+  UOB                                 = 5.19
+  Standard Chartered                  = 5.30
+  Citibank                            = 5.35
+  HSBC                                = 5.25
+  Maybank                             = 5.23
+  Bank of China                       = 5.34
+  CIMB                                = 5.21
+  RHB                                 = 5.26
+  MUFG Bank                           = 5.37
+  Mizuho                              = 5.21
+  State Bank of India                 = 5.12
+  BNP Paribas                         = 5.40
+
+--- short_term_finance · Short-term finance (funded) · Bill discounting · USD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                 = 5.05
+  POSB                                = 5.12
+  OCBC                                = 5.23
+  UOB                                 = 5.19
+  Standard Chartered                  = 5.30
+  Citibank                            = 5.35
+  HSBC                                = 5.25
+  Maybank                             = 5.23
+  Bank of China                       = 5.34
+  CIMB                                = 5.21
+  RHB                                 = 5.26
+  MUFG Bank                           = 5.37
+  Mizuho                              = 5.21
+  State Bank of India                 = 5.12
+  BNP Paribas                         = 5.40
+
+--- unfunded_facility · Unfunded facility · Letter of Credit (L/C) · USD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                 = 0.62
+  POSB                                = 0.67
+  OCBC                                = 0.76
+  UOB                                 = 0.76
+  Standard Chartered                  = 0.85
+  Citibank                            = 0.88
+  HSBC                                = 0.82
+  Maybank                             = 0.78
+  Bank of China                       = 0.87
+  CIMB                                = 0.78
+  RHB                                 = 0.81
+  MUFG Bank                           = 0.90
+  Mizuho                              = 0.75
+  State Bank of India                 = 0.67
+  BNP Paribas                         = 0.93
+
+--- unfunded_facility · Unfunded facility · Bank Guarantee (BG) · USD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                 = 0.62
+  POSB                                = 0.67
+  OCBC                                = 0.76
+  UOB                                 = 0.76
+  Standard Chartered                  = 0.85
+  Citibank                            = 0.88
+  HSBC                                = 0.82
+  Maybank                             = 0.78
+  Bank of China                       = 0.87
+  CIMB                                = 0.78
+  RHB                                 = 0.81
+  MUFG Bank                           = 0.90
+  Mizuho                              = 0.75
+  State Bank of India                 = 0.67
+  BNP Paribas                         = 0.93
+
+--- unfunded_facility · Unfunded facility · Standby L/C (SBLC) · USD · % p.a. ---
+    have 0/15, missing 15
+  DBS                                 = 0.62
+  POSB                                = 0.67
+  OCBC                                = 0.76
+  UOB                                 = 0.76
+  Standard Chartered                  = 0.85
+  Citibank                            = 0.88
+  HSBC                                = 0.82
+  Maybank                             = 0.78
+  Bank of China                       = 0.87
+  CIMB                                = 0.78
+  RHB                                 = 0.81
+  MUFG Bank                           = 0.90
+  Mizuho                              = 0.75
+  State Bank of India                 = 0.67
+  BNP Paribas                         = 0.93
+
+--- cross_border · Cross-border transfer · outgoing · SGD → USD ---
+    have 2/15, missing 13
+    fx_spread_% = the margin over the mid-market rate. fee = upfront fee in SGD.
+  DBS                                 fx_spread_% = 0.41   fee = 10
+  POSB                                fx_spread_% = 0.48   fee = 11
+  OCBC                                fx_spread_% = 0.58   fee = 12
+  UOB                                 fx_spread_% = 0.65   fee = 13
+  Standard Chartered                  fx_spread_% = 0.51   fee = 14
+  Maybank                             fx_spread_% = 0.53   fee = 10
+  Bank of China                       fx_spread_% = 0.63   fee = 12
+  CIMB                                fx_spread_% = 0.66   fee = 12
+  RHB                                 fx_spread_% = 0.49   fee = 13
+  MUFG Bank                           fx_spread_% = 0.58   fee = 15
+  Mizuho                              fx_spread_% = 0.58   fee = 10
+  State Bank of India                 fx_spread_% = 0.60   fee = 11
+  BNP Paribas                         fx_spread_% = 0.54   fee = 13
+
+--- cross_border · Cross-border transfer · incoming · GBP → SGD ---
+    have 0/15, missing 15
+    fx_spread_% = the margin over the mid-market rate. fee = upfront fee in SGD.
+  DBS                                 fx_spread_% = 0.37   fee = 7
+  POSB                                fx_spread_% = 0.44   fee = 8
+  OCBC                                fx_spread_% = 0.52   fee = 9
+  UOB                                 fx_spread_% = 0.58   fee = 10
+  Standard Chartered                  fx_spread_% = 0.45   fee = 11
+  Citibank                            fx_spread_% = 0.52   fee = 8
+  HSBC                                fx_spread_% = 0.55   fee = 9
+  Maybank                             fx_spread_% = 0.59   fee = 9
+  Bank of China                       fx_spread_% = 0.46   fee = 10
+  CIMB                                fx_spread_% = 0.48   fee = 11
+  RHB                                 fx_spread_% = 0.55   fee = 8
+  MUFG Bank                           fx_spread_% = 0.63   fee = 9
+  Mizuho                              fx_spread_% = 0.41   fee = 9
+  State Bank of India                 fx_spread_% = 0.44   fee = 9
+  BNP Paribas                         fx_spread_% = 0.59   fee = 11
+
+==============================================================================
+IN · INDIA  (local currency INR)
+==============================================================================
+missing 296 · have 19
+
+--- housing_loan · Housing loan · INR · % p.a. ---
+    have 6/15, missing 9
+  Punjab National Bank                = 7.06
+  Yes Bank                            = 7.30
+  Standard Chartered                  = 7.28
+  HSBC                                = 7.20
+  Citibank                            = 7.27
+  DBS Bank India                      = 7.31
+  MUFG Bank                           = 7.26
+  Deutsche Bank                       = 7.31
+  BNP Paribas                         = 7.35
+
+--- personal_loan · Personal loan · INR · % p.a. ---
+    have 5/15, missing 10
+  Axis Bank                           = 10.06
+  Punjab National Bank                = 10.04
+  Bank of Baroda                      = 10.14
+  Yes Bank                            = 10.17
+  Standard Chartered                  = 10.20
+  Citibank                            = 10.30
+  DBS Bank India                      = 10.15
+  MUFG Bank                           = 10.24
+  Deutsche Bank                       = 10.34
+  BNP Paribas                         = 10.19
+
+--- vehicle_loan · Vehicle loan · INR · % p.a. ---
+    have 2/15, missing 13
+  ICICI Bank                          = 7.54
+  Axis Bank                           = 7.59
+  Kotak Mahindra Bank                 = 7.67
+  Punjab National Bank                = 7.45
+  Bank of Baroda                      = 7.51
+  Yes Bank                            = 7.74
+  Standard Chartered                  = 7.61
+  HSBC                                = 7.63
+  Citibank                            = 7.71
+  DBS Bank India                      = 7.64
+  MUFG Bank                           = 7.69
+  Deutsche Bank                       = 7.75
+  BNP Paribas                         = 7.68
+
+--- fixed_deposit · Fixed deposit · INR · % p.a. ---
+    have 6/15, missing 9
+  ICICI Bank                          = 5.76
+  Yes Bank                            = 5.90
+  Standard Chartered                  = 5.87
+  HSBC                                = 5.81
+  Citibank                            = 5.87
+  DBS Bank India                      = 5.90
+  MUFG Bank                           = 5.87
+  Deutsche Bank                       = 5.91
+  BNP Paribas                         = 5.94
+
+--- fixed_deposit · Fixed deposit · USD · % p.a. ---
+    have 0/15, missing 15
+  State Bank of India                 = 2.60
+  HDFC Bank                           = 2.75
+  ICICI Bank                          = 2.75
+  Axis Bank                           = 2.72
+  Kotak Mahindra Bank                 = 2.78
+  Punjab National Bank                = 2.66
+  Bank of Baroda                      = 2.64
+  Yes Bank                            = 2.85
+  Standard Chartered                  = 2.82
+  HSBC                                = 2.76
+  Citibank                            = 2.82
+  DBS Bank India                      = 2.85
+  MUFG Bank                           = 2.82
+  Deutsche Bank                       = 2.86
+  BNP Paribas                         = 2.89
+
+--- current_account_fees · Current account (charges) · INR · total charges per year ---
+    have 0/15, missing 15
+  State Bank of India                 = 2.60
+  HDFC Bank                           = 2.75
+  ICICI Bank                          = 2.75
+  Axis Bank                           = 2.72
+  Kotak Mahindra Bank                 = 2.78
+  Punjab National Bank                = 2.66
+  Bank of Baroda                      = 2.64
+  Yes Bank                            = 2.85
+  Standard Chartered                  = 2.82
+  HSBC                                = 2.76
+  Citibank                            = 2.82
+  DBS Bank India                      = 2.85
+  MUFG Bank                           = 2.82
+  Deutsche Bank                       = 2.86
+  BNP Paribas                         = 2.89
+
+--- overdraft · Overdraft facility · INR · % p.a. ---
+    have 0/15, missing 15
+  State Bank of India                 = 10.13
+  HDFC Bank                           = 10.30
+  ICICI Bank                          = 10.32
+  Axis Bank                           = 10.25
+  Kotak Mahindra Bank                 = 10.33
+  Punjab National Bank                = 10.23
+  Bank of Baroda                      = 10.17
+  Yes Bank                            = 10.40
+  Standard Chartered                  = 10.39
+  HSBC                                = 10.29
+  Citibank                            = 10.37
+  DBS Bank India                      = 10.42
+  MUFG Bank                           = 10.35
+  Deutsche Bank                       = 10.41
+  BNP Paribas                         = 10.46
+
+--- overdraft · Overdraft facility · USD · % p.a. ---
+    have 0/15, missing 15
+  State Bank of India                 = 5.80
+  HDFC Bank                           = 5.95
+  ICICI Bank                          = 5.95
+  Axis Bank                           = 5.92
+  Kotak Mahindra Bank                 = 5.98
+  Punjab National Bank                = 5.86
+  Bank of Baroda                      = 5.84
+  Yes Bank                            = 6.05
+  Standard Chartered                  = 6.02
+  HSBC                                = 5.96
+  Citibank                            = 6.02
+  DBS Bank India                      = 6.05
+  MUFG Bank                           = 6.02
+  Deutsche Bank                       = 6.06
+  BNP Paribas                         = 6.09
+
+--- short_term_finance · Short-term finance (funded) · Import finance · INR · % p.a. ---
+    have 0/15, missing 15
+  State Bank of India                 = 7.73
+  HDFC Bank                           = 7.90
+  ICICI Bank                          = 7.92
+  Axis Bank                           = 7.85
+  Kotak Mahindra Bank                 = 7.93
+  Punjab National Bank                = 7.83
+  Bank of Baroda                      = 7.77
+  Yes Bank                            = 8.00
+  Standard Chartered                  = 7.99
+  HSBC                                = 7.89
+  Citibank                            = 7.97
+  DBS Bank India                      = 8.02
+  MUFG Bank                           = 7.95
+  Deutsche Bank                       = 8.01
+  BNP Paribas                         = 8.06
+
+--- short_term_finance · Short-term finance (funded) · Export finance · INR · % p.a. ---
+    have 0/15, missing 15
+  State Bank of India                 = 7.73
+  HDFC Bank                           = 7.90
+  ICICI Bank                          = 7.92
+  Axis Bank                           = 7.85
+  Kotak Mahindra Bank                 = 7.93
+  Punjab National Bank                = 7.83
+  Bank of Baroda                      = 7.77
+  Yes Bank                            = 8.00
+  Standard Chartered                  = 7.99
+  HSBC                                = 7.89
+  Citibank                            = 7.97
+  DBS Bank India                      = 8.02
+  MUFG Bank                           = 7.95
+  Deutsche Bank                       = 8.01
+  BNP Paribas                         = 8.06
+
+--- short_term_finance · Short-term finance (funded) · Supplier finance · INR · % p.a. ---
+    have 0/15, missing 15
+  State Bank of India                 = 7.73
+  HDFC Bank                           = 7.90
+  ICICI Bank                          = 7.92
+  Axis Bank                           = 7.85
+  Kotak Mahindra Bank                 = 7.93
+  Punjab National Bank                = 7.83
+  Bank of Baroda                      = 7.77
+  Yes Bank                            = 8.00
+  Standard Chartered                  = 7.99
+  HSBC                                = 7.89
+  Citibank                            = 7.97
+  DBS Bank India                      = 8.02
+  MUFG Bank                           = 7.95
+  Deutsche Bank                       = 8.01
+  BNP Paribas                         = 8.06
+
+--- short_term_finance · Short-term finance (funded) · Bill discounting · INR · % p.a. ---
+    have 0/15, missing 15
+  State Bank of India                 = 7.73
+  HDFC Bank                           = 7.90
+  ICICI Bank                          = 7.92
+  Axis Bank                           = 7.85
+  Kotak Mahindra Bank                 = 7.93
+  Punjab National Bank                = 7.83
+  Bank of Baroda                      = 7.77
+  Yes Bank                            = 8.00
+  Standard Chartered                  = 7.99
+  HSBC                                = 7.89
+  Citibank                            = 7.97
+  DBS Bank India                      = 8.02
+  MUFG Bank                           = 7.95
+  Deutsche Bank                       = 8.01
+  BNP Paribas                         = 8.06
+
+--- short_term_finance · Short-term finance (funded) · Import finance · USD · % p.a. ---
+    have 0/15, missing 15
+  State Bank of India                 = 5.84
+  HDFC Bank                           = 6.00
+  ICICI Bank                          = 6.01
+  Axis Bank                           = 5.96
+  Kotak Mahindra Bank                 = 6.03
+  Punjab National Bank                = 5.92
+  Bank of Baroda                      = 5.88
+  Yes Bank                            = 6.10
+  Standard Chartered                  = 6.08
+  HSBC                                = 6.00
+  Citibank                            = 6.07
+  DBS Bank India                      = 6.11
+  MUFG Bank                           = 6.06
+  Deutsche Bank                       = 6.11
+  BNP Paribas                         = 6.15
+
+--- short_term_finance · Short-term finance (funded) · Export finance · USD · % p.a. ---
+    have 0/15, missing 15
+  State Bank of India                 = 5.84
+  HDFC Bank                           = 6.00
+  ICICI Bank                          = 6.01
+  Axis Bank                           = 5.96
+  Kotak Mahindra Bank                 = 6.03
+  Punjab National Bank                = 5.92
+  Bank of Baroda                      = 5.88
+  Yes Bank                            = 6.10
+  Standard Chartered                  = 6.08
+  HSBC                                = 6.00
+  Citibank                            = 6.07
+  DBS Bank India                      = 6.11
+  MUFG Bank                           = 6.06
+  Deutsche Bank                       = 6.11
+  BNP Paribas                         = 6.15
+
+--- short_term_finance · Short-term finance (funded) · Supplier finance · USD · % p.a. ---
+    have 0/15, missing 15
+  State Bank of India                 = 5.84
+  HDFC Bank                           = 6.00
+  ICICI Bank                          = 6.01
+  Axis Bank                           = 5.96
+  Kotak Mahindra Bank                 = 6.03
+  Punjab National Bank                = 5.92
+  Bank of Baroda                      = 5.88
+  Yes Bank                            = 6.10
+  Standard Chartered                  = 6.08
+  HSBC                                = 6.00
+  Citibank                            = 6.07
+  DBS Bank India                      = 6.11
+  MUFG Bank                           = 6.06
+  Deutsche Bank                       = 6.11
+  BNP Paribas                         = 6.15
+
+--- short_term_finance · Short-term finance (funded) · Bill discounting · USD · % p.a. ---
+    have 0/15, missing 15
+  State Bank of India                 = 5.84
+  HDFC Bank                           = 6.00
+  ICICI Bank                          = 6.01
+  Axis Bank                           = 5.96
+  Kotak Mahindra Bank                 = 6.03
+  Punjab National Bank                = 5.92
+  Bank of Baroda                      = 5.88
+  Yes Bank                            = 6.10
+  Standard Chartered                  = 6.08
+  HSBC                                = 6.00
+  Citibank                            = 6.07
+  DBS Bank India                      = 6.11
+  MUFG Bank                           = 6.06
+  Deutsche Bank                       = 6.11
+  BNP Paribas                         = 6.15
+
+--- unfunded_facility · Unfunded facility · Letter of Credit (L/C) · USD · % p.a. ---
+    have 0/15, missing 15
+  State Bank of India                 = 0.60
+  HDFC Bank                           = 0.75
+  ICICI Bank                          = 0.75
+  Axis Bank                           = 0.72
+  Kotak Mahindra Bank                 = 0.78
+  Punjab National Bank                = 0.66
+  Bank of Baroda                      = 0.64
+  Yes Bank                            = 0.85
+  Standard Chartered                  = 0.82
+  HSBC                                = 0.76
+  Citibank                            = 0.82
+  DBS Bank India                      = 0.85
+  MUFG Bank                           = 0.82
+  Deutsche Bank                       = 0.86
+  BNP Paribas                         = 0.89
+
+--- unfunded_facility · Unfunded facility · Bank Guarantee (BG) · USD · % p.a. ---
+    have 0/15, missing 15
+  State Bank of India                 = 0.60
+  HDFC Bank                           = 0.75
+  ICICI Bank                          = 0.75
+  Axis Bank                           = 0.72
+  Kotak Mahindra Bank                 = 0.78
+  Punjab National Bank                = 0.66
+  Bank of Baroda                      = 0.64
+  Yes Bank                            = 0.85
+  Standard Chartered                  = 0.82
+  HSBC                                = 0.76
+  Citibank                            = 0.82
+  DBS Bank India                      = 0.85
+  MUFG Bank                           = 0.82
+  Deutsche Bank                       = 0.86
+  BNP Paribas                         = 0.89
+
+--- unfunded_facility · Unfunded facility · Standby L/C (SBLC) · USD · % p.a. ---
+    have 0/15, missing 15
+  State Bank of India                 = 0.60
+  HDFC Bank                           = 0.75
+  ICICI Bank                          = 0.75
+  Axis Bank                           = 0.72
+  Kotak Mahindra Bank                 = 0.78
+  Punjab National Bank                = 0.66
+  Bank of Baroda                      = 0.64
+  Yes Bank                            = 0.85
+  Standard Chartered                  = 0.82
+  HSBC                                = 0.76
+  Citibank                            = 0.82
+  DBS Bank India                      = 0.85
+  MUFG Bank                           = 0.82
+  Deutsche Bank                       = 0.86
+  BNP Paribas                         = 0.89
+
+--- cross_border · Cross-border transfer · outgoing · INR → USD ---
+    have 0/15, missing 15
+    fx_spread_% = the margin over the mid-market rate. fee = upfront fee in INR.
+  State Bank of India                 fx_spread_% = 0.62   fee = 600
+  HDFC Bank                           fx_spread_% = 0.74   fee = 700
+  ICICI Bank                          fx_spread_% = 0.79   fee = 750
+  Axis Bank                           fx_spread_% = 0.86   fee = 800
+  Kotak Mahindra Bank                 fx_spread_% = 0.70   fee = 900
+  Punjab National Bank                fx_spread_% = 0.69   fee = 600
+  Bank of Baroda                      fx_spread_% = 0.76   fee = 700
+  Yes Bank                            fx_spread_% = 0.91   fee = 800
+  Standard Chartered                  fx_spread_% = 0.71   fee = 850
+  HSBC                                fx_spread_% = 0.76   fee = 900
+  Citibank                            fx_spread_% = 0.83   fee = 650
+  DBS Bank India                      fx_spread_% = 0.90   fee = 700
+  MUFG Bank                           fx_spread_% = 0.72   fee = 800
+  Deutsche Bank                       fx_spread_% = 0.79   fee = 850
+  BNP Paribas                         fx_spread_% = 0.86   fee = 900
+
+--- cross_border · Cross-border transfer · incoming · GBP → INR ---
+    have 0/15, missing 15
+    fx_spread_% = the margin over the mid-market rate. fee = upfront fee in INR.
+  State Bank of India                 fx_spread_% = 0.56   fee = 450
+  HDFC Bank                           fx_spread_% = 0.67   fee = 550
+  ICICI Bank                          fx_spread_% = 0.71   fee = 550
+  Axis Bank                           fx_spread_% = 0.77   fee = 600
+  Kotak Mahindra Bank                 fx_spread_% = 0.63   fee = 650
+  Punjab National Bank                fx_spread_% = 0.62   fee = 450
+  Bank of Baroda                      fx_spread_% = 0.69   fee = 500
+  Yes Bank                            fx_spread_% = 0.82   fee = 600
+  Standard Chartered                  fx_spread_% = 0.63   fee = 650
+  HSBC                                fx_spread_% = 0.68   fee = 650
+  Citibank                            fx_spread_% = 0.75   fee = 500
+  DBS Bank India                      fx_spread_% = 0.81   fee = 550
+  MUFG Bank                           fx_spread_% = 0.65   fee = 600
+  Deutsche Bank                       fx_spread_% = 0.71   fee = 650
+  BNP Paribas                         fx_spread_% = 0.77   fee = 700
+
+==============================================================================
+MY · MALAYSIA  (local currency MYR)
+==============================================================================
+missing 291 · have 9
+
+--- housing_loan · Housing loan · MYR · % p.a. ---
+    have 2/15, missing 13
+  Maybank                             = 3.86
+  CIMB                                = 3.89
+  Public Bank                         = 3.84
+  RHB                                 = 3.89
+  Hong Leong Bank                     = 3.86
+  Bank Islam                          = 3.90
+  Standard Chartered                  = 3.93
+  HSBC                                = 3.93
+  OCBC                                = 3.87
+  UOB                                 = 3.85
+  Bank of China                       = 3.96
+  MUFG Bank                           = 4.01
+  BNP Paribas                         = 4.00
+
+--- personal_loan · Personal loan · MYR · % p.a. ---
+    have 0/15, missing 15
+  Maybank                             = 4.89
+  CIMB                                = 4.94
+  Public Bank                         = 4.91
+  RHB                                 = 4.92
+  Hong Leong Bank                     = 4.91
+  AmBank                              = 4.99
+  Bank Islam                          = 4.89
+  Affin Bank                          = 4.97
+  Standard Chartered                  = 5.04
+  HSBC                                = 4.94
+  OCBC                                = 4.90
+  UOB                                 = 4.96
+  Bank of China                       = 4.97
+  MUFG Bank                           = 5.04
+  BNP Paribas                         = 5.11
+
+--- vehicle_loan · Vehicle loan · MYR · % p.a. ---
+    have 0/15, missing 15
+  Maybank                             = 2.47
+  CIMB                                = 2.49
+  Public Bank                         = 2.43
+  RHB                                 = 2.50
+  Hong Leong Bank                     = 2.46
+  AmBank                              = 2.51
+  Bank Islam                          = 2.47
+  Affin Bank                          = 2.52
+  Standard Chartered                  = 2.56
+  HSBC                                = 2.52
+  OCBC                                = 2.45
+  UOB                                 = 2.48
+  Bank of China                       = 2.55
+  MUFG Bank                           = 2.59
+  BNP Paribas                         = 2.63
+
+--- fixed_deposit · Fixed deposit · MYR · % p.a. ---
+    have 3/15, missing 12
+  Maybank                             = 1.77
+  CIMB                                = 1.79
+  Public Bank                         = 1.73
+  Bank Islam                          = 1.77
+  Affin Bank                          = 1.82
+  Standard Chartered                  = 1.86
+  HSBC                                = 1.82
+  OCBC                                = 1.75
+  UOB                                 = 1.78
+  Bank of China                       = 1.85
+  MUFG Bank                           = 1.89
+  BNP Paribas                         = 1.93
+
+--- fixed_deposit · Fixed deposit · USD · % p.a. ---
+    have 0/15, missing 15
+  Maybank                             = 2.66
+  CIMB                                = 2.69
+  Public Bank                         = 2.64
+  RHB                                 = 2.69
+  Hong Leong Bank                     = 2.66
+  AmBank                              = 2.72
+  Bank Islam                          = 2.66
+  Affin Bank                          = 2.72
+  Standard Chartered                  = 2.77
+  HSBC                                = 2.71
+  OCBC                                = 2.65
+  UOB                                 = 2.69
+  Bank of China                       = 2.74
+  MUFG Bank                           = 2.79
+  BNP Paribas                         = 2.84
+
+--- overdraft · Overdraft facility · MYR · % p.a. ---
+    have 0/15, missing 15
+  Maybank                             = 5.55
+  CIMB                                = 5.59
+  Public Bank                         = 5.55
+  RHB                                 = 5.58
+  Hong Leong Bank                     = 5.56
+  AmBank                              = 5.63
+  Bank Islam                          = 5.55
+  Affin Bank                          = 5.62
+  Standard Chartered                  = 5.68
+  HSBC                                = 5.60
+  OCBC                                = 5.55
+  UOB                                 = 5.60
+  Bank of China                       = 5.63
+  MUFG Bank                           = 5.69
+  BNP Paribas                         = 5.75
+
+--- overdraft · Overdraft facility · USD · % p.a. ---
+    have 0/15, missing 15
+  Maybank                             = 6.10
+  CIMB                                = 6.14
+  Public Bank                         = 6.10
+  RHB                                 = 6.13
+  Hong Leong Bank                     = 6.11
+  AmBank                              = 6.18
+  Bank Islam                          = 6.10
+  Affin Bank                          = 6.17
+  Standard Chartered                  = 6.23
+  HSBC                                = 6.15
+  OCBC                                = 6.10
+  UOB                                 = 6.15
+  Bank of China                       = 6.18
+  MUFG Bank                           = 6.24
+  BNP Paribas                         = 6.30
+
+--- short_term_finance · Short-term finance (funded) · Import finance · MYR · % p.a. ---
+    have 0/15, missing 15
+  Maybank                             = 4.55
+  CIMB                                = 4.59
+  Public Bank                         = 4.55
+  RHB                                 = 4.58
+  Hong Leong Bank                     = 4.56
+  AmBank                              = 4.63
+  Bank Islam                          = 4.55
+  Affin Bank                          = 4.62
+  Standard Chartered                  = 4.68
+  HSBC                                = 4.60
+  OCBC                                = 4.55
+  UOB                                 = 4.60
+  Bank of China                       = 4.63
+  MUFG Bank                           = 4.69
+  BNP Paribas                         = 4.75
+
+--- short_term_finance · Short-term finance (funded) · Export finance · MYR · % p.a. ---
+    have 0/15, missing 15
+  Maybank                             = 4.55
+  CIMB                                = 4.59
+  Public Bank                         = 4.55
+  RHB                                 = 4.58
+  Hong Leong Bank                     = 4.56
+  AmBank                              = 4.63
+  Bank Islam                          = 4.55
+  Affin Bank                          = 4.62
+  Standard Chartered                  = 4.68
+  HSBC                                = 4.60
+  OCBC                                = 4.55
+  UOB                                 = 4.60
+  Bank of China                       = 4.63
+  MUFG Bank                           = 4.69
+  BNP Paribas                         = 4.75
+
+--- short_term_finance · Short-term finance (funded) · Supplier finance · MYR · % p.a. ---
+    have 0/15, missing 15
+  Maybank                             = 4.55
+  CIMB                                = 4.59
+  Public Bank                         = 4.55
+  RHB                                 = 4.58
+  Hong Leong Bank                     = 4.56
+  AmBank                              = 4.63
+  Bank Islam                          = 4.55
+  Affin Bank                          = 4.62
+  Standard Chartered                  = 4.68
+  HSBC                                = 4.60
+  OCBC                                = 4.55
+  UOB                                 = 4.60
+  Bank of China                       = 4.63
+  MUFG Bank                           = 4.69
+  BNP Paribas                         = 4.75
+
+--- short_term_finance · Short-term finance (funded) · Bill discounting · MYR · % p.a. ---
+    have 0/15, missing 15
+  Maybank                             = 4.55
+  CIMB                                = 4.59
+  Public Bank                         = 4.55
+  RHB                                 = 4.58
+  Hong Leong Bank                     = 4.56
+  AmBank                              = 4.63
+  Bank Islam                          = 4.55
+  Affin Bank                          = 4.62
+  Standard Chartered                  = 4.68
+  HSBC                                = 4.60
+  OCBC                                = 4.55
+  UOB                                 = 4.60
+  Bank of China                       = 4.63
+  MUFG Bank                           = 4.69
+  BNP Paribas                         = 4.75
+
+--- short_term_finance · Short-term finance (funded) · Import finance · USD · % p.a. ---
+    have 0/15, missing 15
+  Maybank                             = 5.70
+  CIMB                                = 5.74
+  Public Bank                         = 5.70
+  RHB                                 = 5.73
+  Hong Leong Bank                     = 5.71
+  AmBank                              = 5.78
+  Bank Islam                          = 5.70
+  Affin Bank                          = 5.77
+  Standard Chartered                  = 5.83
+  HSBC                                = 5.75
+  OCBC                                = 5.70
+  UOB                                 = 5.75
+  Bank of China                       = 5.78
+  MUFG Bank                           = 5.84
+  BNP Paribas                         = 5.90
+
+--- short_term_finance · Short-term finance (funded) · Export finance · USD · % p.a. ---
+    have 0/15, missing 15
+  Maybank                             = 5.70
+  CIMB                                = 5.74
+  Public Bank                         = 5.70
+  RHB                                 = 5.73
+  Hong Leong Bank                     = 5.71
+  AmBank                              = 5.78
+  Bank Islam                          = 5.70
+  Affin Bank                          = 5.77
+  Standard Chartered                  = 5.83
+  HSBC                                = 5.75
+  OCBC                                = 5.70
+  UOB                                 = 5.75
+  Bank of China                       = 5.78
+  MUFG Bank                           = 5.84
+  BNP Paribas                         = 5.90
+
+--- short_term_finance · Short-term finance (funded) · Supplier finance · USD · % p.a. ---
+    have 0/15, missing 15
+  Maybank                             = 5.70
+  CIMB                                = 5.74
+  Public Bank                         = 5.70
+  RHB                                 = 5.73
+  Hong Leong Bank                     = 5.71
+  AmBank                              = 5.78
+  Bank Islam                          = 5.70
+  Affin Bank                          = 5.77
+  Standard Chartered                  = 5.83
+  HSBC                                = 5.75
+  OCBC                                = 5.70
+  UOB                                 = 5.75
+  Bank of China                       = 5.78
+  MUFG Bank                           = 5.84
+  BNP Paribas                         = 5.90
+
+--- short_term_finance · Short-term finance (funded) · Bill discounting · USD · % p.a. ---
+    have 0/15, missing 15
+  Maybank                             = 5.70
+  CIMB                                = 5.74
+  Public Bank                         = 5.70
+  RHB                                 = 5.73
+  Hong Leong Bank                     = 5.71
+  AmBank                              = 5.78
+  Bank Islam                          = 5.70
+  Affin Bank                          = 5.77
+  Standard Chartered                  = 5.83
+  HSBC                                = 5.75
+  OCBC                                = 5.70
+  UOB                                 = 5.75
+  Bank of China                       = 5.78
+  MUFG Bank                           = 5.84
+  BNP Paribas                         = 5.90
+
+--- unfunded_facility · Unfunded facility · Letter of Credit (L/C) · USD · % p.a. ---
+    have 0/15, missing 15
+  Maybank                             = 0.72
+  CIMB                                = 0.74
+  Public Bank                         = 0.68
+  RHB                                 = 0.75
+  Hong Leong Bank                     = 0.71
+  AmBank                              = 0.76
+  Bank Islam                          = 0.72
+  Affin Bank                          = 0.77
+  Standard Chartered                  = 0.81
+  HSBC                                = 0.77
+  OCBC                                = 0.70
+  UOB                                 = 0.73
+  Bank of China                       = 0.80
+  MUFG Bank                           = 0.84
+  BNP Paribas                         = 0.88
+
+--- unfunded_facility · Unfunded facility · Bank Guarantee (BG) · USD · % p.a. ---
+    have 0/15, missing 15
+  Maybank                             = 0.72
+  CIMB                                = 0.74
+  Public Bank                         = 0.68
+  RHB                                 = 0.75
+  Hong Leong Bank                     = 0.71
+  AmBank                              = 0.76
+  Bank Islam                          = 0.72
+  Affin Bank                          = 0.77
+  Standard Chartered                  = 0.81
+  HSBC                                = 0.77
+  OCBC                                = 0.70
+  UOB                                 = 0.73
+  Bank of China                       = 0.80
+  MUFG Bank                           = 0.84
+  BNP Paribas                         = 0.88
+
+--- unfunded_facility · Unfunded facility · Standby L/C (SBLC) · USD · % p.a. ---
+    have 0/15, missing 15
+  Maybank                             = 0.72
+  CIMB                                = 0.74
+  Public Bank                         = 0.68
+  RHB                                 = 0.75
+  Hong Leong Bank                     = 0.71
+  AmBank                              = 0.76
+  Bank Islam                          = 0.72
+  Affin Bank                          = 0.77
+  Standard Chartered                  = 0.81
+  HSBC                                = 0.77
+  OCBC                                = 0.70
+  UOB                                 = 0.73
+  Bank of China                       = 0.80
+  MUFG Bank                           = 0.84
+  BNP Paribas                         = 0.88
+
+--- cross_border · Cross-border transfer · outgoing · MYR → USD ---
+    have 4/15, missing 11
+    fx_spread_% = the margin over the mid-market rate. fee = upfront fee in MYR.
+  CIMB                                fx_spread_% = 0.53   fee = 17
+  RHB                                 fx_spread_% = 0.60   fee = 19
+  AmBank                              fx_spread_% = 0.65   fee = 20
+  Bank Islam                          fx_spread_% = 0.70   fee = 22
+  Affin Bank                          fx_spread_% = 0.54   fee = 24
+  Standard Chartered                  fx_spread_% = 0.61   fee = 18
+  OCBC                                fx_spread_% = 0.63   fee = 18
+  UOB                                 fx_spread_% = 0.70   fee = 20
+  Bank of China                       fx_spread_% = 0.56   fee = 22
+  MUFG Bank                           fx_spread_% = 0.63   fee = 24
+  BNP Paribas                         fx_spread_% = 0.71   fee = 18
+
+--- cross_border · Cross-border transfer · incoming · GBP → MYR ---
+    have 0/15, missing 15
+    fx_spread_% = the margin over the mid-market rate. fee = upfront fee in MYR.
+  Maybank                             fx_spread_% = 0.47   fee = 13
+  CIMB                                fx_spread_% = 0.53   fee = 14
+  Public Bank                         fx_spread_% = 0.55   fee = 15
+  RHB                                 fx_spread_% = 0.65   fee = 17
+  Hong Leong Bank                     fx_spread_% = 0.46   fee = 17
+  AmBank                              fx_spread_% = 0.53   fee = 13
+  Bank Islam                          fx_spread_% = 0.58   fee = 14
+  Affin Bank                          fx_spread_% = 0.65   fee = 15
+  Standard Chartered                  fx_spread_% = 0.50   fee = 17
+  HSBC                                fx_spread_% = 0.55   fee = 18
+  OCBC                                fx_spread_% = 0.57   fee = 13
+  UOB                                 fx_spread_% = 0.63   fee = 14
+  Bank of China                       fx_spread_% = 0.50   fee = 16
+  MUFG Bank                           fx_spread_% = 0.57   fee = 17
+  BNP Paribas                         fx_spread_% = 0.64   fee = 18
+
+==============================================================================
+ID · INDONESIA  (local currency IDR)
+==============================================================================
+missing 290 · have 10
+
+--- housing_loan · Housing loan · IDR · % p.a. ---
+    have 5/15, missing 10
+  Bank Rakyat Indonesia               = 7.62
+  Bank Negara Indonesia               = 7.68
+  Permata Bank                        = 7.74
+  Panin Bank                          = 7.72
+  Maybank Indonesia                   = 7.70
+  UOB Indonesia                       = 7.74
+  Standard Chartered                  = 7.72
+  HSBC                                = 7.73
+  MUFG Bank                           = 7.82
+  BNP Paribas                         = 7.79
+
+--- personal_loan · Personal loan · IDR · % p.a. ---
+    have 5/15, missing 10
+  Bank Rakyat Indonesia               = 9.58
+  Bank Negara Indonesia               = 9.68
+  Permata Bank                        = 9.78
+  Panin Bank                          = 9.68
+  Maybank Indonesia                   = 9.70
+  UOB Indonesia                       = 9.78
+  Standard Chartered                  = 9.68
+  HSBC                                = 9.73
+  MUFG Bank                           = 9.86
+  BNP Paribas                         = 9.75
+
+--- vehicle_loan · Vehicle loan · IDR · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                        = 1.75
+  Bank Central Asia                   = 1.71
+  Bank Rakyat Indonesia               = 1.77
+  Bank Negara Indonesia               = 1.76
+  CIMB Niaga                          = 1.78
+  Bank Danamon                        = 1.85
+  Permata Bank                        = 1.79
+  Panin Bank                          = 1.85
+  Maybank Indonesia                   = 1.82
+  OCBC Indonesia                      = 1.74
+  UOB Indonesia                       = 1.81
+  Standard Chartered                  = 1.87
+  HSBC                                = 1.81
+  MUFG Bank                           = 1.89
+  BNP Paribas                         = 1.94
+
+--- fixed_deposit · Fixed deposit · IDR · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                        = 3.36
+  Bank Central Asia                   = 3.31
+  Bank Rakyat Indonesia               = 3.36
+  Bank Negara Indonesia               = 3.37
+  CIMB Niaga                          = 3.38
+  Bank Danamon                        = 3.44
+  Permata Bank                        = 3.40
+  Panin Bank                          = 3.45
+  Maybank Indonesia                   = 3.41
+  OCBC Indonesia                      = 3.35
+  UOB Indonesia                       = 3.41
+  Standard Chartered                  = 3.46
+  HSBC                                = 3.42
+  MUFG Bank                           = 3.49
+  BNP Paribas                         = 3.53
+
+--- fixed_deposit · Fixed deposit · USD · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                        = 1.85
+  Bank Central Asia                   = 1.81
+  Bank Rakyat Indonesia               = 1.87
+  Bank Negara Indonesia               = 1.86
+  CIMB Niaga                          = 1.88
+  Bank Danamon                        = 1.95
+  Permata Bank                        = 1.89
+  Panin Bank                          = 1.95
+  Maybank Indonesia                   = 1.92
+  OCBC Indonesia                      = 1.84
+  UOB Indonesia                       = 1.91
+  Standard Chartered                  = 1.97
+  HSBC                                = 1.91
+  MUFG Bank                           = 1.99
+  BNP Paribas                         = 2.04
+
+--- overdraft · Overdraft facility · IDR · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                        = 10.18
+  Bank Central Asia                   = 10.16
+  Bank Rakyat Indonesia               = 10.24
+  Bank Negara Indonesia               = 10.19
+  CIMB Niaga                          = 10.23
+  Bank Danamon                        = 10.32
+  Permata Bank                        = 10.22
+  Panin Bank                          = 10.30
+  Maybank Indonesia                   = 10.29
+  OCBC Indonesia                      = 10.17
+  UOB Indonesia                       = 10.26
+  Standard Chartered                  = 10.34
+  HSBC                                = 10.24
+  MUFG Bank                           = 10.34
+  BNP Paribas                         = 10.41
+
+--- overdraft · Overdraft facility · USD · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                        = 6.09
+  Bank Central Asia                   = 6.06
+  Bank Rakyat Indonesia               = 6.13
+  Bank Negara Indonesia               = 6.10
+  CIMB Niaga                          = 6.13
+  Bank Danamon                        = 6.21
+  Permata Bank                        = 6.13
+  Panin Bank                          = 6.20
+  Maybank Indonesia                   = 6.18
+  OCBC Indonesia                      = 6.08
+  UOB Indonesia                       = 6.16
+  Standard Chartered                  = 6.23
+  HSBC                                = 6.15
+  MUFG Bank                           = 6.24
+  BNP Paribas                         = 6.30
+
+--- short_term_finance · Short-term finance (funded) · Import finance · IDR · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                        = 7.98
+  Bank Central Asia                   = 7.96
+  Bank Rakyat Indonesia               = 8.04
+  Bank Negara Indonesia               = 7.99
+  CIMB Niaga                          = 8.03
+  Bank Danamon                        = 8.12
+  Permata Bank                        = 8.02
+  Panin Bank                          = 8.10
+  Maybank Indonesia                   = 8.09
+  OCBC Indonesia                      = 7.97
+  UOB Indonesia                       = 8.06
+  Standard Chartered                  = 8.14
+  HSBC                                = 8.04
+  MUFG Bank                           = 8.14
+  BNP Paribas                         = 8.21
+
+--- short_term_finance · Short-term finance (funded) · Export finance · IDR · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                        = 7.98
+  Bank Central Asia                   = 7.96
+  Bank Rakyat Indonesia               = 8.04
+  Bank Negara Indonesia               = 7.99
+  CIMB Niaga                          = 8.03
+  Bank Danamon                        = 8.12
+  Permata Bank                        = 8.02
+  Panin Bank                          = 8.10
+  Maybank Indonesia                   = 8.09
+  OCBC Indonesia                      = 7.97
+  UOB Indonesia                       = 8.06
+  Standard Chartered                  = 8.14
+  HSBC                                = 8.04
+  MUFG Bank                           = 8.14
+  BNP Paribas                         = 8.21
+
+--- short_term_finance · Short-term finance (funded) · Supplier finance · IDR · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                        = 7.98
+  Bank Central Asia                   = 7.96
+  Bank Rakyat Indonesia               = 8.04
+  Bank Negara Indonesia               = 7.99
+  CIMB Niaga                          = 8.03
+  Bank Danamon                        = 8.12
+  Permata Bank                        = 8.02
+  Panin Bank                          = 8.10
+  Maybank Indonesia                   = 8.09
+  OCBC Indonesia                      = 7.97
+  UOB Indonesia                       = 8.06
+  Standard Chartered                  = 8.14
+  HSBC                                = 8.04
+  MUFG Bank                           = 8.14
+  BNP Paribas                         = 8.21
+
+--- short_term_finance · Short-term finance (funded) · Bill discounting · IDR · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                        = 7.98
+  Bank Central Asia                   = 7.96
+  Bank Rakyat Indonesia               = 8.04
+  Bank Negara Indonesia               = 7.99
+  CIMB Niaga                          = 8.03
+  Bank Danamon                        = 8.12
+  Permata Bank                        = 8.02
+  Panin Bank                          = 8.10
+  Maybank Indonesia                   = 8.09
+  OCBC Indonesia                      = 7.97
+  UOB Indonesia                       = 8.06
+  Standard Chartered                  = 8.14
+  HSBC                                = 8.04
+  MUFG Bank                           = 8.14
+  BNP Paribas                         = 8.21
+
+--- short_term_finance · Short-term finance (funded) · Import finance · USD · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                        = 5.94
+  Bank Central Asia                   = 5.91
+  Bank Rakyat Indonesia               = 5.98
+  Bank Negara Indonesia               = 5.95
+  CIMB Niaga                          = 5.98
+  Bank Danamon                        = 6.06
+  Permata Bank                        = 5.98
+  Panin Bank                          = 6.05
+  Maybank Indonesia                   = 6.03
+  OCBC Indonesia                      = 5.93
+  UOB Indonesia                       = 6.01
+  Standard Chartered                  = 6.08
+  HSBC                                = 6.00
+  MUFG Bank                           = 6.09
+  BNP Paribas                         = 6.15
+
+--- short_term_finance · Short-term finance (funded) · Export finance · USD · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                        = 5.94
+  Bank Central Asia                   = 5.91
+  Bank Rakyat Indonesia               = 5.98
+  Bank Negara Indonesia               = 5.95
+  CIMB Niaga                          = 5.98
+  Bank Danamon                        = 6.06
+  Permata Bank                        = 5.98
+  Panin Bank                          = 6.05
+  Maybank Indonesia                   = 6.03
+  OCBC Indonesia                      = 5.93
+  UOB Indonesia                       = 6.01
+  Standard Chartered                  = 6.08
+  HSBC                                = 6.00
+  MUFG Bank                           = 6.09
+  BNP Paribas                         = 6.15
+
+--- short_term_finance · Short-term finance (funded) · Supplier finance · USD · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                        = 5.94
+  Bank Central Asia                   = 5.91
+  Bank Rakyat Indonesia               = 5.98
+  Bank Negara Indonesia               = 5.95
+  CIMB Niaga                          = 5.98
+  Bank Danamon                        = 6.06
+  Permata Bank                        = 5.98
+  Panin Bank                          = 6.05
+  Maybank Indonesia                   = 6.03
+  OCBC Indonesia                      = 5.93
+  UOB Indonesia                       = 6.01
+  Standard Chartered                  = 6.08
+  HSBC                                = 6.00
+  MUFG Bank                           = 6.09
+  BNP Paribas                         = 6.15
+
+--- short_term_finance · Short-term finance (funded) · Bill discounting · USD · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                        = 5.94
+  Bank Central Asia                   = 5.91
+  Bank Rakyat Indonesia               = 5.98
+  Bank Negara Indonesia               = 5.95
+  CIMB Niaga                          = 5.98
+  Bank Danamon                        = 6.06
+  Permata Bank                        = 5.98
+  Panin Bank                          = 6.05
+  Maybank Indonesia                   = 6.03
+  OCBC Indonesia                      = 5.93
+  UOB Indonesia                       = 6.01
+  Standard Chartered                  = 6.08
+  HSBC                                = 6.00
+  MUFG Bank                           = 6.09
+  BNP Paribas                         = 6.15
+
+--- unfunded_facility · Unfunded facility · Letter of Credit (L/C) · USD · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                        = 0.75
+  Bank Central Asia                   = 0.71
+  Bank Rakyat Indonesia               = 0.77
+  Bank Negara Indonesia               = 0.76
+  CIMB Niaga                          = 0.78
+  Bank Danamon                        = 0.85
+  Permata Bank                        = 0.79
+  Panin Bank                          = 0.85
+  Maybank Indonesia                   = 0.82
+  OCBC Indonesia                      = 0.74
+  UOB Indonesia                       = 0.81
+  Standard Chartered                  = 0.87
+  HSBC                                = 0.81
+  MUFG Bank                           = 0.89
+  BNP Paribas                         = 0.94
+
+--- unfunded_facility · Unfunded facility · Bank Guarantee (BG) · USD · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                        = 0.75
+  Bank Central Asia                   = 0.71
+  Bank Rakyat Indonesia               = 0.77
+  Bank Negara Indonesia               = 0.76
+  CIMB Niaga                          = 0.78
+  Bank Danamon                        = 0.85
+  Permata Bank                        = 0.79
+  Panin Bank                          = 0.85
+  Maybank Indonesia                   = 0.82
+  OCBC Indonesia                      = 0.74
+  UOB Indonesia                       = 0.81
+  Standard Chartered                  = 0.87
+  HSBC                                = 0.81
+  MUFG Bank                           = 0.89
+  BNP Paribas                         = 0.94
+
+--- unfunded_facility · Unfunded facility · Standby L/C (SBLC) · USD · % p.a. ---
+    have 0/15, missing 15
+  Bank Mandiri                        = 0.75
+  Bank Central Asia                   = 0.71
+  Bank Rakyat Indonesia               = 0.77
+  Bank Negara Indonesia               = 0.76
+  CIMB Niaga                          = 0.78
+  Bank Danamon                        = 0.85
+  Permata Bank                        = 0.79
+  Panin Bank                          = 0.85
+  Maybank Indonesia                   = 0.82
+  OCBC Indonesia                      = 0.74
+  UOB Indonesia                       = 0.81
+  Standard Chartered                  = 0.87
+  HSBC                                = 0.81
+  MUFG Bank                           = 0.89
+  BNP Paribas                         = 0.94
+
+--- cross_border · Cross-border transfer · outgoing · IDR → USD ---
+    have 0/15, missing 15
+    fx_spread_% = the margin over the mid-market rate. fee = upfront fee in IDR.
+  Bank Mandiri                        fx_spread_% = 0.82   fee = 65000
+  Bank Central Asia                   fx_spread_% = 0.85   fee = 70000
+  Bank Rakyat Indonesia               fx_spread_% = 0.93   fee = 75000
+  Bank Negara Indonesia               fx_spread_% = 1.00   fee = 80000
+  CIMB Niaga                          fx_spread_% = 0.82   fee = 90000
+  Bank Danamon                        fx_spread_% = 0.91   fee = 65000
+  Permata Bank                        fx_spread_% = 0.96   fee = 70000
+  Panin Bank                          fx_spread_% = 1.04   fee = 80000
+  Maybank Indonesia                   fx_spread_% = 0.83   fee = 80000
+  OCBC Indonesia                      fx_spread_% = 0.87   fee = 85000
+  UOB Indonesia                       fx_spread_% = 0.96   fee = 65000
+  Standard Chartered                  fx_spread_% = 1.04   fee = 70000
+  HSBC                                fx_spread_% = 0.85   fee = 75000
+  MUFG Bank                           fx_spread_% = 0.93   fee = 85000
+  BNP Paribas                         fx_spread_% = 1.01   fee = 90000
+
+--- cross_border · Cross-border transfer · incoming · GBP → IDR ---
+    have 0/15, missing 15
+    fx_spread_% = the margin over the mid-market rate. fee = upfront fee in IDR.
+  Bank Mandiri                        fx_spread_% = 0.74   fee = 50000
+  Bank Central Asia                   fx_spread_% = 0.77   fee = 50000
+  Bank Rakyat Indonesia               fx_spread_% = 0.84   fee = 55000
+  Bank Negara Indonesia               fx_spread_% = 0.90   fee = 60000
+  CIMB Niaga                          fx_spread_% = 0.74   fee = 65000
+  Bank Danamon                        fx_spread_% = 0.82   fee = 50000
+  Permata Bank                        fx_spread_% = 0.86   fee = 55000
+  Panin Bank                          fx_spread_% = 0.93   fee = 60000
+  Maybank Indonesia                   fx_spread_% = 0.75   fee = 60000
+  OCBC Indonesia                      fx_spread_% = 0.79   fee = 65000
+  UOB Indonesia                       fx_spread_% = 0.86   fee = 50000
+  Standard Chartered                  fx_spread_% = 0.93   fee = 55000
+  HSBC                                fx_spread_% = 0.76   fee = 60000
+  MUFG Bank                           fx_spread_% = 0.84   fee = 65000
+  BNP Paribas                         fx_spread_% = 0.91   fee = 70000
+
+==============================================================================
+TH · THAILAND  (local currency THB)
+==============================================================================
+missing 284 · have 16
+
+--- housing_loan · Housing loan · THB · % p.a. ---
+    have 4/15, missing 11
+  Krungthai Bank                      = 5.91
+  TMBThanachart                       = 5.99
+  Kiatnakin Phatra                    = 6.05
+  LH Bank                             = 6.03
+  UOB Thailand                        = 6.01
+  CIMB Thai                           = 6.00
+  Standard Chartered                  = 6.03
+  HSBC                                = 6.03
+  ICBC Thai                           = 6.06
+  MUFG Bank                           = 6.07
+  BNP Paribas                         = 6.12
+
+--- personal_loan · Personal loan · THB · % p.a. ---
+    have 4/15, missing 11
+  Krungthai Bank                      = 9.41
+  TMBThanachart                       = 9.54
+  Kiatnakin Phatra                    = 9.65
+  LH Bank                             = 9.53
+  UOB Thailand                        = 9.56
+  CIMB Thai                           = 9.60
+  Standard Chartered                  = 9.53
+  HSBC                                = 9.58
+  ICBC Thai                           = 9.66
+  MUFG Bank                           = 9.57
+  BNP Paribas                         = 9.67
+
+--- vehicle_loan · Vehicle loan · THB · % p.a. ---
+    have 0/15, missing 15
+  Bangkok Bank                        = 2.34
+  Kasikornbank                        = 2.37
+  Siam Commercial Bank                = 2.36
+  Krungthai Bank                      = 2.32
+  Bank of Ayudhya                     = 2.40
+  TMBThanachart                       = 2.40
+  Kiatnakin Phatra                    = 2.42
+  LH Bank                             = 2.45
+  UOB Thailand                        = 2.42
+  CIMB Thai                           = 2.37
+  Standard Chartered                  = 2.45
+  HSBC                                = 2.44
+  ICBC Thai                           = 2.43
+  MUFG Bank                           = 2.49
+  BNP Paribas                         = 2.53
+
+--- fixed_deposit · Fixed deposit · THB · % p.a. ---
+    have 4/15, missing 11
+  Krungthai Bank                      = 1.22
+  TMBThanachart                       = 1.29
+  Kiatnakin Phatra                    = 1.34
+  LH Bank                             = 1.34
+  UOB Thailand                        = 1.31
+  CIMB Thai                           = 1.29
+  Standard Chartered                  = 1.34
+  HSBC                                = 1.33
+  ICBC Thai                           = 1.35
+  MUFG Bank                           = 1.38
+  BNP Paribas                         = 1.42
+
+--- fixed_deposit · Fixed deposit · USD · % p.a. ---
+    have 0/15, missing 15
+  Bangkok Bank                        = 2.58
+  Kasikornbank                        = 2.62
+  Siam Commercial Bank                = 2.62
+  Krungthai Bank                      = 2.56
+  Bank of Ayudhya                     = 2.65
+  TMBThanachart                       = 2.66
+  Kiatnakin Phatra                    = 2.66
+  LH Bank                             = 2.70
+  UOB Thailand                        = 2.68
+  CIMB Thai                           = 2.61
+  Standard Chartered                  = 2.70
+  HSBC                                = 2.70
+  ICBC Thai                           = 2.67
+  MUFG Bank                           = 2.74
+  BNP Paribas                         = 2.79
+
+--- overdraft · Overdraft facility · THB · % p.a. ---
+    have 4/15, missing 11
+  Krungthai Bank                      = 7.00
+  TMBThanachart                       = 7.09
+  Kiatnakin Phatra                    = 7.16
+  LH Bank                             = 7.12
+  UOB Thailand                        = 7.11
+  CIMB Thai                           = 7.11
+  Standard Chartered                  = 7.12
+  HSBC                                = 7.13
+  ICBC Thai                           = 7.17
+  MUFG Bank                           = 7.16
+  BNP Paribas                         = 7.22
+
+--- overdraft · Overdraft facility · USD · % p.a. ---
+    have 0/15, missing 15
+  Bangkok Bank                        = 6.17
+  Kasikornbank                        = 6.22
+  Siam Commercial Bank                = 6.23
+  Krungthai Bank                      = 6.15
+  Bank of Ayudhya                     = 6.25
+  TMBThanachart                       = 6.27
+  Kiatnakin Phatra                    = 6.25
+  LH Bank                             = 6.30
+  UOB Thailand                        = 6.29
+  CIMB Thai                           = 6.20
+  Standard Chartered                  = 6.30
+  HSBC                                = 6.31
+  ICBC Thai                           = 6.26
+  MUFG Bank                           = 6.34
+  BNP Paribas                         = 6.40
+
+--- short_term_finance · Short-term finance (funded) · Import finance · THB · % p.a. ---
+    have 0/15, missing 15
+  Bangkok Bank                        = 6.07
+  Kasikornbank                        = 6.12
+  Siam Commercial Bank                = 6.13
+  Krungthai Bank                      = 6.05
+  Bank of Ayudhya                     = 6.15
+  TMBThanachart                       = 6.17
+  Kiatnakin Phatra                    = 6.15
+  LH Bank                             = 6.20
+  UOB Thailand                        = 6.19
+  CIMB Thai                           = 6.10
+  Standard Chartered                  = 6.20
+  HSBC                                = 6.21
+  ICBC Thai                           = 6.16
+  MUFG Bank                           = 6.24
+  BNP Paribas                         = 6.30
+
+--- short_term_finance · Short-term finance (funded) · Export finance · THB · % p.a. ---
+    have 0/15, missing 15
+  Bangkok Bank                        = 6.07
+  Kasikornbank                        = 6.12
+  Siam Commercial Bank                = 6.13
+  Krungthai Bank                      = 6.05
+  Bank of Ayudhya                     = 6.15
+  TMBThanachart                       = 6.17
+  Kiatnakin Phatra                    = 6.15
+  LH Bank                             = 6.20
+  UOB Thailand                        = 6.19
+  CIMB Thai                           = 6.10
+  Standard Chartered                  = 6.20
+  HSBC                                = 6.21
+  ICBC Thai                           = 6.16
+  MUFG Bank                           = 6.24
+  BNP Paribas                         = 6.30
+
+--- short_term_finance · Short-term finance (funded) · Supplier finance · THB · % p.a. ---
+    have 0/15, missing 15
+  Bangkok Bank                        = 6.07
+  Kasikornbank                        = 6.12
+  Siam Commercial Bank                = 6.13
+  Krungthai Bank                      = 6.05
+  Bank of Ayudhya                     = 6.15
+  TMBThanachart                       = 6.17
+  Kiatnakin Phatra                    = 6.15
+  LH Bank                             = 6.20
+  UOB Thailand                        = 6.19
+  CIMB Thai                           = 6.10
+  Standard Chartered                  = 6.20
+  HSBC                                = 6.21
+  ICBC Thai                           = 6.16
+  MUFG Bank                           = 6.24
+  BNP Paribas                         = 6.30
+
+--- short_term_finance · Short-term finance (funded) · Bill discounting · THB · % p.a. ---
+    have 0/15, missing 15
+  Bangkok Bank                        = 6.07
+  Kasikornbank                        = 6.12
+  Siam Commercial Bank                = 6.13
+  Krungthai Bank                      = 6.05
+  Bank of Ayudhya                     = 6.15
+  TMBThanachart                       = 6.17
+  Kiatnakin Phatra                    = 6.15
+  LH Bank                             = 6.20
+  UOB Thailand                        = 6.19
+  CIMB Thai                           = 6.10
+  Standard Chartered                  = 6.20
+  HSBC                                = 6.21
+  ICBC Thai                           = 6.16
+  MUFG Bank                           = 6.24
+  BNP Paribas                         = 6.30
+
+--- short_term_finance · Short-term finance (funded) · Import finance · USD · % p.a. ---
+    have 0/15, missing 15
+  Bangkok Bank                        = 5.92
+  Kasikornbank                        = 5.97
+  Siam Commercial Bank                = 5.98
+  Krungthai Bank                      = 5.90
+  Bank of Ayudhya                     = 6.00
+  TMBThanachart                       = 6.02
+  Kiatnakin Phatra                    = 6.00
+  LH Bank                             = 6.05
+  UOB Thailand                        = 6.04
+  CIMB Thai                           = 5.95
+  Standard Chartered                  = 6.05
+  HSBC                                = 6.06
+  ICBC Thai                           = 6.01
+  MUFG Bank                           = 6.09
+  BNP Paribas                         = 6.15
+
+--- short_term_finance · Short-term finance (funded) · Export finance · USD · % p.a. ---
+    have 0/15, missing 15
+  Bangkok Bank                        = 5.92
+  Kasikornbank                        = 5.97
+  Siam Commercial Bank                = 5.98
+  Krungthai Bank                      = 5.90
+  Bank of Ayudhya                     = 6.00
+  TMBThanachart                       = 6.02
+  Kiatnakin Phatra                    = 6.00
+  LH Bank                             = 6.05
+  UOB Thailand                        = 6.04
+  CIMB Thai                           = 5.95
+  Standard Chartered                  = 6.05
+  HSBC                                = 6.06
+  ICBC Thai                           = 6.01
+  MUFG Bank                           = 6.09
+  BNP Paribas                         = 6.15
+
+--- short_term_finance · Short-term finance (funded) · Supplier finance · USD · % p.a. ---
+    have 0/15, missing 15
+  Bangkok Bank                        = 5.92
+  Kasikornbank                        = 5.97
+  Siam Commercial Bank                = 5.98
+  Krungthai Bank                      = 5.90
+  Bank of Ayudhya                     = 6.00
+  TMBThanachart                       = 6.02
+  Kiatnakin Phatra                    = 6.00
+  LH Bank                             = 6.05
+  UOB Thailand                        = 6.04
+  CIMB Thai                           = 5.95
+  Standard Chartered                  = 6.05
+  HSBC                                = 6.06
+  ICBC Thai                           = 6.01
+  MUFG Bank                           = 6.09
+  BNP Paribas                         = 6.15
+
+--- short_term_finance · Short-term finance (funded) · Bill discounting · USD · % p.a. ---
+    have 0/15, missing 15
+  Bangkok Bank                        = 5.92
+  Kasikornbank                        = 5.97
+  Siam Commercial Bank                = 5.98
+  Krungthai Bank                      = 5.90
+  Bank of Ayudhya                     = 6.00
+  TMBThanachart                       = 6.02
+  Kiatnakin Phatra                    = 6.00
+  LH Bank                             = 6.05
+  UOB Thailand                        = 6.04
+  CIMB Thai                           = 5.95
+  Standard Chartered                  = 6.05
+  HSBC                                = 6.06
+  ICBC Thai                           = 6.01
+  MUFG Bank                           = 6.09
+  BNP Paribas                         = 6.15
+
+--- unfunded_facility · Unfunded facility · Letter of Credit (L/C) · USD · % p.a. ---
+    have 0/15, missing 15
+  Bangkok Bank                        = 0.78
+  Kasikornbank                        = 0.82
+  Siam Commercial Bank                = 0.82
+  Krungthai Bank                      = 0.76
+  Bank of Ayudhya                     = 0.85
+  TMBThanachart                       = 0.86
+  Kiatnakin Phatra                    = 0.86
+  LH Bank                             = 0.90
+  UOB Thailand                        = 0.88
+  CIMB Thai                           = 0.81
+  Standard Chartered                  = 0.90
+  HSBC                                = 0.90
+  ICBC Thai                           = 0.87
+  MUFG Bank                           = 0.94
+  BNP Paribas                         = 0.99
+
+--- unfunded_facility · Unfunded facility · Bank Guarantee (BG) · USD · % p.a. ---
+    have 0/15, missing 15
+  Bangkok Bank                        = 0.78
+  Kasikornbank                        = 0.82
+  Siam Commercial Bank                = 0.82
+  Krungthai Bank                      = 0.76
+  Bank of Ayudhya                     = 0.85
+  TMBThanachart                       = 0.86
+  Kiatnakin Phatra                    = 0.86
+  LH Bank                             = 0.90
+  UOB Thailand                        = 0.88
+  CIMB Thai                           = 0.81
+  Standard Chartered                  = 0.90
+  HSBC                                = 0.90
+  ICBC Thai                           = 0.87
+  MUFG Bank                           = 0.94
+  BNP Paribas                         = 0.99
+
+--- unfunded_facility · Unfunded facility · Standby L/C (SBLC) · USD · % p.a. ---
+    have 0/15, missing 15
+  Bangkok Bank                        = 0.78
+  Kasikornbank                        = 0.82
+  Siam Commercial Bank                = 0.82
+  Krungthai Bank                      = 0.76
+  Bank of Ayudhya                     = 0.85
+  TMBThanachart                       = 0.86
+  Kiatnakin Phatra                    = 0.86
+  LH Bank                             = 0.90
+  UOB Thailand                        = 0.88
+  CIMB Thai                           = 0.81
+  Standard Chartered                  = 0.90
+  HSBC                                = 0.90
+  ICBC Thai                           = 0.87
+  MUFG Bank                           = 0.94
+  BNP Paribas                         = 0.99
+
+--- cross_border · Cross-border transfer · outgoing · THB → USD ---
+    have 0/15, missing 15
+    fx_spread_% = the margin over the mid-market rate. fee = upfront fee in THB.
+  Bangkok Bank                        fx_spread_% = 0.76   fee = 420
+  Kasikornbank                        fx_spread_% = 0.83   fee = 460
+  Siam Commercial Bank                fx_spread_% = 0.88   fee = 500
+  Krungthai Bank                      fx_spread_% = 0.93   fee = 540
+  Bank of Ayudhya                     fx_spread_% = 0.78   fee = 590
+  TMBThanachart                       fx_spread_% = 0.84   fee = 430
+  Kiatnakin Phatra                    fx_spread_% = 0.92   fee = 470
+  LH Bank                             fx_spread_% = 0.98   fee = 520
+  UOB Thailand                        fx_spread_% = 0.79   fee = 550
+  CIMB Thai                           fx_spread_% = 0.83   fee = 580
+  Standard Chartered                  fx_spread_% = 0.93   fee = 440
+  HSBC                                fx_spread_% = 0.98   fee = 470
+  ICBC Thai                           fx_spread_% = 0.80   fee = 520
+  MUFG Bank                           fx_spread_% = 0.88   fee = 560
+  BNP Paribas                         fx_spread_% = 0.96   fee = 610
+
+--- cross_border · Cross-border transfer · incoming · GBP → THB ---
+    have 0/15, missing 15
+    fx_spread_% = the margin over the mid-market rate. fee = upfront fee in THB.
+  Bangkok Bank                        fx_spread_% = 0.68   fee = 320
+  Kasikornbank                        fx_spread_% = 0.75   fee = 350
+  Siam Commercial Bank                fx_spread_% = 0.79   fee = 380
+  Krungthai Bank                      fx_spread_% = 0.84   fee = 400
+  Bank of Ayudhya                     fx_spread_% = 0.70   fee = 440
+  TMBThanachart                       fx_spread_% = 0.75   fee = 320
+  Kiatnakin Phatra                    fx_spread_% = 0.82   fee = 360
+  LH Bank                             fx_spread_% = 0.89   fee = 390
+  UOB Thailand                        fx_spread_% = 0.71   fee = 410
+  CIMB Thai                           fx_spread_% = 0.75   fee = 440
+  Standard Chartered                  fx_spread_% = 0.83   fee = 330
+  HSBC                                fx_spread_% = 0.88   fee = 360
+  ICBC Thai                           fx_spread_% = 0.72   fee = 390
+  MUFG Bank                           fx_spread_% = 0.79   fee = 420
+  BNP Paribas                         fx_spread_% = 0.86   fee = 460
+
+==============================================================================
+APPENDIX A · FOREIGN-CURRENCY FIXED DEPOSITS (EUR / GBP)
+==============================================================================
+The fixed-deposit picker offers the local currency, USD, EUR, GBP and every
+other market currency. The body above covers local + USD. EUR and GBP sit here
+because few banks in these markets publish them — fill the ones that do.
+
+--- SG · fixed_deposit · EUR ---
+  DBS                                 = 1.62
+  POSB                                = 1.67
+  OCBC                                = 1.76
+  UOB                                 = 1.76
+  Standard Chartered                  = 1.85
+  Citibank                            = 1.88
+  HSBC                                = 1.82
+  Maybank                             = 1.78
+  Bank of China                       = 1.87
+  CIMB                                = 1.78
+  RHB                                 = 1.81
+  MUFG Bank                           = 1.90
+  Mizuho                              = 1.75
+  State Bank of India                 = 1.67
+  BNP Paribas                         = 1.93
+
+--- SG · fixed_deposit · GBP ---
+  DBS                                 = 1.91
+  POSB                                = 1.97
+  OCBC                                = 2.07
+  UOB                                 = 2.05
+  Standard Chartered                  = 2.15
+  Citibank                            = 2.19
+  HSBC                                = 2.11
+  Maybank                             = 2.08
+  Bank of China                       = 2.18
+  CIMB                                = 2.07
+  RHB                                 = 2.11
+  MUFG Bank                           = 2.21
+  Mizuho                              = 2.05
+  State Bank of India                 = 1.97
+  BNP Paribas                         = 2.24
+
+--- IN · fixed_deposit · EUR ---
+  State Bank of India                 = 1.46
+  HDFC Bank                           = 1.60
+  ICICI Bank                          = 1.59
+  Axis Bank                           = 1.58
+  Kotak Mahindra Bank                 = 1.63
+  Punjab National Bank                = 1.50
+  Bank of Baroda                      = 1.50
+  Yes Bank                            = 1.70
+  Standard Chartered                  = 1.66
+  HSBC                                = 1.62
+  Citibank                            = 1.67
+  DBS Bank India                      = 1.69
+  MUFG Bank                           = 1.68
+  Deutsche Bank                       = 1.71
+  BNP Paribas                         = 1.73
+
+--- IN · fixed_deposit · GBP ---
+  State Bank of India                 = 1.80
+  HDFC Bank                           = 1.95
+  ICICI Bank                          = 1.95
+  Axis Bank                           = 1.92
+  Kotak Mahindra Bank                 = 1.98
+  Punjab National Bank                = 1.86
+  Bank of Baroda                      = 1.84
+  Yes Bank                            = 2.05
+  Standard Chartered                  = 2.02
+  HSBC                                = 1.96
+  Citibank                            = 2.02
+  DBS Bank India                      = 2.05
+  MUFG Bank                           = 2.02
+  Deutsche Bank                       = 2.06
+  BNP Paribas                         = 2.09
+
+--- MY · fixed_deposit · EUR ---
+  Maybank                             = 1.77
+  CIMB                                = 1.79
+  Public Bank                         = 1.73
+  RHB                                 = 1.80
+  Hong Leong Bank                     = 1.76
+  AmBank                              = 1.81
+  Bank Islam                          = 1.77
+  Affin Bank                          = 1.82
+  Standard Chartered                  = 1.86
+  HSBC                                = 1.82
+  OCBC                                = 1.75
+  UOB                                 = 1.78
+  Bank of China                       = 1.85
+  MUFG Bank                           = 1.89
+  BNP Paribas                         = 1.93
+
+--- MY · fixed_deposit · GBP ---
+  Maybank                             = 2.01
+  CIMB                                = 2.04
+  Public Bank                         = 1.99
+  RHB                                 = 2.04
+  Hong Leong Bank                     = 2.01
+  AmBank                              = 2.07
+  Bank Islam                          = 2.01
+  Affin Bank                          = 2.07
+  Standard Chartered                  = 2.12
+  HSBC                                = 2.06
+  OCBC                                = 2.00
+  UOB                                 = 2.04
+  Bank of China                       = 2.09
+  MUFG Bank                           = 2.14
+  BNP Paribas                         = 2.19
+
+--- ID · fixed_deposit · EUR ---
+  Bank Mandiri                        = 1.11
+  Bank Central Asia                   = 1.06
+  Bank Rakyat Indonesia               = 1.11
+  Bank Negara Indonesia               = 1.12
+  CIMB Niaga                          = 1.13
+  Bank Danamon                        = 1.19
+  Permata Bank                        = 1.15
+  Panin Bank                          = 1.20
+  Maybank Indonesia                   = 1.16
+  OCBC Indonesia                      = 1.10
+  UOB Indonesia                       = 1.16
+  Standard Chartered                  = 1.21
+  HSBC                                = 1.17
+  MUFG Bank                           = 1.24
+  BNP Paribas                         = 1.28
+
+--- ID · fixed_deposit · GBP ---
+  Bank Mandiri                        = 1.36
+  Bank Central Asia                   = 1.31
+  Bank Rakyat Indonesia               = 1.36
+  Bank Negara Indonesia               = 1.37
+  CIMB Niaga                          = 1.38
+  Bank Danamon                        = 1.44
+  Permata Bank                        = 1.40
+  Panin Bank                          = 1.45
+  Maybank Indonesia                   = 1.41
+  OCBC Indonesia                      = 1.35
+  UOB Indonesia                       = 1.41
+  Standard Chartered                  = 1.46
+  HSBC                                = 1.42
+  MUFG Bank                           = 1.49
+  BNP Paribas                         = 1.53
+
+--- TH · fixed_deposit · EUR ---
+  Bangkok Bank                        = 1.59
+  Kasikornbank                        = 1.62
+  Siam Commercial Bank                = 1.61
+  Krungthai Bank                      = 1.57
+  Bank of Ayudhya                     = 1.65
+  TMBThanachart                       = 1.65
+  Kiatnakin Phatra                    = 1.67
+  LH Bank                             = 1.70
+  UOB Thailand                        = 1.67
+  CIMB Thai                           = 1.62
+  Standard Chartered                  = 1.70
+  HSBC                                = 1.69
+  ICBC Thai                           = 1.68
+  MUFG Bank                           = 1.74
+  BNP Paribas                         = 1.78
+
+--- TH · fixed_deposit · GBP ---
+  Bangkok Bank                        = 1.88
+  Kasikornbank                        = 1.92
+  Siam Commercial Bank                = 1.92
+  Krungthai Bank                      = 1.86
+  Bank of Ayudhya                     = 1.95
+  TMBThanachart                       = 1.96
+  Kiatnakin Phatra                    = 1.96
+  LH Bank                             = 2.00
+  UOB Thailand                        = 1.98
+  CIMB Thai                           = 1.91
+  Standard Chartered                  = 2.00
+  HSBC                                = 2.00
+  ICBC Thai                           = 1.97
+  MUFG Bank                           = 2.04
+  BNP Paribas                         = 2.09
+
+==============================================================================
+APPENDIX B · BANKS IN THE ROSTER BUT NOT IN THE LIVE DIRECTORY
+==============================================================================
+scripts/lib/roster.mjs lists these providers, but the banks table the app
+actually serves holds only 15 per country. Nothing above asks for their rates,
+because the app cannot offer them. Add the bank to the directory first if you
+want it benchmarked — a rate for a bank nobody can select is unreachable.
+
+--- SG · 3 not in the directory ---
+  Trust Bank
+  GXS Bank
+  MariBank
+
+--- IN · 12 not in the directory ---
+  Canara Bank
+  Union Bank of India
+  Bank of India
+  Indian Bank
+  Central Bank of India
+  Indian Overseas Bank
+  UCO Bank
+  IndusInd Bank
+  IDFC First Bank
+  Federal Bank
+  RBL Bank
+  Bandhan Bank
+
+--- MY · 7 not in the directory ---
+  Alliance Bank
+  Bank Rakyat
+  GXBank
+  Boost Bank
+  AEON Bank
+  KAF Digital Bank
+  Ryt Bank
+
+--- ID · 12 not in the directory ---
+  Bank Tabungan Negara
+  OCBC NISP
+  Bank Jago
+  SeaBank
+  Allo Bank
+  blu by BCA Digital
+  Jenius (BTPN)
+  Bank Neo Commerce
+  LINE Bank
+  TMRW by UOB
+  Superbank
+  Krom Bank
+
+--- TH · 5 not in the directory ---
+  Government Savings Bank
+  LINE BK
+  Dime!
+  SCBX Virtual Bank
+  Krungthai-Gulf Virtual Bank
+
+==============================================================================
+APPENDIX C · SOURCED RATES HELD FOR BANKS THE DIRECTORY DOES NOT LIST
+==============================================================================
+These rows are real and sourced, but their bank is not in the banks table, so
+nobody can select it. Either add the bank to the directory or drop the rows.
+
+  IN  Canara Bank                            3 sourced rows
+  IN  Central Bank of India                  4 sourced rows
+  IN  IDFC First Bank                        3 sourced rows
+  IN  Indian Bank                            1 sourced row
+  IN  IndusInd Bank                          1 sourced row
+  IN  Union Bank of India                    3 sourced rows
+  MY  Affin Islamic Bank Berhad              1 sourced row
+  MY  Al Rajhi Banking & Investment Corporation (Malaysia) Berhad 1 sourced row
+  MY  Alliance Bank                          2 sourced rows
+  MY  Alliance Islamic Bank Berhad           1 sourced row
+  MY  AmBank Islamic Berhad                  1 sourced row
+  MY  Bangkok Bank Berhad                    1 sourced row
+  MY  Bank Islam Malaysia Berhad             1 sourced row
+  MY  Bank Kerjasama Rakyat Malaysia Berhad  1 sourced row
+  MY  Bank Muamalat Malaysia Berhad          1 sourced row
+  MY  Bank Rakyat                            1 sourced row
+  MY  Bank Simpanan Nasional                 1 sourced row
+  MY  Bank of China (Malaysia) Berhad        1 sourced row
+  MY  CIMB Bank Berhad                       1 sourced row
+  MY  CIMB Islamic Bank Berhad               1 sourced row
+  MY  Citibank Berhad                        1 sourced row
+  MY  HSBC Amanah Malaysia Berhad            1 sourced row
+  MY  HSBC Bank Malaysia Berhad              1 sourced row
+  MY  Hong Leong Bank Malaysia Berhad        1 sourced row
+  MY  Hong Leong Islamic Bank Berhad         1 sourced row
+  MY  Industrial and Commercial Bank of China (Malaysia) Berhad 1 sourced row
+  MY  Kuwait Finance House (Malaysia) Berhad 1 sourced row
+  MY  MBSB Bank Berhad                       1 sourced row
+  MY  Malayan Banking Berhad                 1 sourced row
+  MY  Maybank Islamic Berhad                 1 sourced row
+  MY  OCBC Al-Amin Bank Berhad               1 sourced row
+  MY  OCBC Bank (Malaysia) Berhad            1 sourced row
+  MY  Public Bank Berhad                     1 sourced row
+  MY  Public Islamic Bank Berhad             1 sourced row
+  MY  RHB Bank Berhad                        1 sourced row
+  MY  RHB Islamic Bank Berhad                1 sourced row
+  MY  Standard Chartered Bank Malaysia Berhad 1 sourced row
+  MY  Standard Chartered Saadiq Berhad       1 sourced row
+  MY  United Overseas Bank (Malaysia) Bhd.   1 sourced row
+  SG  GXS Bank                               1 sourced row
+  SG  Hong Leong Finance                     2 sourced rows
+  SG  ICBC                                   1 sourced row
+  SG  Trust Bank                             1 sourced row
+  TH  Bank of China (Thai)                   5 sourced rows
+  TH  CIMB THAI Bank                         5 sourced rows
+  TH  CLICX Bank                             1 sourced row
+  TH  Industrial and Commercial Bank of China (Thai) 5 sourced rows
+  TH  Kiatnakin Phatra Bank                  5 sourced rows
+  TH  Krung Thai Bank                        5 sourced rows
+  TH  Land and Houses Bank                   5 sourced rows
+  TH  Mega International Commercial Bank     5 sourced rows
+  TH  Standard Chartered Bank (Thai)         2 sourced rows
+  TH  Sumitomo Mitsui Trust Bank (Thai)      2 sourced rows
+  TH  TISCO Bank                             5 sourced rows
+  TH  TMBThanachart Bank                     5 sourced rows
+  TH  Thai Credit Bank                       5 sourced rows
+  TH  United Overseas Bank (Thai)            5 sourced rows
+

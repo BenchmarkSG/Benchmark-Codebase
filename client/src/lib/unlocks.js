@@ -139,3 +139,21 @@ export function forgetRevealSession(sessionId) {
   for (const [k, v] of Object.entries(map)) if (v === sessionId) { delete map[k]; changed = true; }
   if (changed) { try { localStorage.setItem(SESSION_KEY, JSON.stringify(map)); } catch { /* ignore */ } }
 }
+
+/* What /api/reveal has to be asked.
+
+   The reveal recomputes the benchmark server-side and hands back only the name,
+   so it must be asked the SAME question the free benchmark was — otherwise it
+   answers about a different comparison. For cross-border that means the corridor
+   and the amount sent: pricing is per receive-currency, and a flat fee is 2% of
+   S$1,000 but 0.2% of S$10,000. Both ride in the context's `inputs` (the raw
+   form values), which the saved row stores too, so they survive the Stripe hop
+   and a reopen from the dashboard. */
+export const revealPayload = (ctx) => ({
+  country: ctx?.country || 'SG',
+  product: ctx?.productId || undefined,
+  currency: ctx?.currency || undefined,
+  send_currency: ctx?.inputs?.send_currency || undefined,
+  receive_currency: ctx?.inputs?.receive_currency || undefined,
+  sent_amount: ctx?.inputs?.sent_amount || undefined,
+});

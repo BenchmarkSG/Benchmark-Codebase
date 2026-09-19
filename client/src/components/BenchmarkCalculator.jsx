@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './BenchmarkCalculator.css';
-import { getReference, calcBenchmark, formatMoney, getBanks, getRevealPrice } from '../api.js';
-import { BANK_LOGOS } from './BankLogos.jsx';
+import { getReference, calcBenchmark, formatMoney, getBanks, getRevealPrice, revealBestBank } from '../api.js';
+import { BANK_LOGOS, logoForBank } from './BankLogos.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
-import { saveBenchmark } from '../lib/dashboardApi.js';
-import { unlockedTierFor } from '../lib/unlocks.js';
+import { saveBenchmark, findPaidBenchmarkId } from '../lib/dashboardApi.js';
+import { unlockedTierFor, revealSessionFor, revealPayload } from '../lib/unlocks.js';
+import { getAccessToken } from '../lib/supabase.js';
 import StepBar from './StepBar.jsx';
 
 // A–Z by name so people can scan the picker for their own bank. `base`
@@ -428,9 +429,34 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
   // so they are one step: it becomes current the moment Compute is pressed. The
   // unlock is read from the same place the result card reads it, so paying for
   // the reveal advances the bar with no round-trip.
+  const unlockedTier = result ? unlockedTierFor(revealContext()) : null;
   const step = !result && !loading ? 'input'
-    : result && unlockedTierFor(revealContext()) ? 'unlock'
+    : unlockedTier ? 'unlock'
     : 'compare';
+
+  // The winning bank's name, for the masked chip beside "Best Available Rate".
+  // The free benchmark never carries it, so once this result is paid for it is
+  // fetched from /api/reveal with the same proof the journey modal uses (the
+  // Stripe session, or the signed-in owner's paid row). Until then the chip
+  // stays masked — there is nothing behind the mask to peek at.
+  const [bestBank, setBestBank] = useState(null);
+  useEffect(() => { setBestBank(null); }, [result]);
+  useEffect(() => {
+    if (!unlockedTier || !result || result.status === 'ahead') return undefined;
+    let live = true;
+    (async () => {
+      const ctx = revealContext();
+      const sessionId = revealSessionFor(ctx) || undefined;
+      let benchmarkId = ctx.benchmarkId;
+      if (!sessionId && !benchmarkId) {
+        benchmarkId = (await findPaidBenchmarkId({ country: ctx.country, productId: ctx.productId })) || undefined;
+      }
+      const res = await revealBestBank({ ...revealPayload(ctx), sessionId, benchmarkId }, await getAccessToken());
+      if (live && res?.bestBank) setBestBank(res.bestBank);
+    })().catch(() => { /* stays masked; the journey modal retries on open */ });
+    return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unlockedTier, result]);
 
   return (
     <section className={compact ? 'calc-sec calc-sec--compact' : 'section calc-sec'} id="calculator">
@@ -442,13 +468,15 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
           <div className={`calc-card__head${result ? ' calc-card__head--nav' : ''}`}>
             {result ? (
               <div className="calc-card__nav">
-                <button type="button" className="calc-card__back" onClick={() => { setResult(null); setBack(true); }}>
-                  ← Recalculate
+                <button
+                  type="button"
+                  className="calc-card__back"
+                  aria-label="Go back"
+                  onClick={() => { setResult(null); setBack(true); }}
+                >
+                  ←
                 </button>
-                <span className="calc-card__meta">
-                  <b>{result.product}</b>
-                  <span>{result.unit}</span>
-                </span>
+                <span className="calc-card__meta" aria-hidden="true" />
               </div>
             ) : (
               <>
@@ -533,10 +561,10 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
           {(!compact || result) && (
             <div className="calcbox__result">
               {!result ? <Placeholder /> : (
-                <Result result={result} product={product} compact={compact} localCcy={localCcy}
+                <Result result={result} product={product} compact={compact} localCcy={localCcy} country={country}
                   yourBank={resultBank}
                   onReveal={revealCurrent}
-                  unlockedTier={unlockedTierFor(revealContext())}
+                  unlockedTier={unlockedTier} bestBank={bestBank}
                   onCrossSell={crossSellNext} canCrossSell={segmentProducts.length > 1}
                   onDetailedFeedback={() => onDetailedFeedback({ ...result, currency: result.currency || localCcy, segment })}
                   isAuthed={!!user} saveState={saveState} onSave={saveCurrent} />
@@ -556,7 +584,7 @@ function standingText(result) {
   return `better than ${result.percentileBeaten}% of the ${result.poolSize} providers we benchmark`;
 }
 
-function Result({ result, product, compact, localCcy, yourBank = '', onReveal, onCrossSell, canCrossSell, onDetailedFeedback, isAuthed, saveState, onSave, unlockedTier = null }) {
+function Result({ result, product, compact, localCcy, country = 'SG', yourBank = '', onReveal, onCrossSell, canCrossSell, onDetailedFeedback, isAuthed, saveState, onSave, unlockedTier = null, bestBank = null }) {
   const [revealErr, setRevealErr] = useState('');
   const [revealBusy, setRevealBusy] = useState(false);
   // Not signed in? onReveal opens the sign-in modal and stashes this result, so
@@ -593,10 +621,15 @@ function Result({ result, product, compact, localCcy, yourBank = '', onReveal, o
   // is optional and carries an "Other / not listed" entry, neither of which
   // names a bank — those keep the generic wording.
   const namedBank = yourBank && yourBank !== 'Other' ? yourBank : '';
+  const productLabel = product?.label || result.product || 'Product';
   const yourLabel = crossBorder ? 'Your all-in cost is'
     : moneyMetric ? 'What you pay now is'
-    : namedBank ? `Your Bank (${namedBank}) Rate is`
-    : 'Your bank’s rate is';
+    : `Your Bank (${productLabel}) Rate is`;
+  const bankLogo = useMemo(() => (namedBank ? logoForBank(country, namedBank) : null), [country, namedBank]);
+  const bestLogo = useMemo(() => (bestBank ? logoForBank(country, bestBank) : null), [country, bestBank]);
+  // The best bank stays behind a mask until the reveal is paid for AND the name
+  // has come back from the server.
+  const bestShown = !!(unlockedTier && bestBank);
   // How the best rate was published. A lender that prints "8.00%–9.50%" is
   // represented by the midpoint and marked "~"; one that prints "from 7.50%"
   // keeps the floor and is labelled "from". A plain figure was published as
@@ -664,10 +697,25 @@ function Result({ result, product, compact, localCcy, yourBank = '', onReveal, o
             <div className="res__cmp-row">
               <span className="res__cmp-label">{yourLabel}</span>
               <span className="res__cmp-val">{fmtMetric(result.yourRate)}</span>
+              <span className="res__cmp-bank">
+                {bankLogo ? <img className="res__cmp-logo" src={bankLogo.img} alt={namedBank} width="54" height="18" />
+                  : namedBank ? <span className="res__cmp-bankname">{namedBank}</span> : null}
+              </span>
             </div>
             <div className="res__cmp-row">
               <span className="res__cmp-label">Best Available Rate is</span>
               <span className="res__cmp-val">{fmtBest(result.benchmarkRate)}</span>
+              {bestShown ? (
+                <span className="res__cmp-bank res__cmp-bank--revealed">
+                  {bestLogo ? <img className="res__cmp-logo" src={bestLogo.img} alt={bestBank} width="54" height="18" />
+                    : <span className="res__cmp-bankname">{bestBank}</span>}
+                </span>
+              ) : (
+                <span className="res__cmp-bank res__cmp-bank--masked" role="img" aria-label="Best bank hidden until unlocked">
+                  <span className="res__cmp-mask" aria-hidden="true" />
+                  <span className="res__cmp-lock" aria-hidden="true">🔒</span>
+                </span>
+              )}
             </div>
           </div>
 
@@ -748,7 +796,7 @@ function Result({ result, product, compact, localCcy, yourBank = '', onReveal, o
           )}
           {/* Already paid for this benchmark? Then this button reopens it — it
               never offers to sell the same reveal a second time. */}
-          <button className="btn btn--block res__detail" onClick={handleReveal} disabled={revealBusy}>
+          <button className="btn btn--block res__detail res__detail--reveal" onClick={handleReveal} disabled={revealBusy}>
             {revealBusy
               ? (unlockedTier ? 'Opening…' : 'Opening secure checkout…')
               : (unlockedTier ? 'View Your Best Bank →' : 'Unlock the Best Rate Bank →')}
