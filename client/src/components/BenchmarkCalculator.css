@@ -35,19 +35,9 @@
   overflow: hidden;
   isolation: isolate;
 }
-/* Dynamic-island pill (top) + home-indicator bar (bottom) */
-.calc-card .calc-screen::before {
-  content: '';
-  position: absolute;
-  top: 11px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 84px;
-  height: 24px;
-  background: #05070d;
-  border-radius: 999px;
-  z-index: 4;
-}
+/* Home-indicator bar (bottom). The dynamic-island pill that used to sit at the
+   top was removed: it ate 36px of the blue band and pushed the heading down for
+   the sake of a detail nobody reads as a phone once the bezel already says so. */
 .calc-card .calc-screen::after {
   content: '';
   position: absolute;
@@ -63,12 +53,12 @@
 /* Non-compact page: the wrapper must not affect layout at all */
 .calc-screen--plain { display: contents; }
 
-/* Blue heading band, white text (extra top room for the island) */
+/* Blue heading band, white text */
 .calc-card .calc-card__head {
   margin: 0;
-  /* 36px of top padding still clears the dynamic island pill (top: 11px,
-     height: 24px — so it ends at 35px). */
-  padding: 36px 22px 10px;
+  /* Was 36px, to clear the dynamic-island pill. With the pill gone the heading
+     sits where it should, and the band is no longer half empty space. */
+  padding: 18px 22px 10px;
   background: linear-gradient(150deg, var(--blue-600) 0%, var(--navy-800) 100%);
   color: #fff;
 }
