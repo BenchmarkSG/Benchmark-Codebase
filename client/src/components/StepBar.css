@@ -115,15 +115,14 @@
         only the offset from the nav row above it differs. -------------------- */
 .steps--oncard { margin-top: 10px; }
 
-/* ---- In the journey modal: inside the padded body, under the blue head.
-        Capped and centred because the options screen widens the panel to
-        1000px, and five circles stretched across that read as five unrelated
-        badges rather than one track. ------------------------------------------ */
+/* ---- In the journey modal: inside the header itself, under the title. Capped
+        and centred because the options screen widens the panel to 1000px, and
+        four circles stretched across that read as four unrelated badges rather
+        than one track. The header draws the hairline that used to sit on this
+        bar, so it carries none of its own. --------------------------------- */
 .steps--jny {
   max-width: 620px;
-  margin: 0 auto 20px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--line);
+  margin: 12px auto 0;
 }
 
 /* Narrow phones: the labels are what runs out of room first. */

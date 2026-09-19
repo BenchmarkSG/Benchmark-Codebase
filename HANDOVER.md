@@ -377,7 +377,7 @@ Calendar OAuth — a real project, not an afternoon.
 What the in-house one does that Calendly could not:
 
 1. **Blackouts are honoured.** `booking_blackouts` (team-level, whole-day or a time range)
-   removes slots from the grid. Calendly's v2 API has no availability-override endpoint, so
+   removes slots from the list. Calendly's v2 API has no availability-override endpoint, so
    a window blocked in the admin portal stayed bookable in the widget — see
    `supabase/advisor_blackouts.sql`. That was a live double-booking risk.
 2. **The time is known at booking time.** `leads.slot_start` / `slot_end` are written by
@@ -392,7 +392,14 @@ What the in-house one does that Calendly could not:
    Two customers racing for the last seat are serialised by `pg_advisory_xact_lock` on the
    slot instant, and the loser is told to pick another — verified against a real Postgres.
 5. **`.ics` instead of an email invite.** `client/src/lib/ics.js`, covered by
-   `server/test/ics.test.js` (it is the only test runner in the repo).
+   `server/test/ics.test.js` (it is the only test runner in the repo). Its duration comes
+   from the availability the customer chose from, so changing `slot_minutes` moves the
+   invite with it.
+
+**The picker is one card, not a grid.** A `<select>` of open times plus — only when we hold
+no number for them — the WhatsApp number the specialist rings. The hold is taken when the
+button is pressed, never on the select's `change`: a select fires that on every arrow key,
+which on the old "pick = hold" contract would take and drop a hold per keystroke.
 
 **Configuration lives in the database, not in code.** `booking_settings` (timezone, slot
 length, notice, horizon, hold length) and `booking_hours` (weekday windows + capacity).

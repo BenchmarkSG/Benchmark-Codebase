@@ -8,12 +8,12 @@
 }
 /* A grid item's default min-width is auto, so the horizontally-scrolling
    carousel inside would stretch the track past the container instead of
-   scrolling within it. */
+   scrolling within it.
+
+   Nothing is drawn between the two blocks: the grid gap above is the whole
+   separation. The advisor block used to carry a hairline and 44px of padding to
+   clear it; both went together. */
 .tf__col { min-width: 0; }
-.tf__col--join {
-  border-top: 1px solid rgba(255, 255, 255, 0.22);
-  padding-top: 44px;
-}
 
 /* Testimonials — a horizontal carousel */
 .tst__title { text-align: left; font-size: clamp(22px, 2.4vw, 28px); }
@@ -116,7 +116,6 @@
 
 @media (max-width: 960px) {
   .tf__grid { gap: 40px; }
-  .tf__col--join { padding-top: 36px; }
   .tf .founding__grid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 520px) {

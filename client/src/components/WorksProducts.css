@@ -4,10 +4,9 @@
   gap: 48px;
   align-items: start;
 }
-.wp__col--products {
-  border-left: 1px solid var(--line);
-  padding-left: 48px;
-}
+/* No rule between the columns. The 48px grid gap is the separation; the extra
+   48px of padding here existed only to keep the cards off that rule. */
+.wp__col--products { min-width: 0; }
 
 /* Uniform heading sizes across both columns of this section */
 .wp .hiw__title,
@@ -36,7 +35,9 @@
 
 @media (max-width: 960px) {
   .wp__grid { grid-template-columns: 1fr; gap: 40px; }
-  .wp__col--products { border-left: none; padding-left: 0; border-top: 1px solid var(--line); padding-top: 40px; }
+  /* Stacked, the two blocks sit one under the other with nothing but the gap
+     between them, so this one keeps its hairline. */
+  .wp__col--products { border-top: 1px solid var(--line); padding-top: 40px; }
 }
 @media (max-width: 460px) {
   .wp .products__grid { grid-template-columns: 1fr; }

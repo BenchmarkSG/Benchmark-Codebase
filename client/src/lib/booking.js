@@ -124,3 +124,23 @@ export const fullLabel = (iso, tz = viewerZone()) => {
     }).format(new Date(iso));
   } catch { return ''; }
 };
+
+/** "Today" / "Tomorrow" / "Wed 23 Sep" — the way a person names a day out loud. */
+export function relativeDayLabel(iso, tz = viewerZone()) {
+  if (noInstant(iso)) return '';
+  const today = dayKey(new Date().toISOString(), tz);
+  const key = dayKey(iso, tz);
+  if (key === today) return 'Today';
+  // Compare the KEYS, not the instants: "tomorrow" is a calendar fact in the
+  // viewer's zone, and 23:30 tonight is already tomorrow eight hours east.
+  const [y, m, d] = today.split('-').map(Number);
+  const next = new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
+  if (key === next) return 'Tomorrow';
+  return dayLabel(iso, tz);
+}
+
+/** How long a slot runs, in whole minutes. 0 when the row carries no end. */
+export const slotMinutes = (slot) => {
+  if (!slot || noInstant(slot.start) || noInstant(slot.end)) return 0;
+  return Math.round((new Date(slot.end) - new Date(slot.start)) / 60000) || 0;
+};

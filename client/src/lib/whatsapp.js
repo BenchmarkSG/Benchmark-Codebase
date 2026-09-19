@@ -26,6 +26,8 @@
  *   record it as verification.
  */
 
+import { updateMyProfile } from './dashboardApi.js';
+
 /* Digits only — wa.me rejects "+", spaces and dashes. */
 const digits = (v) => String(v || '').replace(/\D/g, '');
 
@@ -95,3 +97,28 @@ export const missingCountryCode = (phone) => {
   const s = String(phone || '').trim();
   return !!s && !s.startsWith('+') && !s.startsWith('00');
 };
+
+/**
+ * Persist a callback number.
+ *
+ * Written to BOTH the profile row and auth user_metadata — the same pair
+ * account settings writes — so whichever the next screen reads, it finds it and
+ * never asks twice. `updateUserMetadata` comes from useAuth and is passed in:
+ * this module is a lib and has no hooks of its own.
+ *
+ * Returns the verification code when one was issued (opted in AND WhatsApp is
+ * configured), so the caller can offer the one-tap round trip. A claim is not
+ * evidence — see the note at the top of this file.
+ */
+export async function saveWhatsAppNumber({ phone, onWhatsApp = true, updateUserMetadata } = {}) {
+  const clean = String(phone || '').trim();
+  if (!looksDialable(clean)) throw new Error('That number does not look dialable.');
+  // Issued before the save so the same code lands in the profile and in the
+  // deep link — support matches the inbound message against it.
+  const issued = onWhatsApp && whatsappReady ? verificationCode() : null;
+  const patch = { phone: clean, whatsapp_opt_in: !!onWhatsApp };
+  if (issued) { patch.whatsapp_code = issued; patch.whatsapp_code_sent_at = new Date().toISOString(); }
+  await updateMyProfile(patch);
+  await updateUserMetadata?.({ phone: clean, whatsapp_opt_in: !!onWhatsApp });
+  return issued;
+}

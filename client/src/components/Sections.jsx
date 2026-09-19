@@ -457,7 +457,9 @@ const FAQS = [
 ];
 
 export function FAQ() {
-  const [open, setOpen] = useState(0);
+  // Every answer starts closed. Opening the first one for the reader decides
+  // which question they had, and pushes the other two down the page.
+  const [open, setOpen] = useState(null);
   return (
     <section className="section section--blue faq" id="faq">
       <div className="container faq__inner">

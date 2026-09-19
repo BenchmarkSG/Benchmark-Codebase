@@ -557,6 +557,11 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
   // A time clicked while signed out. Held so signing in without leaving the page
   // picks up where they were instead of dropping them on an empty grid.
   const pendingSlotRef = useRef(null);
+  /* How long the booked slot runs. Read from the availability the customer
+     actually chose from, so an owner who changes booking_settings.slot_minutes
+     gets calendar invites that match. 30 is the table's own default, and the
+     fallback for a booking resumed from a stash after Stripe. */
+  const slotMinsRef = useRef(30);
 
   /* The lead a hold is attached to. Option 2 takes the slot BEFORE payment, so
      the row has to exist before the money does — `booked` stays false until
@@ -586,8 +591,9 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
      Already paid (or nothing to pay) → the hold is confirmed on the spot, since
      there is no checkout to come back from. Otherwise it stays a hold and the
      pay button below turns it into a booking. */
-  const pickSlot = async (iso) => {
+  const pickSlot = async (iso, mins = 0) => {
     setSlotErr('');
+    if (mins) slotMinsRef.current = mins;
     if (!user) {
       pendingSlotRef.current = iso;
       onRequireAuth?.({ kind: 'journey', context, view, expert });
@@ -645,7 +651,7 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
   const addToCalendar = () => {
     if (!slotIso) return;
     const start = new Date(slotIso);
-    const end = new Date(start.getTime() + 30 * 60000);
+    const end = new Date(start.getTime() + (slotMinsRef.current || 30) * 60000);
     downloadInvite(callInvite({
       uid: `call-${leadRef.current || context?.benchmarkId || start.getTime()}@feeoptima`,
       start, end,
@@ -1140,12 +1146,13 @@ Kind regards,
         <div className="jny__head">
           <div className="jny__head-title">Your result</div>
           <div className="jny__head-sub">{SEG_LABEL[segment]} · {productLabel}</div>
+          {/* Last step of the funnel, on every view in here: the reveal is paid
+              for by the time this modal opens, so Unlock is behind us. It lives
+              in the header because the progress is chrome, exactly as it is in
+              the calculator's own band. */}
+          <StepBar current="negotiate" className="steps--jny" />
         </div>
         <button className="jny__close" onClick={requestClose} aria-label="Close">×</button>
-
-        {/* Last step of the funnel, on every view in here: the reveal is paid
-            for by the time this modal opens, so Unlock is behind us. */}
-        <StepBar current="negotiate" className="steps--jny" />
 
         {/* Reveal panel — the winning bank + saving, with a share button. Only on
             the options screen: once the user has picked an action, the sub-view
@@ -1379,66 +1386,67 @@ Kind regards,
                       <div className="jny-note jny-note--ok">✓ Payment received — confirming your time…</div>
                     )}
                     {/* The phone number is what the specialist actually calls, so
-                        it is asked for before a slot is taken rather than after. */}
-                    {!phone ? <PhoneGate onSaved={setPhone} /> : (
-                      <>
-                        {!user && !slotIso && (
-                          <div className="jny-note jny-note--warn">
-                            Pick a time below — we&apos;ll ask you to sign in before we hold it, so the booking lands on your account.
-                          </div>
-                        )}
-                        {slotErr && <div className="jny-note jny-note--warn">{slotErr}</div>}
+                        it is still taken before the slot is held — but inside the
+                        booking card rather than as a wall in front of it. Being
+                        asked for a number before you can see whether a workable
+                        time even exists is what made this screen feel like a form. */}
+                    {!user && !slotIso && (
+                      <div className="jny-note jny-note--warn">
+                        Pick a time below — we&apos;ll ask you to sign in before we hold it, so the booking lands on your account.
+                      </div>
+                    )}
+                    {slotErr && <div className="jny-note jny-note--warn">{slotErr}</div>}
 
-                        {slotIso ? (
-                          <div className="jny-hold">
-                            <div className="jny-hold__row">
-                              <span className="jny-hold__when">
-                                <strong>{fullLabel(slotIso)}</strong>
-                                <em>{zoneLabel(viewerZone())}</em>
-                              </span>
-                              <button type="button" className="jny-hold__change" onClick={() => dropHold()} disabled={slotBusy}>
-                                Change time
-                              </button>
-                            </div>
-                            {holdUntil && !slotBooked && (
-                              <p className="jny-hold__note">
-                                Held for you — <HoldTimer until={holdUntil} onExpire={onHoldExpired} /> left to confirm.
-                                {' '}Nobody else can take it until then.
-                              </p>
-                            )}
-                            {slotBooked && !paymentsEnabled && (
-                              <p className="jny-hold__note">✓ Booked. We&apos;ll message you on WhatsApp before the call.</p>
-                            )}
-                          </div>
-                        ) : (
-                          <SlotPicker
-                            selected={slotIso}
-                            onPick={pickSlot}
-                            busy={slotBusy}
-                            refreshKey={slotsKey}
-                            onUnavailable={() => setOwnScheduler(false)}
-                          />
-                        )}
-
-                        {/* Payment, only once a time is actually held. */}
-                        {slotIso && paymentsEnabled && paidTier !== 'call' && (
-                          <div className="jny-confirmpay">
-                            <p className="jny-confirmpay__lead">
-                              <strong>Your time is held.</strong> Confirm it with payment and the
-                              specialist is booked — you&apos;ll get a calendar invite and a WhatsApp message before the call.
-                            </p>
-                            <button className="btn btn--primary jny-pay" disabled={busy} onClick={() => pay('call')}>
-                              {!user ? 'Sign in to confirm →' : busy ? 'Redirecting to secure checkout…' : `Confirm & pay ${priceOf('call', 'S$99')} →`}
-                            </button>
-                            <p className="jny-note">🔒 Secure payment via Stripe. Your slot is held while you pay.</p>
-                          </div>
-                        )}
-                        {slotIso && slotBooked && !paymentsEnabled && (
-                          <button type="button" className="btn btn--ghost jny-ics" onClick={addToCalendar}>
-                            ＋ Add to my calendar
+                    {slotIso ? (
+                      <div className="jny-hold">
+                        <div className="jny-hold__row">
+                          <span className="jny-hold__when">
+                            <strong>{fullLabel(slotIso)}</strong>
+                            <em>{zoneLabel(viewerZone())}</em>
+                          </span>
+                          <button type="button" className="jny-hold__change" onClick={() => dropHold()} disabled={slotBusy}>
+                            Change time
                           </button>
+                        </div>
+                        {holdUntil && !slotBooked && (
+                          <p className="jny-hold__note">
+                            Held for you — <HoldTimer until={holdUntil} onExpire={onHoldExpired} /> left to confirm.
+                            {' '}Nobody else can take it until then.
+                          </p>
                         )}
-                      </>
+                        {slotBooked && !paymentsEnabled && (
+                          <p className="jny-hold__note">✓ Booked. We&apos;ll message you on WhatsApp before the call.</p>
+                        )}
+                      </div>
+                    ) : (
+                      <SlotPicker
+                        selected={slotIso}
+                        onPick={pickSlot}
+                        busy={slotBusy}
+                        refreshKey={slotsKey}
+                        onUnavailable={() => setOwnScheduler(false)}
+                        phone={phone}
+                        onPhoneSaved={setPhone}
+                      />
+                    )}
+
+                    {/* Payment, only once a time is actually held. */}
+                    {slotIso && paymentsEnabled && paidTier !== 'call' && (
+                      <div className="jny-confirmpay">
+                        <p className="jny-confirmpay__lead">
+                          <strong>Your time is held.</strong> Confirm it with payment and the
+                          specialist is booked — you&apos;ll get a calendar invite and a WhatsApp message before the call.
+                        </p>
+                        <button className="btn btn--primary jny-pay" disabled={busy} onClick={() => pay('call')}>
+                          {!user ? 'Sign in to confirm →' : busy ? 'Redirecting to secure checkout…' : `Confirm & pay ${priceOf('call', 'S$99')} →`}
+                        </button>
+                        <p className="jny-note">🔒 Secure payment via Stripe. Your slot is held while you pay.</p>
+                      </div>
+                    )}
+                    {slotIso && slotBooked && !paymentsEnabled && (
+                      <button type="button" className="btn btn--ghost jny-ics" onClick={addToCalendar}>
+                        ＋ Add to my calendar
+                      </button>
                     )}
                   </>
                 )}

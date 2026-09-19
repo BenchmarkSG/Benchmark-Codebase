@@ -97,7 +97,12 @@
     var(--shadow-lg),
     inset 0 1.5px 0 rgba(255, 255, 255, 0.42),
     inset 0 -1.5px 0 rgba(120, 60, 0, 0.35);
-  padding: 26px;
+  /* The header reaches the panel's edges by cancelling this padding, so the
+     two have to agree. One declaration, read by both — the phone breakpoint
+     below changes the value and the header follows it. */
+  --jny-pad-x: 26px;
+  --jny-pad-y: 26px;
+  padding: var(--jny-pad-y) var(--jny-pad-x);
   animation: pop 0.22s ease;
 }
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
@@ -106,30 +111,34 @@
 .jny__close {
   position: absolute;
   top: 14px; right: 14px;
-  border: none;
-  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
   display: grid; place-items: center;
   width: 40px; height: 40px;
   border-radius: 50%;
   font-size: 24px; line-height: 1;
-  color: #fff; cursor: pointer;
+  color: var(--ink-3); cursor: pointer;
   z-index: 2;
 }
-.jny__close:hover { background: rgba(255, 255, 255, 0.28); }
+.jny__close:hover { background: var(--line); color: var(--ink); }
 
-/* Blue header band — the same chrome the calculator's phone mock wears, so the
-   two screens read as one product. Negative margins pull it out to the panel's
-   edges without restructuring the padded body around it. */
+/* Header band — the same chrome the calculator's phone mock wears, so the two
+   screens read as one product. It went navy in both places; on this screen that
+   was a full-width slab above a white panel and a white certificate, and it is
+   plain here for the same reason the calculator's is after screen one: a
+   hairline is enough to mark chrome off from content. Negative margins pull it
+   out to the panel's edges without restructuring the padded body around it. */
 .jny__head {
-  margin: -26px -26px 20px;
-  padding: 20px 26px 18px;
-  background: linear-gradient(150deg, var(--blue-600) 0%, var(--navy-800) 100%);
-  color: #fff;
+  margin: calc(-1 * var(--jny-pad-y)) calc(-1 * var(--jny-pad-x)) 20px;
+  padding: 18px var(--jny-pad-x) 14px;
+  background: var(--surface);
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
 }
-.jny__head-title { font-size: 19px; font-weight: 800; color: #fff; line-height: 1.15; }
+.jny__head-title { font-size: 19px; font-weight: 800; color: var(--ink); line-height: 1.15; }
 .jny__head-sub {
   margin-top: 3px; font-size: 11.5px; font-weight: 700;
-  letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255, 255, 255, 0.78);
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
 }
 
 /* Hide the floating WhatsApp "Need Help?" widget while the journey modal is open. */
@@ -506,7 +515,7 @@ body.jny-open .needhelp { display: none; }
 
 @media (max-width: 560px) {
   /* Thinner bezel on a phone, where 7px of it is a bigger share of the width. */
-  .jny__panel { padding: 20px 16px; border-width: 5px; border-radius: 24px; }
+  .jny__panel { --jny-pad-x: 16px; --jny-pad-y: 20px; border-width: 5px; border-radius: 24px; }
   /* Keep the embedded scheduler from forcing a tall nested scroll on phones. */
   .jny-sched__frame, .jny-sched__frame iframe { min-height: 520px; }
   .jny-tier { flex-wrap: wrap; }
