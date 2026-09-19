@@ -92,6 +92,10 @@ export default function Hero({ onDetailedFeedback, onReveal, onStart, calcSelect
             <li>🔒 Anonymous &amp; Secure</li>
             <li>🔄 Data updated daily</li>
           </ul>
+          {/* Moved off the calculator's heading band: it says the same thing the
+              three claims above do, and it reads as a footnote to them rather
+              than as a subtitle to "Free Benchmarking Calculator". */}
+          <p className="hero__trust-sub">Live rates · no sign-up · no personal data stored</p>
         </div>
 
         {/* Right column — free benchmark calculator */}

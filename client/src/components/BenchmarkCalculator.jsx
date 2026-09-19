@@ -424,7 +424,6 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
             ) : (
               <>
                 <h2 className="calc-card__title">Free Benchmarking Calculator</h2>
-                <p className="calc-card__sub">Live rates · no sign-up · no personal data stored</p>
               </>
             )}
           </div>

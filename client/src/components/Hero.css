@@ -77,6 +77,14 @@
   color: #c6d5ec;
   font-weight: 600;
 }
+.hero__trust-sub {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  /* A step quieter than the claims above, so it reads as their footnote and
+     not as a fourth item in the list. */
+  color: rgba(198, 213, 236, 0.72);
+}
 
 .hero__cta { margin-top: 18px; }
 
@@ -117,4 +125,5 @@
   .hero__textcarousel { min-height: 280px; }
   .hero__cta { width: 100%; justify-content: center; margin-top: 20px; }
   .hero__trust { gap: 10px 16px; margin-top: 20px; }
+  .hero__trust-sub { font-size: 12px; }
 }
