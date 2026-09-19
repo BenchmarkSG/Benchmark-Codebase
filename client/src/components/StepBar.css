@@ -1,5 +1,5 @@
 /* ---------------------------------------------------------------------------
-   Five-step progress bar — Details · Compare · Savings · Unlock · Action
+   Four-step progress bar — Input · Compare · Unlock savings · Negotiate
 
    Colours come from --step-ok / --step-ok-on, declared in global.css for both
    themes AND again on .jny__panel (which forces light in either theme). The bar
@@ -10,8 +10,9 @@
   --step-size: 26px;
   --step-gap: 6px;           /* air between a circle and the rule leading to it */
   /* One indirection so a surface restates the SET rather than each rule: the
-     bar sits on white inside the journey panel and on the navy band inside the
-     calculator, and those need different greys, not different structure. */
+     bar sits on white inside the journey panel, on the navy band on the
+     calculator's first screen and on the plain card after it, and those need
+     different greys, not different structure. */
   --steps-line: var(--line);
   --steps-dot-bg: var(--line);
   --steps-dot-ink: var(--muted);
@@ -109,6 +110,11 @@
 /* The ring reads as a smudge on navy; a plain circle is clear enough there. */
 .steps--onblue .steps__item.is-now .steps__dot { box-shadow: none; }
 
+/* ---- On the calculator's plain heading band (every screen after the input).
+        No background of its own, so the default light token set already fits;
+        only the offset from the nav row above it differs. -------------------- */
+.steps--oncard { margin-top: 10px; }
+
 /* ---- In the journey modal: inside the padded body, under the blue head.
         Capped and centred because the options screen widens the panel to
         1000px, and five circles stretched across that read as five unrelated
@@ -126,4 +132,5 @@
   .steps__dot { font-size: 11px; }
   .steps__label { font-size: 9.5px; }
   .steps--onblue { margin-top: 12px; }
+  .steps--oncard { margin-top: 8px; }
 }

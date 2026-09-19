@@ -190,7 +190,7 @@ body.jny-open .needhelp { display: none; }
    CTA floats to wherever its own description leaves room, and the buttons
    stagger — which is what makes three cards read as three unrelated boxes.
    The badge is absolutely positioned, so the in-flow rows are exactly four:
-   price, title, CTA, description. */
+   price, title, description, CTA. */
 @supports (grid-template-rows: subgrid) {
   .jny-tiers { grid-template-rows: auto auto auto auto; }
   .jny-tiers .jny-tier {
@@ -201,7 +201,9 @@ body.jny-open .needhelp { display: none; }
   }
   /* The flex fallback's bottom-pinning would fight the grid row. */
   .jny-tiers .jny-tier__cta { margin-top: 0; align-self: center; }
-  .jny-tiers .jny-tier__desc { margin-top: 0; }
+  /* Hugs the title above it, so a short description leaves its slack over the
+     button rather than under the heading — the CTAs still share one row. */
+  .jny-tiers .jny-tier__desc { margin-top: 0; align-self: start; }
 }
 
 @media (max-width: 720px) {
@@ -260,7 +262,7 @@ body.jny-open .needhelp { display: none; }
 }
 .jny-tier__was { color: var(--muted); font-weight: 600; font-size: 15px; margin-right: 4px; }
 .jny-tier__title { width: 100%; text-align: center; font-size: 15.5px; font-weight: 800; color: var(--ink); }
-/* Footnote under the CTA — spacing comes from the card's flex gap. */
+/* Sits between the title and the CTA — spacing comes from the card's flex gap. */
 .jny-tier__desc { width: 100%; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
 .jny-tier__cta {
   /* Half the card, centred. min-width keeps the longest label ("Book an
@@ -572,9 +574,10 @@ body.jny-open .needhelp { display: none; }
 .jny-phone__code strong { letter-spacing: 0.14em; font-size: 15px; color: var(--ink); }
 
 /* Horizontal tiers: the CTA is pushed to the foot of every card so the three
-   buttons align, and the description follows it as the footnote it is. */
+   buttons align, with the description above it. (Fallback for browsers without
+   subgrid; the @supports block above takes over where there is.) */
 .jny-tiers .jny-tier__cta { margin-top: auto; width: 100%; }
-.jny-tiers .jny-tier__desc { margin-top: 10px; }
+.jny-tiers .jny-tier__desc { margin-top: 0; }
 
 /* The revealed bank: mark above name, which is how a bank is recognised. */
 .jny-unlock__bank { display: flex; flex-direction: column; align-items: center; gap: 8px; }

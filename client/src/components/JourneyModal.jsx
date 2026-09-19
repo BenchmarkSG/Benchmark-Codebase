@@ -71,13 +71,13 @@ const TIERS = [
     id: 'call', price: 'S$99', accent: 'blue', // price shown is FX-localized at runtime
     title: 'Help me negotiate with my bank',
     desc: 'A FeeOptima specialist reviews your numbers and coaches you through the call. Fees fully refundable if no savings.',
-    cta: 'Pick a Time',   // payment follows the slot now, so don't promise a booking yet
+    cta: 'Book a Call',
   },
   {
     id: 'expert', price: 'S$199', accent: 'violet', // price shown is FX-localized at runtime
     title: 'I need an expert (ex-banker) to negotiate on my behalf',
     desc: 'A specialist ex-banker prepares and leads the negotiation with your bank for you. Fee fully refundable if no savings.',
-    cta: 'Choose an Expert',
+    cta: 'Book an Expert',
   },
 ];
 
@@ -1244,12 +1244,13 @@ Kind regards,
                       {owned ? (current ? '✓ Purchased' : '✓ Included') : priceOf(t.id, t.price)}
                     </div>
                     <div className="jny-tier__title">{t.title}</div>
-                    {/* CTA sits directly under the title; the detail reads as a
-                        footnote beneath it rather than something to get past. */}
+                    {/* What the option is, then the button that buys it: the
+                        detail is what the choice is made on, so it comes before
+                        the commitment rather than as a footnote under it. */}
+                    <div className="jny-tier__desc">{t.desc}</div>
                     <button className="jny-tier__cta" onClick={() => chooseTier(t.id, owned)}>
                       {owned ? (current ? 'Manage this →' : 'Open →') : `${t.cta} →`}
                     </button>
-                    <div className="jny-tier__desc">{t.desc}</div>
                   </div>
                 );
               })}

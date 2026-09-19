@@ -53,26 +53,42 @@
 /* Non-compact page: the wrapper must not affect layout at all */
 .calc-screen--plain { display: contents; }
 
-/* Blue heading band, white text */
+/* Heading band. Every colour in it is a local token, because the band is blue
+   on the input screen and plain on the ones after it — the same structure in
+   two skins, not two headers. The variant below restates the SET. */
 .calc-card .calc-card__head {
+  --head-bg: linear-gradient(150deg, var(--blue-600) 0%, var(--navy-800) 100%);
+  --head-ink: #fff;
+  --head-ink-2: rgba(255, 255, 255, 0.82);
+  --head-ink-hover: rgba(255, 255, 255, 0.78);
+  --head-edge: transparent;
   margin: 0;
   /* Was 36px, to clear the dynamic-island pill. With the pill gone the heading
      sits where it should. The bottom is sized for the step bar that now lives
      inside this band, not for the title alone. */
   padding: 16px 14px 14px;
-  background: linear-gradient(150deg, var(--blue-600) 0%, var(--navy-800) 100%);
-  color: #fff;
+  background: var(--head-bg);
+  color: var(--head-ink);
+  border-bottom: 1px solid var(--head-edge);
 }
 /* Centred on the title itself rather than on .calc-card__head, so the result
    screen's nav row (back button + product meta, which share the same band) keeps
    its space-between layout. */
-.calc-card .calc-card__title { font-size: 18px; font-weight: 800; color: #fff; text-align: center; }
+.calc-card .calc-card__title { font-size: 18px; font-weight: 800; color: var(--head-ink); text-align: center; }
 
-/* Navbar variant — same band, shown on the result (and later) screens so the
-   phone chrome never disappears mid-flow. Keeps the 40px top padding that
-   clears the dynamic island. */
-/* The nav row is taller than the title, so it needs no extra bottom room. */
-.calc-card .calc-card__head--nav { padding-bottom: 12px; }
+/* Navbar variant — the result (and later) screens. The blue is the landing
+   screen's signature; repeating it on every screen turned a highlight into
+   wallpaper and cost the result 60-odd pixels of the phone's height. Same band,
+   same contents, now drawn on the card itself and marked off by a hairline. */
+.calc-card .calc-card__head--nav {
+  --head-bg: var(--surface);
+  --head-ink: var(--ink);
+  --head-ink-2: var(--muted);
+  --head-ink-hover: var(--accent);
+  --head-edge: var(--line);
+  /* The nav row is taller than the title, so it needs no extra bottom room. */
+  padding: 12px 14px 10px;
+}
 .calc-card .calc-card__nav {
   display: flex;
   align-items: center;
@@ -83,13 +99,13 @@
   border: none;
   background: transparent;
   padding: 0;
-  color: #fff;
+  color: var(--head-ink);
   font-weight: 800;
   font-size: 14px;
   cursor: pointer;
   font-family: inherit;
 }
-.calc-card .calc-card__back:hover { color: rgba(255, 255, 255, 0.78); }
+.calc-card .calc-card__back:hover { color: var(--head-ink-hover); }
 /* Product name + unit, right-aligned. The name is what stops a yield product
    being read as a cost; it ellipsises rather than wrapping the header. */
 .calc-card .calc-card__meta {
@@ -97,14 +113,14 @@
   min-width: 0; text-align: right;
 }
 .calc-card .calc-card__meta b {
-  font-size: 13px; font-weight: 800; color: #fff;
+  font-size: 13px; font-weight: 800; color: var(--head-ink);
   max-width: 46vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .calc-card .calc-card__meta span,
 .calc-card .calc-card__unit {
   font-size: 11.5px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--head-ink-2);
   white-space: nowrap;
 }
 .calc-card .calc-modes { margin-top: 14px; width: 100%; }
@@ -164,6 +180,25 @@
   .calc-card .res,
   .calc-card .calcbox__form.is-back { animation: none; }
 }
+
+/* ---- Compact result: the same tighter rhythm the compact FORM already runs --
+   The full-page #calculator keeps the roomier spacing declared further down;
+   only the phone mock is squeezed, because only it has to fit a headline, a
+   comparison, two buttons and their fine print inside one screen beside the
+   hero copy. Nothing here changes what is said — only the air between. */
+.calc-card .res__overpay { margin-top: 4px; }
+.calc-card .res__overpay-amt { margin-top: 13px; font-size: 28px; }
+.calc-card .res__overpay-sub { margin-top: 7px; font-size: 13.5px; }
+.calc-card .res__cmp { margin-top: 12px; padding: 12px 14px; row-gap: 8px; }
+.calc-card .res__tagline { margin-top: 12px; font-size: 15.5px; }
+.calc-card .res__findout { margin-top: 10px; margin-bottom: 8px; font-size: 13.5px; }
+.calc-card .res__locked { margin-top: 10px; }
+.calc-card .res__detail { margin-top: 10px; }
+.calc-card .res__reveal-note { margin-top: 6px; }
+.calc-card .res__save { margin-top: 8px; }
+/* The two stacked full-width buttons are the tallest things on the screen; the
+   form's own buttons were already trimmed the same way. */
+.calc-card .res .btn--block { padding-top: 12px; padding-bottom: 12px; }
 
 /* Mode tabs */
 .calc-modes {
@@ -280,6 +315,11 @@
 .calcbox__seg-btn.is-active { background: var(--navy-800); color: #fff; }
 
 .calcbox__row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+/* Two fields sharing a line stretch to the same height, so a label that wraps
+   to two lines ("Amount received / credited (Cr)" next to "Received currency")
+   would drop its input below the one beside it. Pin the control to the bottom of
+   the cell and the two line up whatever the labels do. */
+.calcbox__row .calcbox__field > :last-child { margin-top: auto; }
 .calcbox__field { display: flex; flex-direction: column; gap: 7px; font-size: 13px; font-weight: 700; color: var(--ink-2); }
 .calcbox__field b { color: var(--accent); }
 .calcbox__field select,
@@ -288,6 +328,10 @@
   border-radius: 10px;
   padding: 12px;
   font-size: 15px;
+  /* Stated rather than left to `normal`: a select's intrinsic line box is ~2px
+     taller than an input's, which is invisible until one sits beside the other
+     on the same line. */
+  line-height: 1.25;
   font-weight: 600;
   color: var(--ink);
   background: var(--surface);

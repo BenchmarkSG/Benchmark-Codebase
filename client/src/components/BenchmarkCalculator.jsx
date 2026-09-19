@@ -45,6 +45,36 @@ const REQUIRED_TYPES = new Set(['bank', 'amount', 'rate', 'tenor', 'duration', '
 const isRequiredField = (f) => REQUIRED_TYPES.has(f.type);
 const isBlank = (v) => v === '' || v == null;
 
+/* Which fields can share a line.
+   A number or a short picker holds its own at half width; a bank name or a free
+   text answer does not — "Your Bank/Finance Company" and its 40-character
+   options need the full width or every option truncates. */
+const PAIRABLE = new Set(['amount', 'tenor', 'rate', 'percent', 'count', 'duration', 'currency', 'enum']);
+
+/* Group a product's inputs into rows of at most two.
+   Pairs form only between ADJACENT pairable fields, so the order the catalog
+   declares is never rearranged — amount sits next to tenor because that is the
+   order they are asked in, not because they were sorted together. A wide field
+   breaks the run, and a leftover one keeps the full width rather than sitting in
+   a half-empty row. */
+function fieldRows(fields) {
+  const rows = [];
+  let pending = null;
+  for (const f of fields || []) {
+    if (!PAIRABLE.has(f.type)) {
+      if (pending) { rows.push([pending]); pending = null; }
+      rows.push([f]);
+    } else if (pending) {
+      rows.push([pending, f]);
+      pending = null;
+    } else {
+      pending = f;
+    }
+  }
+  if (pending) rows.push([pending]);
+  return rows;
+}
+
 // Currency choices for a product, given the country's local currency + the full
 // market currency set (used for the broad cross-border pickers).
 function ccyList(product, localCcy, allCcys) {
@@ -427,8 +457,9 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
             )}
             {/* Inside the band, not under it: the progress is chrome, and the
                 band is the card's chrome. It shows on the result screen too,
-                where the band swaps its contents for the back button. */}
-            <StepBar current={step} className="steps--onblue" />
+                where the band swaps its contents for the back button — and its
+                skin for the plain one, since the blue stops at screen one. */}
+            <StepBar current={step} className={result ? 'steps--oncard' : 'steps--onblue'} />
           </div>
         ) : (
           <>
@@ -471,13 +502,20 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
                 </label>
               </div>
 
-              {product?.inputs.map((f) => (
-                <Field
-                  key={f.key} field={f} value={values[f.key] ?? ''} onChange={setValue}
-                  ccyOptions={ccyOptions} bankOptions={banks}
-                  required={isRequiredField(f)} invalid={!!invalid[f.key]}
-                />
-              ))}
+              {fieldRows(product?.inputs).map((row) => {
+                const cells = row.map((f) => (
+                  <Field
+                    key={f.key} field={f} value={values[f.key] ?? ''} onChange={setValue}
+                    ccyOptions={ccyOptions} bankOptions={banks}
+                    required={isRequiredField(f)} invalid={!!invalid[f.key]}
+                  />
+                ));
+                // The same two-column grid Country/Product already uses, so the
+                // pairs collapse on a phone exactly as those do.
+                return row.length === 2
+                  ? <div className="calcbox__row" key={row[0].key + '+' + row[1].key}>{cells}</div>
+                  : cells[0];
+              })}
 
               <button className="btn btn--red btn--block" type="submit" disabled={loading || !product}>
                 {loading ? 'Calculating…' : 'Compute My Free Benchmark →'}
