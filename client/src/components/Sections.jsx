@@ -197,8 +197,19 @@ export function Segments({ onGetStarted, onCompare }) {
                   <path className="segments__arrowhead segments__arrowhead--navy" d="M0 0 L7 3.5 L0 7 Z" />
                 </marker>
               </defs>
-              <path className="segments__arrow segments__arrow--navy" d="M24 46 A58 58 0 0 0 30 104" strokeWidth="3" strokeLinecap="round" markerEnd="url(#ah-navy)" />
-              <path className="segments__arrow segments__arrow--blue" d="M124 102 A58 58 0 0 0 118 44" strokeWidth="3" strokeLinecap="round" markerEnd="url(#ah-blue)" />
+              {/* Two 140° arcs on one circle centred at (74,74), r=58 — just
+                  outside the white badge's ring. Both run anti-clockwise
+                  (sweep-flag 0 = counter-clockwise with y pointing down), so
+                  the left arc travels DOWN and the right arc travels UP, and
+                  the pair reads as one rotation rather than two brackets.
+                  Endpoints are exactly on that circle: when they aren't, the
+                  renderer has to pick a different centre to fit the radius, and
+                  the arcs bow away from the badge with their heads off-tangent,
+                  which is what they used to do. */}
+              <g className="segments__arrows-spin">
+                <path className="segments__arrow segments__arrow--navy" d="M54.2 19.5 A58 58 0 0 0 54.2 128.5" strokeWidth="3" strokeLinecap="round" markerEnd="url(#ah-navy)" />
+                <path className="segments__arrow segments__arrow--blue" d="M93.8 128.5 A58 58 0 0 0 93.8 19.5" strokeWidth="3" strokeLinecap="round" markerEnd="url(#ah-blue)" />
+              </g>
             </svg>
             <span>Compare What Matters Most to You</span>
           </div>

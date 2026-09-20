@@ -142,6 +142,24 @@
   height: calc(100% + 22px);
   pointer-events: none;
 }
+/* The pair travels round the badge, anti-clockwise, rather than sitting still
+   and merely pointing that way.
+
+   The spin lives on a group INSIDE the svg, turning about the viewBox point the
+   arcs are struck from. Rotating the <svg> element instead swung the whole box
+   around the page: the .sw variant centres it with translate(-50%, -50%), and a
+   rotation composed with that offset orbits the page's centre, not the badge's. */
+.segments__arrows-spin {
+  transform-box: view-box;
+  transform-origin: 74px 74px;
+  animation: seg-orbit 14s linear infinite;
+}
+@keyframes seg-orbit { to { transform: rotate(-360deg); } }
+/* Motion here is decoration, not information — the arrows say the same thing
+   parked. */
+@media (prefers-reduced-motion: reduce) {
+  .segments__arrows-spin { animation: none; }
+}
 
 /* Why choose */
 .why__grid { margin-top: 34px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }

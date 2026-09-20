@@ -318,7 +318,7 @@ export default function App() {
     <>
       <Navbar onGetStarted={scrollToCalc} onSignIn={openAuth} market={market} onMarketChange={setMarket} />
       <main>
-        <Hero onDetailedFeedback={openTiers} onReveal={revealBank} onStart={scrollToCalc} calcSelection={calcSelection} onRequireAuth={requireAuth} market={market} onMarketChange={setMarket} />
+        <Hero onDetailedFeedback={openTiers} onReveal={revealBank} onStart={scrollToCalc} calcSelection={calcSelection} market={market} onMarketChange={setMarket} />
         <WorksProducts onGetStarted={scrollToCalc} onCompare={handleCompare} market={market} />
         <RealSavings market={market} />
         <SegmentsWhy onGetStarted={scrollToCalc} onCompare={handleCompare} />

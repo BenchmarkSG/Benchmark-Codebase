@@ -2,8 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import './BenchmarkCalculator.css';
 import { getReference, calcBenchmark, formatMoney, getBanks, getRevealPrice, revealBestBank } from '../api.js';
 import { BANK_LOGOS, logoForBank } from './BankLogos.jsx';
-import { useAuth } from '../context/AuthContext.jsx';
-import { saveBenchmark, findPaidBenchmarkId } from '../lib/dashboardApi.js';
+import { findPaidBenchmarkId } from '../lib/dashboardApi.js';
 import { unlockedTierFor, revealSessionFor, revealPayload } from '../lib/unlocks.js';
 import { getAccessToken } from '../lib/supabase.js';
 import StepBar from './StepBar.jsx';
@@ -153,8 +152,7 @@ function Field({ field, value, onChange, ccyOptions, bankOptions, required, inva
   );
 }
 
-export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, compact = false, selection = null, onRequireAuth, market = null, onMarketChange }) {
-  const { user } = useAuth();
+export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, compact = false, selection = null, market = null, onMarketChange }) {
   const [ref, setRef] = useState(null);
   const [error, setError] = useState(null);
   const savedCalc = useRef(readSavedCalc()).current; // read once, on first render
@@ -171,7 +169,8 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
   // run instead of clobbering them with defaults.
   const keepRestored = useRef(!!savedCalc);
   const [loading, setLoading] = useState(false);
-  const [saveState, setSaveState] = useState('idle'); // idle | saving | saved | error
+  // No manual save on the result screen any more — the row is persisted by the
+  // reveal flow itself (App.revealBank), which is the only path that needs it.
   const [savedId, setSavedId] = useState(null); // id of this result's saved-benchmark row (once saved)
   const [banks, setBanks] = useState([]); // provider directory for the chosen country
   const [back, setBack] = useState(false); // true after "Recalculate" → animate the form back in
@@ -327,21 +326,6 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
     };
   }
 
-  async function saveCurrent() {
-    if (!result || !product) return;
-    // Not signed in: stash the row so an OAuth / email-confirm reload still
-    // lands this benchmark in their dashboard instead of losing the result.
-    if (!user) { onRequireAuth?.({ kind: 'save', saveRow: currentSaveRow() }); return; }
-    setSaveState('saving');
-    try {
-      const row = await saveBenchmark(currentSaveRow());
-      setSavedId(row?.id ?? null);
-      setSaveState('saved');
-    } catch {
-      setSaveState('error');
-    }
-  }
-
   // Reveal: hand the reveal flow both the result context AND the save payload so
   // it can persist this benchmark (as 'revealed') to the dashboard — reusing the
   // existing saved row if the user already hit "Save".
@@ -404,7 +388,6 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
     setInvalid({});
     setLoading(true);
     setError(null);
-    setSaveState('idle');
     setSavedId(null);
     try {
       // Drop empty fields; the server fills sensible fallbacks.
@@ -567,7 +550,7 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
                   unlockedTier={unlockedTier} bestBank={bestBank}
                   onCrossSell={crossSellNext} canCrossSell={segmentProducts.length > 1}
                   onDetailedFeedback={() => onDetailedFeedback({ ...result, currency: result.currency || localCcy, segment })}
-                  isAuthed={!!user} saveState={saveState} onSave={saveCurrent} />
+                  />
               )}
             </div>
           )}
@@ -584,7 +567,7 @@ function standingText(result) {
   return `better than ${result.percentileBeaten}% of the ${result.poolSize} providers we benchmark`;
 }
 
-function Result({ result, product, compact, localCcy, country = 'SG', yourBank = '', onReveal, onCrossSell, canCrossSell, onDetailedFeedback, isAuthed, saveState, onSave, unlockedTier = null, bestBank = null }) {
+function Result({ result, product, compact, localCcy, country = 'SG', yourBank = '', onReveal, onCrossSell, canCrossSell, onDetailedFeedback, unlockedTier = null, bestBank = null }) {
   const [revealErr, setRevealErr] = useState('');
   const [revealBusy, setRevealBusy] = useState(false);
   // Not signed in? onReveal opens the sign-in modal and stashes this result, so
@@ -642,10 +625,6 @@ function Result({ result, product, compact, localCcy, country = 'SG', yourBank =
   const fmtBest = (v) => (bestBasis === 'range' ? `~${fmtMetric(v)}` : fmtMetric(v));
   const fmtPool = (v) => (result.approxPool ? `~${v}` : v);
   const ahead = result.status === 'ahead';
-  const saveLabel = saveState === 'saved' ? 'Saved to dashboard ✓'
-    : saveState === 'saving' ? 'Saving…'
-    : saveState === 'error' ? 'Couldn’t save — retry'
-    : isAuthed ? '＋ Save to my dashboard' : 'Sign-in to save this';
 
   return (
     <div className="res">
@@ -729,9 +708,6 @@ function Result({ result, product, compact, localCcy, country = 'SG', yourBank =
         </>
       )}
 
-      {crossBorder && result.settlementHours != null && (
-        <div className="res__locked">⏱ Your transfer settles in ~{result.settlementHours}h.</div>
-      )}
       {!compact && !ahead && (
         <div className="res__locked">🔒 {result.benchmarkLabel}. Market-typical is {fmtPool(result.marketTypical)} {result.unit}.</div>
       )}
@@ -799,7 +775,7 @@ function Result({ result, product, compact, localCcy, country = 'SG', yourBank =
           <button className="btn btn--block res__detail res__detail--reveal" onClick={handleReveal} disabled={revealBusy}>
             {revealBusy
               ? (unlockedTier ? 'Opening…' : 'Opening secure checkout…')
-              : (unlockedTier ? 'View Your Best Bank →' : 'Unlock the Best Rate Bank →')}
+              : (unlockedTier ? 'View Your Best Bank →' : 'Reveal Bank with Best Available Rate →')}
           </button>
           {revealErr && <p className="res__lead-err">{revealErr}</p>}
           <p className="res__reveal-note">
@@ -809,14 +785,6 @@ function Result({ result, product, compact, localCcy, country = 'SG', yourBank =
           </p>
         </>
       )}
-
-      <button
-        className="btn btn--ghost btn--block res__save"
-        onClick={onSave}
-        disabled={saveState === 'saving' || saveState === 'saved'}
-      >
-        {saveLabel}
-      </button>
 
       {!compact && (
         <small className="res__detail-note">

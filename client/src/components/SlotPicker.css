@@ -3,8 +3,8 @@
    Lives inside .jny__panel, which pins the light token set in either theme. */
 .slots {
   display: block;
-  background: var(--blue-50);
-  border: 1px solid #d7e5f9;
+  background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: 18px;
   padding: 18px;
 }
@@ -31,21 +31,6 @@
 .slots__headings { min-width: 0; }
 .slots__title { margin: 0; font-size: 17px; font-weight: 800; color: var(--ink); line-height: 1.2; }
 .slots__sub { margin: 3px 0 0; font-size: 13px; color: var(--muted); }
-
-/* Glyphs then a rule then the words, so the icons read as a label rather than
-   as two more things to press. */
-.slots__meta {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin: 10px 0 0;
-  padding-left: 34px;   /* aligns under the headings, past the icon */
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--muted);
-}
-.slots__meta svg { color: var(--ink-3); }
-.slots__meta-sep { width: 1px; height: 14px; background: #c3d8f5; margin: 0 3px; }
 
 /* ---- The date and time dropdowns ---- */
 /* Two equal columns: neither decision is the senior one. They stack below the
@@ -107,14 +92,14 @@
 }
 .slots__zone strong { color: var(--ink-3); }
 
-/* ---- The callback number, when we don't already hold one ---- */
-.slots__phone {
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid #d7e5f9;
-}
+/* ---- The callback number: a control in the card, beside the date and time --- */
 .slots__field { display: flex; flex-direction: column; gap: 5px; }
 .slots__field > span { font-size: 12.5px; font-weight: 700; color: var(--ink-2); }
+.slots__field--phone { margin-top: 14px; }
+/* The two glyphs sit on the label, which is where the old meta line said what
+   kind of call this is. */
+.slots__field--phone > span { display: flex; align-items: center; gap: 6px; }
+.slots__field--phone > span svg { color: var(--ink-3); }
 .slots__field input {
   width: 100%;
   border: 1.5px solid #cfe0f6;
@@ -143,7 +128,6 @@
 
 @media (max-width: 560px) {
   .slots { padding: 16px 14px; }
-  .slots__meta { padding-left: 0; }
 }
 /* Side by side, each control holds about 150px of text; below this the date
    stops fitting, so they take a line each. */

@@ -76,8 +76,20 @@
   white-space: nowrap;
 }
 
-.steps__item.is-done .steps__dot,
-.steps__item.is-now .steps__dot { background: var(--step-ok); color: var(--step-ok-on); }
+/* Steps still ahead: white, ringed — empty, the way an unticked box is empty.
+   A grey fill read as "disabled" next to the outlined step you are on. */
+.steps__item.is-todo .steps__dot {
+  background: var(--steps-dot-todo-bg, var(--surface));
+  box-shadow: inset 0 0 0 2px var(--steps-line);
+}
+.steps__item.is-done .steps__dot { background: var(--step-ok); color: var(--step-ok-on); }
+/* The step you are ON is outlined, not filled: filling it is what COMPLETING it
+   does, so a solid circle here would say the step is already behind you. */
+.steps__item.is-now .steps__dot {
+  background: var(--step-now-bg, #fff);
+  color: var(--step-ok);
+  box-shadow: inset 0 0 0 2px var(--step-ok);
+}
 .steps__item.is-done .steps__label { color: var(--steps-label-done); }
 .steps__item.is-now .steps__label { color: var(--step-ok); font-weight: 800; }
 
@@ -85,7 +97,8 @@
    screenshotted in greyscale, or read by someone who can't separate the greens
    from the greys. */
 .steps__item.is-now .steps__dot {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--step-ok) 22%, transparent);
+  box-shadow: inset 0 0 0 2px var(--step-ok),
+              0 0 0 3px color-mix(in srgb, var(--step-ok) 22%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -98,6 +111,8 @@
    the dark-mode one and takes dark text, because white on a light green is
    unreadable at 12px. */
 .steps--onblue {
+  /* On navy a white circle would out-shout the step you're on. */
+  --steps-dot-todo-bg: rgba(255, 255, 255, 0.15);
   --step-ok: #3cc98c;
   --step-ok-on: #08241a;
   --steps-line: rgba(255, 255, 255, 0.22);
@@ -108,7 +123,11 @@
   margin-top: 14px;
 }
 /* The ring reads as a smudge on navy; a plain circle is clear enough there. */
-.steps--onblue .steps__item.is-now .steps__dot { box-shadow: none; }
+.steps--onblue .steps__item.is-now .steps__dot {
+  box-shadow: inset 0 0 0 2px var(--step-ok);
+}
+/* On navy the hollow circle needs a body of its own, or the outline floats. */
+.steps--onblue { --step-now-bg: rgba(255, 255, 255, 0.12); }
 
 /* ---- On the calculator's plain heading band (every screen after the input).
         No background of its own, so the default light token set already fits;

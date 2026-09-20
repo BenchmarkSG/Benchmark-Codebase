@@ -56,8 +56,9 @@
   --shadow-lg: 0 24px 60px rgba(11, 31, 58, 0.16);
 
   /* Tone the panel blends into low down — anything that needs to disappear
-     against the panel (the OR divider's label) matches this rather than #fff. */
-  --jny-surface: var(--surface-2);
+     against the panel (the OR divider's label) matches it. The panel is plain
+     white now, so this follows it rather than the old pale-blue tint. */
+  --jny-surface: var(--surface);
 
   position: relative;
   width: 100%;
@@ -84,7 +85,7 @@
      the content moves under it. */
   border: 7px solid transparent;
   background:
-    linear-gradient(var(--surface-2), var(--surface-2)) padding-box,
+    linear-gradient(var(--surface), var(--surface)) padding-box,
     linear-gradient(165deg, #ea9440 0%, var(--orange-500) 52%, #9c4f08 100%) border-box;
   border-radius: 30px;
   /* NO `overflow: hidden` here — the shorthand would override the overflow-y
@@ -122,6 +123,23 @@
 }
 .jny__close:hover { background: var(--line); color: var(--ink); }
 
+/* Step back, mirroring the × across the header. Bigger glyph, no box: a dismiss
+   is a control, a back is a direction. */
+.jny__backarrow {
+  flex: none;
+  /* Sized against a step circle and nudged onto its centreline, the same way
+     the calculator's own back arrow sits on the bar. */
+  width: 32px; height: 32px;
+  margin-top: -3px;
+  display: grid; place-items: center;
+  border: 1px solid var(--line); border-radius: 50%;
+  background: var(--surface-2); color: var(--ink-3);
+  padding: 0; line-height: 0;
+  cursor: pointer;
+}
+.jny__backarrow svg { display: block; }
+.jny__backarrow:hover { background: var(--line); color: var(--ink); }
+
 /* Header band — the same chrome the calculator's phone mock wears, so the two
    screens read as one product. It went navy in both places; on this screen that
    was a full-width slab above a white panel and a white certificate, and it is
@@ -130,18 +148,26 @@
    out to the panel's edges without restructuring the padded body around it. */
 .jny__head {
   margin: calc(-1 * var(--jny-pad-y)) calc(-1 * var(--jny-pad-x)) 20px;
-  /* Just the step bar now (no title): tight above, and clear of the × on the right. */
-  padding: 14px calc(var(--jny-pad-x) + 44px) 12px var(--jny-pad-x);
+  /* Just the step bar and the back arrow, on one line. No hairline: the bar
+     already marks the chrome off from the screen under it. */
+  padding: 14px var(--jny-pad-x) 12px;
   background: var(--surface);
   color: var(--ink);
-  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
 }
+/* A spacer the width of the arrow (plus the × 's overhang on the right), so the
+   bar is centred on the panel rather than on what is left beside them. */
+.jny__head::after { content: ''; flex: none; width: 34px; }
+.jny__head .steps { flex: 1 1 auto; min-width: 0; }
 
 /* Hide the floating WhatsApp "Need Help?" widget while the journey modal is open. */
 body.jny-open .needhelp { display: none; }
 
 /* Reveal panel */
 .jny-reveal {
+  position: relative;          /* anchors the certificate stamp, top-right */
   background: transparent;
   color: var(--ink);
   padding: 0;
@@ -288,9 +314,10 @@ body.jny-open .needhelp { display: none; }
 .jny-tier__cta:hover { filter: brightness(1.06); }
 
 /* Sub-views (email / call / expert) */
-.jny__back { border: none; background: transparent; color: var(--accent); font-weight: 700; font-size: 13.5px; padding: 10px 6px 12px; margin-left: -6px; cursor: pointer; min-height: 40px; }
 .jny-sub__title { font-size: 18px; font-weight: 800; color: var(--ink); }
 .jny-sub__sub { font-size: 13.5px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+/* The same line, read after the picker's button rather than before it. */
+.jny-sub__sub--after { margin-top: 12px; text-align: center; }
 /* --accent, not --blue-700: the brand scale is fixed (a --blue-700 price on the
    dark theme's near-navy pill is unreadable), while --accent is the semantic
    "blue as TEXT" token and lifts to a legible tint in dark mode. */
@@ -382,7 +409,7 @@ body.jny-open .needhelp { display: none; }
 /* Reveal view — unlocked bank + two pricing paths */
 .jny-unlock {
   display: flex; flex-direction: column; gap: 2px;
-  background: var(--blue-50); border: 1px solid #c3d8f5; border-radius: 12px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
   padding: 14px 16px; margin: 4px 0 12px;
 }
 .jny-unlock__name { font-size: 24px; font-weight: 800; color: var(--ink); line-height: 1.1; }
@@ -404,7 +431,62 @@ body.jny-open .needhelp { display: none; }
 /* The certificate is a keepsake, not a fourth option — narrower than the tier
    cards so it reads as a different kind of thing. The cap only binds on wide
    panels; on a phone it stays full width. */
-.jny .cert-wrap { width: 100%; max-width: 420px; margin: 26px auto 0; }
+.jny .cert-wrap { width: 100%; max-width: 420px; margin: 0 auto; }
+
+/* ---- The certificate as a stamp in the corner of the reveal panel ---------
+   A real, scaled-down render rather than a picture of one, so it can never go
+   stale. The share strip is the enlarged view's job: at this size its buttons
+   would be 4px tall and unclickable. */
+.jny-certthumb {
+  position: absolute; top: 0; right: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  width: 128px; padding: 0; border: 0; background: none;
+  cursor: zoom-in;
+}
+.jny-certthumb__inner {
+  display: block; width: 128px; height: 200px; overflow: hidden;
+  border-radius: 8px; border: 1px solid var(--line);
+  box-shadow: 0 6px 18px rgba(11, 31, 58, 0.16);
+  background: #fff;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+/* 420px of certificate, drawn at its real width and shrunk to fit the stamp. */
+.jny-certthumb__inner .cert-wrap {
+  width: 420px; max-width: none; margin: 0;
+  transform: scale(0.3048); transform-origin: top left;
+  pointer-events: none;
+}
+.jny-certthumb__inner .certshare { display: none; }
+.jny-certthumb__cap {
+  font-size: 10.5px; font-weight: 800; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--muted);
+}
+.jny-certthumb:hover .jny-certthumb__inner {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(11, 31, 58, 0.22);
+}
+.jny-certthumb:focus-visible .jny-certthumb__inner { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Enlarged: its own layer over the journey panel, so the certificate is read at
+   the size it was designed for without the options scrolling behind it. */
+.jny-certbox { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 20px; }
+.jny-certbox__backdrop { position: absolute; inset: 0; background: rgba(6, 16, 32, 0.6); }
+.jny-certbox__panel {
+  position: relative; width: 100%; max-width: 440px;
+  max-height: calc(100vh - 40px); overflow: auto;
+}
+.jny-certbox__close {
+  position: absolute; top: -14px; right: -6px; z-index: 1;
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  font-size: 22px; line-height: 1; cursor: pointer;
+}
+
+/* Under ~900px the panel is too narrow to hold a stamp beside the reveal, so it
+   comes back into the flow, centred under it. */
+@media (max-width: 900px) {
+  .jny-certthumb { position: static; margin: 16px auto 0; }
+}
 
 /* Two pricing paths shown SIDE BY SIDE so they read as two parallel choices,
    not a $9-then-$1 sequence:  [ Standard $9 ]  OR  [ Share & save $1 ]. */
@@ -514,6 +596,20 @@ body.jny-open .needhelp { display: none; }
   padding: 10px 15px; border-radius: 10px; white-space: nowrap;
 }
 .jny-expert__pick:hover { filter: brightness(1.06); }
+
+/* The chosen expert, with the list still on screen: the row is marked rather
+   than the list replaced, so the panel below is clearly about THIS person. */
+.jny-expert--picked { border-color: var(--blue-600); box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue-600) 14%, transparent); }
+.jny-expert--picked .jny-expert__pick { background: var(--surface); color: var(--blue-600); box-shadow: inset 0 0 0 1.5px var(--blue-600); }
+
+/* Their booking panel, under the list. */
+.jny-pick {
+  margin-top: 16px;
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+}
+.jny-pick__title { margin: 0 0 10px; font-size: 16px; font-weight: 800; color: var(--ink); }
 
 @media (max-width: 560px) {
   /* Thinner bezel on a phone, where 7px of it is a bigger share of the width. */

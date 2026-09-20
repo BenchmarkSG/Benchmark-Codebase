@@ -27,7 +27,7 @@ const SLIDES = [
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-export default function Hero({ onDetailedFeedback, onReveal, onStart, calcSelection, onRequireAuth, market, onMarketChange }) {
+export default function Hero({ onDetailedFeedback, onReveal, onStart, calcSelection, market, onMarketChange }) {
   const [active, setActive] = useState(0);
   // No play/pause control any more, so this is fixed at mount: users who ask for
   // reduced motion get a static carousel they drive with the dots (WCAG 2.2.2).
@@ -100,7 +100,7 @@ export default function Hero({ onDetailedFeedback, onReveal, onStart, calcSelect
 
         {/* Right column — free benchmark calculator */}
         <div className="hero__media">
-          <BenchmarkCalculator compact onDetailedFeedback={onDetailedFeedback} onReveal={onReveal} selection={calcSelection} onRequireAuth={onRequireAuth} market={market} onMarketChange={onMarketChange} />
+          <BenchmarkCalculator compact onDetailedFeedback={onDetailedFeedback} onReveal={onReveal} selection={calcSelection} market={market} onMarketChange={onMarketChange} />
         </div>
       </div>
     </section>

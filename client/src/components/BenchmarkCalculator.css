@@ -85,10 +85,23 @@
   --head-ink: var(--ink);
   --head-ink-2: var(--muted);
   --head-ink-hover: var(--accent);
-  --head-edge: var(--line);
+  /* No hairline: the step bar already marks the chrome off from the result, and
+     a rule across the phone's width cut the screen in two. */
+  --head-edge: transparent;
   /* The nav row is taller than the title, so it needs no extra bottom room. */
   padding: 12px 14px 10px;
+  /* Back arrow and step bar share one line, topped out so the arrow lands on
+     the circles' centreline and the step labels hang below both. */
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
 }
+.calc-card .calc-card__head--nav .calc-card__nav { flex: none; width: 32px; }
+.calc-card .calc-card__head--nav .steps { flex: 1 1 auto; min-width: 0; }
+.calc-card .calc-card__head--nav .steps--oncard { margin-top: 0; }
+/* A spacer the width of the back button, so the bar is centred on the card
+   rather than on what is left of it after the arrow. */
+.calc-card .calc-card__head--nav::after { content: ''; flex: none; width: 32px; }
 .calc-card .calc-card__nav {
   display: flex;
   align-items: center;
@@ -98,10 +111,18 @@
 .calc-card .calc-card__back {
   border: none;
   background: transparent;
+  /* Sized and centred against the step circles: the row below puts the two on
+     one line, and this is what makes the arrow sit ON the circles' centreline
+     rather than floating above them. A touch larger than a circle — it is the
+     only thing on this row you can press. */
+  width: 32px; height: 32px;
+  margin-top: -3px;
+  display: grid; place-items: center;
   padding: 0;
   color: var(--head-ink);
   font-weight: 800;
-  font-size: 14px;
+  font-size: 20px;
+  line-height: 1;
   cursor: pointer;
   font-family: inherit;
 }

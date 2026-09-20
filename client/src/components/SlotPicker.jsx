@@ -67,6 +67,9 @@ const dateOption = (d) => (d.rel === d.label ? d.label : `${d.rel}, ${d.label.re
 export default function SlotPicker({
   selected = null, onPick, busy = false, disabled = false, onUnavailable, refreshKey = 0,
   phone = '', onPhoneSaved,
+  // A time is already held: the card stays on screen showing what was picked,
+  // but its own button steps aside for the confirm-and-pay one below it.
+  held = false,
 }) {
   const { updateUserMetadata } = useAuth();
   const [slots, setSlots] = useState(null);
@@ -80,7 +83,7 @@ export default function SlotPicker({
   // The number the specialist actually rings. Only collected when we don't
   // already have one — the profile and auth metadata are both checked upstream.
   const needNumber = !phone;
-  const [num, setNum] = useState('');
+  const [num, setNum] = useState(phone || '');
   const [onWhatsApp, setOnWhatsApp] = useState(true);
   const [code, setCode] = useState('');     // issued once the number is saved
   const [formErr, setFormErr] = useState('');
@@ -145,11 +148,13 @@ export default function SlotPicker({
     e.preventDefault();
     setFormErr('');
     if (!choice) { setFormErr('Pick a time first.'); return; }
-    if (needNumber) {
-      if (!looksDialable(num)) {
-        setFormErr('Please enter a number we can reach you on, including the country code.');
-        return;
-      }
+    // Save when the number is new to us, or when a stored one has been edited
+    // here — this field is now always on screen, so it is always the truth.
+    if (!looksDialable(num)) {
+      setFormErr('Please enter a number we can reach you on, including the country code.');
+      return;
+    }
+    if (needNumber || num.trim() !== phone.trim()) {
       setSaving(true);
       try {
         const issued = await saveWhatsAppNumber({ phone: num.trim(), onWhatsApp, updateUserMetadata });
@@ -199,16 +204,29 @@ export default function SlotPicker({
       <div className="slots__head">
         <span className="slots__icon" aria-hidden="true"><CalendarGlyph /></span>
         <div className="slots__headings">
-          <h5 className="slots__title">Choose a time</h5>
+          <h5 className="slots__title">Choose Date &amp; Time</h5>
           <p className="slots__sub">{minutes ? `${minutes}-minute` : ''} specialist call</p>
         </div>
       </div>
 
-      <p className="slots__meta">
-        <PhoneGlyph /><VideoGlyph />
-        <span className="slots__meta-sep" aria-hidden="true" />
-        Phone or WhatsApp video
-      </p>
+      {/* The number the specialist rings, in the same kind of control as the
+          date and the time — it is one of the three things this card collects,
+          not a footnote under them. Prefilled when we already hold one, so an
+          existing number is confirmed rather than re-typed. */}
+      <label className="slots__field slots__field--phone">
+        <span>
+          <PhoneGlyph /><VideoGlyph />
+          Phone or WhatsApp number
+        </span>
+        <input
+          type="tel" value={num} onChange={(e) => setNum(e.target.value)}
+          placeholder="+65 9123 4567" autoComplete="tel" inputMode="tel"
+          disabled={disabled || busy || saving}
+        />
+      </label>
+      {missingCountryCode(num) && (
+        <p className="slots__hint">Start with your country code, e.g. +65 or +91 — WhatsApp needs it.</p>
+      )}
 
       <div className="slots__row">
         <label className="slots__select">
@@ -238,33 +256,24 @@ export default function SlotPicker({
         Times shown in <strong>{zoneLabel(tz)}</strong> — your device&apos;s clock.
       </p>
 
-      {needNumber && (
-        <div className="slots__phone">
-          <label className="slots__field">
-            <span>Your WhatsApp number</span>
-            <input
-              type="tel" value={num} onChange={(e) => setNum(e.target.value)}
-              placeholder="+65 9123 4567" autoComplete="tel" inputMode="tel"
-            />
-          </label>
-          {missingCountryCode(num) && (
-            <p className="slots__hint">Start with your country code, e.g. +65 or +91 — WhatsApp needs it.</p>
-          )}
-          <label className="slots__check">
-            <input type="checkbox" checked={onWhatsApp} onChange={(e) => setOnWhatsApp(e.target.checked)} />
-            <span>This number is on WhatsApp</span>
-          </label>
-          {!onWhatsApp && (
-            <p className="slots__hint">No problem — we’ll call you instead, and use email for anything in writing.</p>
-          )}
-        </div>
+      <label className="slots__check">
+        <input
+          type="checkbox" checked={onWhatsApp} onChange={(e) => setOnWhatsApp(e.target.checked)}
+          disabled={disabled || busy || saving}
+        />
+        <span>This number is on WhatsApp</span>
+      </label>
+      {!onWhatsApp && (
+        <p className="slots__hint">No problem — we’ll call you instead, and use email for anything in writing.</p>
       )}
 
       {formErr && <div className="jny-note jny-note--warn" role="alert">{formErr}</div>}
 
-      <button className="btn btn--primary slots__go" disabled={busy || saving || !choice}>
-        {saving ? 'Saving…' : busy ? 'Holding your time…' : 'Hold this time →'}
-      </button>
+      {!held && (
+        <button className="btn btn--primary slots__go" disabled={busy || saving || !choice}>
+          {saving ? 'Saving…' : busy ? 'Holding your time…' : 'Hold this time →'}
+        </button>
+      )}
 
       {waLink && (
         <p className="slots__wa">

@@ -766,6 +766,16 @@ Kind regards,
     onClose();
   };
 
+  // The enlarged certificate. Escape closes it before the modal itself, so the
+  // first press never dismisses the thing the user paid for.
+  const [certOpen, setCertOpen] = useState(false);
+  useEffect(() => {
+    if (!certOpen) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); setCertOpen(false); } };
+    document.addEventListener('keydown', onKey, true);
+    return () => document.removeEventListener('keydown', onKey, true);
+  }, [certOpen]);
+
   useModalA11y(open, cardRef, requestClose);
 
   // Browser Back dismisses the overlay instead of leaving the page. On mobile
@@ -1144,6 +1154,27 @@ Kind regards,
       <div className="jny__backdrop" onClick={requestClose} />
       <div className={`jny__panel${view === 'options' ? ' jny__panel--wide' : ''}`} ref={cardRef}>
         <div className="jny__head">
+          {/* Back, top-left: out of a sub-view to the options, and off the
+              options screen back to the result behind the modal. The × is a
+              dismiss; this is the step-back the funnel's own bar implies. */}
+          <button
+            className="jny__backarrow"
+            onClick={() => {
+              if (view === 'options') { requestClose(); return; }
+              // The expert list is a step inside its own view: back leaves the
+              // chosen expert before it leaves the view.
+              if (expert) { setExpert(null); setPayError(''); return; }
+              back();
+            }}
+            aria-label={view === 'options' ? 'Back to your result' : expert ? 'Back to experts' : 'Back to options'}
+          >
+            {/* An SVG chevron, not a "‹": the glyph's own side bearings sit it
+                off-centre in a round button, and every font moves it again. */}
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">
+              <path d="M15 5 L8 12 L15 19" stroke="currentColor" strokeWidth="2.4"
+                    strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
           {/* Last step of the funnel, on every view in here: the reveal is paid
               for by the time this modal opens, so Unlock is behind us. It lives
               in the header because the progress is chrome, exactly as it is in
@@ -1186,6 +1217,24 @@ Kind regards,
               )}
             </div>
           )}
+          {/* The keepsake, as a stamp-sized preview of the real document. It is
+              a thing to look at and share, not a step to take, so it sits beside
+              the reveal rather than under the three options where it used to
+              push them off the screen. Clicking opens it full size. */}
+          <button
+            type="button"
+            className="jny-certthumb"
+            onClick={() => setCertOpen(true)}
+            aria-label="Open your certificate"
+          >
+            <span className="jny-certthumb__inner" aria-hidden="true">
+              <Certificate
+                segment={segment} product={context?.product} savingPct={savingPct}
+                company={company} holderName={holderName}
+              />
+            </span>
+            <span className="jny-certthumb__cap">Your certificate</span>
+          </button>
           {ahead ? (
             <p className="jny-reveal__headline">You&apos;re already ahead of the market — beating <strong>{standing}</strong>. 🎉</p>
           ) : (
@@ -1260,22 +1309,28 @@ Kind regards,
                 );
               })}
             </div>
-            {/* Last: the keepsake. Narrower than the options on purpose — it's a
-                document to share, not another thing to act on. */}
-            <Certificate
-              segment={segment} product={context?.product} savingPct={savingPct}
-              company={company} holderName={holderName}
-              onShare={shareCertificate} shared={shared}
-              caption={CERT_SHARE_TEXT} buildFile={buildCertFile}
-            />
           </>
         )}
 
         {/* OPTION 1 (free) — the ready-to-send negotiation email. The bank is
             already unlocked (the ~$1 reveal was paid before this modal). */}
+        {certOpen && (
+          <div className="jny-certbox" role="dialog" aria-modal="true" aria-label="Your certificate">
+            <div className="jny-certbox__backdrop" onClick={() => setCertOpen(false)} />
+            <div className="jny-certbox__panel">
+              <button className="jny-certbox__close" onClick={() => setCertOpen(false)} aria-label="Close certificate">×</button>
+              <Certificate
+                segment={segment} product={context?.product} savingPct={savingPct}
+                company={company} holderName={holderName}
+                onShare={shareCertificate} shared={shared}
+                caption={CERT_SHARE_TEXT} buildFile={buildCertFile}
+              />
+            </div>
+          </div>
+        )}
+
         {view === 'email' && (
           <div className="jny-sub">
-            <button className="jny__back" onClick={back}>← Back to options</button>
             <h4 className="jny-sub__title">Your best-match bank</h4>
             <div className="jny-unlock">
               <span className="jny-unlock__name">{bank || 'Top provider'}</span>
@@ -1318,7 +1373,6 @@ Kind regards,
         {/* BOOK A CALL ($99) */}
         {view === 'call' && (
           <div className="jny-sub">
-            <button className="jny__back" onClick={back}>← Back to options</button>
             <h4 className="jny-sub__title">Book your specialist call</h4>
             {payError && <div className="jny-note jny-note--warn">{payError}</div>}
             {stalled && checkoutUrl && (
@@ -1369,9 +1423,6 @@ Kind regards,
                   </>
                 ) : (
                   <>
-                    <p className="jny-sub__sub">
-                      <span className="jny-pill">{priceOf('call', 'S$99')}</span> A FeeOptima specialist reviews your numbers and coaches you through the negotiation.
-                    </p>
                     {/* Two different post-payment states. Coming back from
                         Stripe with a held time is the normal path — telling that
                         customer to "pick a time below" is what made people book
@@ -1395,38 +1446,49 @@ Kind regards,
                     )}
                     {slotErr && <div className="jny-note jny-note--warn">{slotErr}</div>}
 
-                    {slotIso ? (
+                    {/* One screen, not two: holding a time no longer swaps the
+                        picker out for a summary card. The picker stays put,
+                        locked to what was chosen, and the hold and the payment
+                        appear under it. */}
+                    <SlotPicker
+                      selected={slotIso}
+                      onPick={pickSlot}
+                      busy={slotBusy}
+                      disabled={!!slotIso}
+                      held={!!slotIso}
+                      refreshKey={slotsKey}
+                      onUnavailable={() => setOwnScheduler(false)}
+                      phone={phone}
+                      onPhoneSaved={setPhone}
+                    />
+
+                    {slotIso && (
                       <div className="jny-hold">
                         <div className="jny-hold__row">
+                          {/* The date and the zone are in the picker directly
+                              above, so this says only what the picker cannot:
+                              that the time is now held, and for how long. */}
                           <span className="jny-hold__when">
-                            <strong>{fullLabel(slotIso)}</strong>
-                            <em>{zoneLabel(viewerZone())}</em>
+                            <strong>✓ Your time is held</strong>
+                            {holdUntil && !slotBooked && (
+                              <em><HoldTimer until={holdUntil} onExpire={onHoldExpired} /> left to confirm — nobody else can take it.</em>
+                            )}
                           </span>
                           <button type="button" className="jny-hold__change" onClick={() => dropHold()} disabled={slotBusy}>
                             Change time
                           </button>
                         </div>
-                        {holdUntil && !slotBooked && (
-                          <p className="jny-hold__note">
-                            Held for you — <HoldTimer until={holdUntil} onExpire={onHoldExpired} /> left to confirm.
-                            {' '}Nobody else can take it until then.
-                          </p>
-                        )}
                         {slotBooked && !paymentsEnabled && (
                           <p className="jny-hold__note">✓ Booked. We&apos;ll message you on WhatsApp before the call.</p>
                         )}
                       </div>
-                    ) : (
-                      <SlotPicker
-                        selected={slotIso}
-                        onPick={pickSlot}
-                        busy={slotBusy}
-                        refreshKey={slotsKey}
-                        onUnavailable={() => setOwnScheduler(false)}
-                        phone={phone}
-                        onPhoneSaved={setPhone}
-                      />
                     )}
+
+                    {/* Under the picker's own button, not above it: what this
+                        costs is read at the point of committing to a time. */}
+                    <p className="jny-sub__sub jny-sub__sub--after">
+                      <span className="jny-pill">{priceOf('call', 'S$99')}</span> A FeeOptima specialist reviews your numbers and coaches you through the negotiation.
+                    </p>
 
                     {/* Payment, only once a time is actually held. */}
                     {slotIso && paymentsEnabled && paidTier !== 'call' && (
@@ -1524,42 +1586,48 @@ Kind regards,
         {/* GET ME AN EXPERT ($199) */}
         {view === 'expert' && (
           <div className="jny-sub">
-            <button className="jny__back" onClick={expert ? () => { setExpert(null); setPayError(''); } : back}>
-              ← {expert ? 'Back to experts' : 'Back to options'}
-            </button>
 
-            {!expert ? (
-              <>
-                <h4 className="jny-sub__title">Find an expert · select one</h4>
-                <p className="jny-sub__sub"><span className="jny-pill">{priceOf('expert', 'S$199')}</span> An expert prepares and leads the negotiation for you.</p>
-                <div className="jny-experts">
-                  {experts.map((x) => (
-                    <div className="jny-expert" key={x.id}>
-                      {x.photo ? (
-                        <img className="jny-expert__avatar jny-expert__avatar--img" src={x.photo} alt="" />
-                      ) : (
-                        <span className="jny-expert__avatar" style={{ background: x.accent }}>
-                          {x.name.split(' ').map((w) => w[0]).join('').slice(0, 2)}
-                        </span>
-                      )}
-                      <div className="jny-expert__body">
-                        <div className="jny-expert__name">{x.name}</div>
-                        <div className="jny-expert__role">{x.role}{x.company ? ` · ${x.company}` : ''}{x.years ? ` · ${x.years} yrs` : ''}</div>
-                        {x.blurb && <div className="jny-expert__blurb">{x.blurb}</div>}
-                        <AwayNote windows={x.away} />
-                      </div>
-                      <button className="jny-expert__pick" onClick={() => connectExpert(x)}>Select Me</button>
+            {/* One screen: the list stays put and the chosen expert's booking
+                panel opens under it, so picking someone never replaces what you
+                were picking from. */}
+            <h4 className="jny-sub__title">Find an expert · select one</h4>
+            <p className="jny-sub__sub"><span className="jny-pill">{priceOf('expert', 'S$199')}</span> An expert prepares and leads the negotiation for you.</p>
+            <div className="jny-experts">
+              {experts.map((x) => {
+                const picked = expert?.id === x.id;
+                return (
+                  <div className={`jny-expert${picked ? ' jny-expert--picked' : ''}`} key={x.id}>
+                    {x.photo ? (
+                      <img className="jny-expert__avatar jny-expert__avatar--img" src={x.photo} alt="" />
+                    ) : (
+                      <span className="jny-expert__avatar" style={{ background: x.accent }}>
+                        {x.name.split(' ').map((w) => w[0]).join('').slice(0, 2)}
+                      </span>
+                    )}
+                    <div className="jny-expert__body">
+                      <div className="jny-expert__name">{x.name}</div>
+                      <div className="jny-expert__role">{x.role}{x.company ? ` · ${x.company}` : ''}{x.years ? ` · ${x.years} yrs` : ''}</div>
+                      {x.blurb && <div className="jny-expert__blurb">{x.blurb}</div>}
+                      <AwayNote windows={x.away} />
                     </div>
-                  ))}
-                </div>
-                {!advisors.length && (
-                  <p className="jny-note">Example specialists — you’ll be matched with a verified advisor for your situation.</p>
-                )}
-              </>
-            ) : (
-              <>
-                <h4 className="jny-sub__title">{expert.real ? `Book with ${expert.name}` : 'Get matched with an expert'}</h4>
-                <p className="jny-sub__sub">{expert.role}{expert.company ? ` · ${expert.company}` : ''}{expert.years ? ` · ${expert.years} yrs experience` : ''}</p>
+                    <button
+                      className="jny-expert__pick"
+                      aria-pressed={picked}
+                      onClick={() => connectExpert(x)}
+                    >
+                      {picked ? '✓ Selected' : 'Select Me'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            {!advisors.length && (
+              <p className="jny-note">Example specialists — you’ll be matched with a verified advisor for your situation.</p>
+            )}
+
+            {expert && (
+              <div className="jny-pick">
+                <h5 className="jny-pick__title">{expert.real ? `Book with ${expert.name}` : 'Get matched with an expert'}</h5>
                 {!expert.real && (
                   <div className="jny-note">
                     {expert.name} is an example profile. You'll be matched with a verified
@@ -1567,13 +1635,13 @@ Kind regards,
                   </div>
                 )}
                 {payError && <div className="jny-note jny-note--warn">{payError}</div>}
-            {stalled && checkoutUrl && (
-              <div className="jny-note jny-note--warn">
-                The redirect didn’t go through — this can happen if a browser extension
-                or a cached service worker blocks it.{' '}
-                <a href={checkoutUrl} rel="noopener noreferrer">Open secure checkout →</a>
-              </div>
-            )}
+                {stalled && checkoutUrl && (
+                  <div className="jny-note jny-note--warn">
+                    The redirect didn’t go through — this can happen if a browser extension
+                    or a cached service worker blocks it.{' '}
+                    <a href={checkoutUrl} rel="noopener noreferrer">Open secure checkout →</a>
+                  </div>
+                )}
 
                 {expert.real && !user && (
                   <div className="jny-note jny-note--warn">
@@ -1589,11 +1657,11 @@ Kind regards,
 
                 {paymentsEnabled && paidTier !== 'expert' ? (
                   <>
-                    <p className="jny-sub__sub"><span className="jny-pill">{priceOf('expert', 'S$199')}</span> {expert.real ? `${expert.name.split(' ')[0]} prepares and leads the negotiation. Pay to confirm and schedule.` : 'Your matched expert prepares and leads the negotiation. Fully refundable if no savings.'}</p>
                     <button className="btn btn--primary jny-pay" disabled={busy} onClick={() => pay('expert', expert.real ? expert : null)}>
                       {!user ? 'Sign in to book →' : busy ? 'Redirecting to secure checkout…' : expert.real ? `Pay ${priceOf('expert', 'S$199')} & book ${expert.name.split(' ')[0]} →` : `Pay ${priceOf('expert', 'S$199')} & get matched →`}
                     </button>
                     <p className="jny-note">🔒 Secure payment via Stripe. You'll choose your slot right after.</p>
+                    <p className="jny-sub__sub jny-sub__sub--after"><span className="jny-pill">{priceOf('expert', 'S$199')}</span> {expert.real ? `${expert.name.split(' ')[0]} prepares and leads the negotiation. Pay to confirm and schedule.` : 'Your matched expert prepares and leads the negotiation. Fully refundable if no savings.'}</p>
                   </>
                 ) : (
                   <>
@@ -1604,7 +1672,7 @@ Kind regards,
                       : <PhoneGate onSaved={setPhone} />}
                   </>
                 )}
-              </>
+              </div>
             )}
           </div>
         )}
