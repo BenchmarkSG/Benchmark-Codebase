@@ -174,6 +174,10 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
   const [savedId, setSavedId] = useState(null); // id of this result's saved-benchmark row (once saved)
   const [banks, setBanks] = useState([]); // provider directory for the chosen country
   const [back, setBack] = useState(false); // true after "Recalculate" → animate the form back in
+  // Has this visitor put anything into the form yet? Step 1 stays unlit until
+  // they do — an empty form hasn't been started, whatever screen it is on. A
+  // restored session counts as started: their answers are already in it.
+  const [touched, setTouched] = useState(!!savedCalc);
   const [invalid, setInvalid] = useState({}); // { fieldKey: true } for blank required fields
   const formRef = useRef(null);
 
@@ -250,12 +254,17 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
 
   function selectProduct(id) {
     const p = products.find((x) => x.id === id);
+    // Choosing what to benchmark is the first detail they give us, so it counts
+    // as starting — the fields below are cleared to that product's defaults.
+    setTouched(true);
     setProductId(id);
     setValues(buildDefaults(p, ccyList(p, localCcy, allCcys)));
     setResult(null);
   }
 
   function changeCountry(code) {
+    // Picking the market is a detail given, the same as picking the product.
+    setTouched(true);
     setCountry(code);
     if (!product) return;
     const nextLocal = countries.find((c) => c.code === code)?.currency || 'SGD';
@@ -298,6 +307,7 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
   }, [market, countries]);
 
   const setValue = (key, val) => {
+    setTouched(true);
     setValues((v) => ({ ...v, [key]: val }));
     // Clear a field's red highlight as soon as the user starts filling it.
     setInvalid((iv) => (iv[key] ? { ...iv, [key]: false } : iv));
@@ -470,7 +480,11 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
                 band is the card's chrome. It shows on the result screen too,
                 where the band swaps its contents for the back button — and its
                 skin for the plain one, since the blue stops at screen one. */}
-            <StepBar current={step} className={result ? 'steps--oncard' : 'steps--onblue'} />
+            <StepBar
+              current={step}
+              active={step !== 'input' || touched}
+              className={result ? 'steps--oncard' : 'steps--onblue'}
+            />
           </div>
         ) : (
           <>
@@ -605,9 +619,9 @@ function Result({ result, product, compact, localCcy, country = 'SG', yourBank =
   // names a bank — those keep the generic wording.
   const namedBank = yourBank && yourBank !== 'Other' ? yourBank : '';
   const productLabel = product?.label || result.product || 'Product';
-  const yourLabel = crossBorder ? 'Your all-in cost is'
-    : moneyMetric ? 'What you pay now is'
-    : `Your Bank (${productLabel}) Rate is`;
+  const yourLabel = crossBorder ? 'Your all-in cost:'
+    : moneyMetric ? 'What you pay now:'
+    : `Your ${productLabel} Rate:`;
   const bankLogo = useMemo(() => (namedBank ? logoForBank(country, namedBank) : null), [country, namedBank]);
   const bestLogo = useMemo(() => (bestBank ? logoForBank(country, bestBank) : null), [country, bestBank]);
   // The best bank stays behind a mask until the reveal is paid for AND the name
@@ -682,7 +696,7 @@ function Result({ result, product, compact, localCcy, country = 'SG', yourBank =
               </span>
             </div>
             <div className="res__cmp-row">
-              <span className="res__cmp-label">Best Available Rate is</span>
+              <span className="res__cmp-label">Best Available Rate:</span>
               <span className="res__cmp-val">{fmtBest(result.benchmarkRate)}</span>
               {bestShown ? (
                 <span className="res__cmp-bank res__cmp-bank--revealed">
@@ -741,18 +755,6 @@ function Result({ result, product, compact, localCcy, country = 'SG', yourBank =
           )}
           {!result.benchmarkIndex && result.floatingPool && <>Some rates in this pool track an index, so they move over time. </>}
         </p>
-      )}
-      {/* A pool is only a benchmark if the rates in it came from somewhere. The
-          server serves sourced rows by default (RATES_REAL_ONLY), so this only
-          appears if that's been switched off — but when it does, it must never
-          be possible to mistake a generated figure for a market rate. */}
-      {result.dataQuality && result.dataQuality !== 'real' && (
-        <div className="res__unsourced" role="note">
-          ⚠️ {result.dataQuality === 'mixed'
-            ? 'Some rates in this comparison are indicative, not sourced from published rates.'
-            : 'These rates are indicative — not sourced from published rates.'}{' '}
-          Treat as illustrative only.
-        </div>
       )}
       {!compact && result.tip && <p className="res__tip">💡 {result.tip}</p>}
 

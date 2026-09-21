@@ -111,23 +111,27 @@
    the dark-mode one and takes dark text, because white on a light green is
    unreadable at 12px. */
 .steps--onblue {
-  /* On navy a white circle would out-shout the step you're on. */
-  --steps-dot-todo-bg: rgba(255, 255, 255, 0.15);
+  /* Solid white circles, so the track reads at a glance against the navy. */
+  --steps-dot-todo-bg: #fff;
   --step-ok: #3cc98c;
   --step-ok-on: #08241a;
   --steps-line: rgba(255, 255, 255, 0.22);
-  --steps-dot-bg: rgba(255, 255, 255, 0.15);
-  --steps-dot-ink: rgba(255, 255, 255, 0.75);
+  --steps-dot-bg: #fff;
+  /* Numbers sit on white here, so they take the band's navy, not white ink. */
+  --steps-dot-ink: #1a3763;
   --steps-label: rgba(255, 255, 255, 0.72);
   --steps-label-done: rgba(255, 255, 255, 0.92);
   margin-top: 14px;
 }
-/* The ring reads as a smudge on navy; a plain circle is clear enough there. */
+/* On the navy band the step you're on is FILLED green, like the ones behind it:
+   here the bar starts out all white, so the fill is what marks the form as
+   begun. (The plain-band and modal bars keep the outlined treatment — there the
+   filling in is what says a step is finished.) */
 .steps--onblue .steps__item.is-now .steps__dot {
-  box-shadow: inset 0 0 0 2px var(--step-ok);
+  background: var(--step-ok);
+  color: var(--step-ok-on);
+  box-shadow: none;
 }
-/* On navy the hollow circle needs a body of its own, or the outline floats. */
-.steps--onblue { --step-now-bg: rgba(255, 255, 255, 0.12); }
 
 /* ---- On the calculator's plain heading band (every screen after the input).
         No background of its own, so the default light token set already fits;

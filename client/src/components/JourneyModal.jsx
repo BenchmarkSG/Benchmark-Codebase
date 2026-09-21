@@ -606,7 +606,9 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
       const expires = await holdCallSlot(leadId, iso);
       setSlotIso(iso);
       setHoldUntil(expires || null);
-      if (paidTier === 'call' || !paymentsEnabled) {
+      // 'expert' books through this same scheduler now, so either paid tier
+      // means there is no checkout to come back from and the hold is a booking.
+      if (paidTier || !paymentsEnabled) {
         await confirmCallSlot(leadId);
         setSlotBooked(true);
         setHoldUntil(null);
@@ -875,7 +877,7 @@ Kind regards,
             // runs the slot is still only held, and still lapses on its own.
             recordPaidBooking(resume.tier, resume.sessionId, resume.leadId, resume.expert)
               .then(() => {
-                if (resume.tier !== 'call' || !resume.slotIso || !leadRef.current) return undefined;
+                if (!resume.slotIso || !leadRef.current) return undefined;
                 return confirmCallSlot(leadRef.current).then(() => {
                   setSlotBooked(true);
                   setHoldUntil(null);
@@ -1204,18 +1206,23 @@ Kind regards,
               a mark reads as the bank. Falls back to the name alone when we hold
               no logo for that market, never to a broken image. */}
           {bank && (
-            <div className="jny-unlock jny-unlock--reveal">
-              <span className="jny-unlock__label">Here’s the best bank that beats your bank</span>
-              <span className="jny-unlock__bank">
-                {bankLogo && (
-                  <img className="jny-unlock__logo" src={bankLogo.img} alt="" width="120" height="40" />
+            <>
+              {/* The line that introduces the reveal sits above the box, centred
+                  under the step bar — inside it, it was a caption on the logo
+                  rather than the panel's own heading. */}
+              <p className="jny-reveal__label">Here’s the best bank that beats your bank</p>
+              <div className="jny-unlock jny-unlock--reveal">
+                <span className="jny-unlock__bank">
+                  {bankLogo && (
+                    <img className="jny-unlock__logo" src={bankLogo.img} alt="" width="120" height="40" />
+                  )}
+                  <span className="jny-unlock__name">{bank}</span>
+                </span>
+                {context?.benchmarkRate != null && (
+                  <span className="jny-unlock__rate">Best price · {withUnit(context.benchmarkRate)}</span>
                 )}
-                <span className="jny-unlock__name">{bank}</span>
-              </span>
-              {context?.benchmarkRate != null && (
-                <span className="jny-unlock__rate">Best price · {withUnit(context.benchmarkRate)}</span>
-              )}
-            </div>
+              </div>
+            </>
           )}
           {/* The keepsake, as a stamp-sized preview of the real document. It is
               a thing to look at and share, not a step to take, so it sits beside
@@ -1319,12 +1326,17 @@ Kind regards,
             <div className="jny-certbox__backdrop" onClick={() => setCertOpen(false)} />
             <div className="jny-certbox__panel">
               <button className="jny-certbox__close" onClick={() => setCertOpen(false)} aria-label="Close certificate">×</button>
+              {/* The scroller is INSIDE the panel: the close button sits on the
+                  panel's corner, and a scroll container clips anything that
+                  overhangs its own edges — which is what cropped the ×. */}
+              <div className="jny-certbox__scroll">
               <Certificate
                 segment={segment} product={context?.product} savingPct={savingPct}
                 company={company} holderName={holderName}
                 onShare={shareCertificate} shared={shared}
                 caption={CERT_SHARE_TEXT} buildFile={buildCertFile}
               />
+              </div>
             </div>
           </div>
         )}
@@ -1373,7 +1385,10 @@ Kind regards,
         {/* BOOK A CALL ($99) */}
         {view === 'call' && (
           <div className="jny-sub">
-            <h4 className="jny-sub__title">Book your specialist call</h4>
+            <h4 className="jny-sub__title">Book your call with a specialist</h4>
+            <p className="jny-sub__sub">
+              <span className="jny-pill">{priceOf('call', 'S$99')}</span> A FeeOptima specialist reviews your numbers and coaches you through the negotiation.
+            </p>
             {payError && <div className="jny-note jny-note--warn">{payError}</div>}
             {stalled && checkoutUrl && (
               <div className="jny-note jny-note--warn">
@@ -1460,6 +1475,7 @@ Kind regards,
                       onUnavailable={() => setOwnScheduler(false)}
                       phone={phone}
                       onPhoneSaved={setPhone}
+                      country={context?.country}
                     />
 
                     {slotIso && (
@@ -1483,12 +1499,6 @@ Kind regards,
                         )}
                       </div>
                     )}
-
-                    {/* Under the picker's own button, not above it: what this
-                        costs is read at the point of committing to a time. */}
-                    <p className="jny-sub__sub jny-sub__sub--after">
-                      <span className="jny-pill">{priceOf('call', 'S$99')}</span> A FeeOptima specialist reviews your numbers and coaches you through the negotiation.
-                    </p>
 
                     {/* Payment, only once a time is actually held. */}
                     {slotIso && paymentsEnabled && paidTier !== 'call' && (
@@ -1628,6 +1638,7 @@ Kind regards,
             {expert && (
               <div className="jny-pick">
                 <h5 className="jny-pick__title">{expert.real ? `Book with ${expert.name}` : 'Get matched with an expert'}</h5>
+                <p className="jny-sub__sub"><span className="jny-pill">{priceOf('expert', 'S$199')}</span> {expert.real ? `${expert.name.split(' ')[0]} prepares and leads the negotiation. Fully refundable if no savings.` : 'Your matched expert prepares and leads the negotiation. Fully refundable if no savings.'}</p>
                 {!expert.real && (
                   <div className="jny-note">
                     {expert.name} is an example profile. You'll be matched with a verified
@@ -1655,22 +1666,100 @@ Kind regards,
                   </div>
                 )}
 
-                {paymentsEnabled && paidTier !== 'expert' ? (
+                {/* Booked the same way option 2 is: our own diary, time first,
+                    payment second — no Calendly. */}
+                <AwayNote windows={expert.away} name={expert.name} />
+
+                {paidTier === 'expert' && slotBooked ? (
                   <>
-                    <button className="btn btn--primary jny-pay" disabled={busy} onClick={() => pay('expert', expert.real ? expert : null)}>
-                      {!user ? 'Sign in to book →' : busy ? 'Redirecting to secure checkout…' : expert.real ? `Pay ${priceOf('expert', 'S$199')} & book ${expert.name.split(' ')[0]} →` : `Pay ${priceOf('expert', 'S$199')} & get matched →`}
-                    </button>
-                    <p className="jny-note">🔒 Secure payment via Stripe. You'll choose your slot right after.</p>
-                    <p className="jny-sub__sub jny-sub__sub--after"><span className="jny-pill">{priceOf('expert', 'S$199')}</span> {expert.real ? `${expert.name.split(' ')[0]} prepares and leads the negotiation. Pay to confirm and schedule.` : 'Your matched expert prepares and leads the negotiation. Fully refundable if no savings.'}</p>
+                    <div className="jny-note jny-note--ok">
+                      {slotIso
+                        ? <>✓ You&apos;re booked for <strong>{fullLabel(slotIso)}</strong>{' '}
+                          ({zoneLabel(viewerZone())}). {expert.real ? expert.name : 'Your matched expert'} will
+                          be in touch before then.</>
+                        : <>✓ Payment received — your session is confirmed for the time you picked.</>}
+                    </div>
+                    {slotIso && (
+                      <button type="button" className="btn btn--ghost jny-ics" onClick={addToCalendar}>
+                        ＋ Add to my calendar
+                      </button>
+                    )}
+                    <div className="jny-done">
+                      <FeedbackCard source="expert" benchmarkId={context?.benchmarkId} />
+                      <p className="jny-done__title">You&apos;re all set. Where next?</p>
+                      <div className="jny-actions">
+                        <button type="button" className="btn btn--primary" onClick={() => finishTo('dashboard')}>Go to my dashboard →</button>
+                        <button type="button" className="btn btn--ghost" onClick={() => finishTo('home')}>Back to home</button>
+                      </div>
+                    </div>
+                  </>
+                ) : ownScheduler ? (
+                  <>
+                    {paidTier === 'expert' && !slotIso && (
+                      <div className="jny-note jny-note--ok">✓ Payment received — pick a time below.</div>
+                    )}
+                    {!user && !slotIso && (
+                      <div className="jny-note jny-note--warn">
+                        Pick a time below — we&apos;ll ask you to sign in before we hold it, so the booking lands on your account.
+                      </div>
+                    )}
+                    {slotErr && <div className="jny-note jny-note--warn">{slotErr}</div>}
+
+                    <SlotPicker
+                      selected={slotIso}
+                      onPick={pickSlot}
+                      busy={slotBusy}
+                      disabled={!!slotIso}
+                      held={!!slotIso}
+                      refreshKey={slotsKey}
+                      onUnavailable={() => setOwnScheduler(false)}
+                      phone={phone}
+                      onPhoneSaved={setPhone}
+                      country={context?.country}
+                    />
+
+                    {slotIso && (
+                      <div className="jny-hold">
+                        <div className="jny-hold__row">
+                          <span className="jny-hold__when">
+                            <strong>✓ Your time is held</strong>
+                            {holdUntil && !slotBooked && (
+                              <em><HoldTimer until={holdUntil} onExpire={onHoldExpired} /> left to confirm — nobody else can take it.</em>
+                            )}
+                          </span>
+                          <button type="button" className="jny-hold__change" onClick={() => dropHold()} disabled={slotBusy}>
+                            Change time
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {slotIso && paymentsEnabled && paidTier !== 'expert' && (
+                      <div className="jny-confirmpay">
+                        <p className="jny-confirmpay__lead">
+                          <strong>Your time is held.</strong> Confirm it with payment and{' '}
+                          {expert.real ? expert.name.split(' ')[0] : 'your matched expert'} is booked — you&apos;ll get a
+                          calendar invite and a WhatsApp message before the session.
+                        </p>
+                        <button className="btn btn--primary jny-pay" disabled={busy} onClick={() => pay('expert', expert.real ? expert : null)}>
+                          {!user ? 'Sign in to confirm →' : busy ? 'Redirecting to secure checkout…' : `Confirm & pay ${priceOf('expert', 'S$199')} →`}
+                        </button>
+                        <p className="jny-note">🔒 Secure payment via Stripe. Your slot is held while you pay.</p>
+                      </div>
+                    )}
+                    {slotIso && slotBooked && !paymentsEnabled && (
+                      <button type="button" className="btn btn--ghost jny-ics" onClick={addToCalendar}>
+                        ＋ Add to my calendar
+                      </button>
+                    )}
                   </>
                 ) : (
-                  <>
-                    {paidTier === 'expert' && <div className="jny-note jny-note--ok">✓ Payment received — pick a time below.</div>}
-                    <AwayNote windows={expert.away} name={expert.name} />
-                    {phone
-                      ? <Scheduler url={(expert.real && expert.calendly_url) || CALENDLY_URL} prefill={bookingPrefill} onDone={finishTo} onScheduled={stampBooking} feedback={{ source: 'expert', benchmarkId: context?.benchmarkId }} note={expert.real ? `${expert.name} and you both receive the calendar invite from Calendly.` : 'Your matched expert and you both receive the calendar invite from Calendly.'} />
-                      : <PhoneGate onSaved={setPhone} />}
-                  </>
+                  /* supabase/call_booking.sql hasn't been run: there is no diary
+                     to show and no Calendly to fall back to any more. */
+                  <p className="jny-note">
+                    Our booking diary isn&apos;t available right now. Message us on WhatsApp and
+                    we&apos;ll arrange a time with {expert.real ? expert.name : 'your matched expert'}.
+                  </p>
                 )}
               </div>
             )}

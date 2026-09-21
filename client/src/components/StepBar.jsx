@@ -30,7 +30,7 @@ export const STEPS = [
   { key: 'negotiate', label: 'Negotiate' },
 ];
 
-export default function StepBar({ current = 'input', className = '' }) {
+export default function StepBar({ current = 'input', className = '', active = true }) {
   // An unknown key falls back to the first step rather than rendering a bar
   // with nothing lit — findIndex returns -1 for a typo.
   const idx = STEPS.findIndex((s) => s.key === current);
@@ -39,7 +39,11 @@ export default function StepBar({ current = 'input', className = '' }) {
   return (
     <ol className={`steps${className ? ` ${className}` : ''}`} aria-label="Your progress">
       {STEPS.map((s, i) => {
-        const state = i < at ? 'done' : i === at ? 'now' : 'todo';
+        // `active` false means the screen has been reached but nothing done on
+        // it yet — the first step before a single field is filled. It draws as
+        // a step still ahead, and lights up the moment there is something to
+        // show for it.
+        const state = i < at ? 'done' : i === at && active ? 'now' : 'todo';
         return (
           <li
             key={s.key}

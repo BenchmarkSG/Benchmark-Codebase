@@ -211,7 +211,7 @@
 .calc-card .res__overpay-amt { margin-top: 11px; font-size: 28px; padding: 11px 14px; }
 .calc-card .res__overpay-sub { margin-top: 7px; font-size: 13.5px; }
 .calc-card .res__cmp { margin-top: 12px; row-gap: 8px; }
-.calc-card .res__tagline { margin-top: 12px; font-size: 15.5px; }
+.calc-card .res__tagline { margin-top: 12px; font-size: 13.5px; }
 .calc-card .res__findout { margin-top: 10px; margin-bottom: 8px; font-size: 13.5px; }
 .calc-card .res__locked { margin-top: 10px; }
 .calc-card .res__detail { margin-top: 10px; }
@@ -456,7 +456,7 @@
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   min-width: 62px; text-align: center;
   border-radius: 9px; padding: 6px 10px; font-size: 15px; font-weight: 800;
-  border: 1px solid var(--line); background: var(--surface-2); color: var(--ink);
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
 }
 .res__cmp-logo {
   display: block; width: auto; height: 18px; object-fit: contain;
@@ -478,7 +478,7 @@
   text-align: center; overflow: hidden; display: -webkit-box;
   -webkit-line-clamp: 2; -webkit-box-orient: vertical;
 }
-.res__cmp-bank--masked { background: var(--surface-2); }
+.res__cmp-bank--masked { background: var(--surface); }
 /* A blurred stand-in "logo" — a wordmark-shaped smudge — under a frost. */
 .res__cmp-mask {
   position: absolute; inset: 9px 12px;
@@ -502,7 +502,9 @@
   .res__cmp-bank--revealed { animation: none; }
 }
 
-.res__tagline { margin-top: 16px; text-align: center; font-size: 17px; line-height: 1.35; font-weight: 800; color: var(--ink-2); }
+/* Same size as the lead-in below it (.res__findout) — the two are one pair of
+   lines, and the tagline outsizing it made them read as heading and caption. */
+.res__tagline { margin-top: 16px; text-align: center; font-size: 14px; line-height: 1.4; font-weight: 800; color: var(--ink-2); }
 /* Lead-in above the reveal button. Quieter than the tagline so the two don't
    compete, but darker than the fine print below the button. */
 .res__findout {

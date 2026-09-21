@@ -59,14 +59,96 @@ const VideoGlyph = () => (
   </svg>
 );
 
-/* "Mon 21 Sept", or "Tomorrow, 20 Sept" when there is a word for the day. The
-   weekday is dropped in that case: "Tomorrow" already says which day it is, and
-   the control is half a card wide. */
-const dateOption = (d) => (d.rel === d.label ? d.label : `${d.rel}, ${d.label.replace(/^\S+\s/, '')}`);
+/* The dial code a market's numbers start with. Only a first guess — the field
+   is editable, and someone benchmarking Singapore may well carry a UK number. */
+const DIAL_CODES = { SG: '+65', IN: '+91', MY: '+60', ID: '+62', TH: '+66' };
+
+/* Split a stored number back into the two fields. "+65 9123 4567" was saved as
+   one string (and still is), so this is what puts it back on screen. */
+function splitPhone(phone, country) {
+  const s = String(phone || '').trim().replace(/^00/, '+');
+  const m = s.match(/^\+(\d{1,3})[\s-]*(.*)$/);
+  if (m) return { code: `+${m[1]}`, rest: m[2].trim() };
+  return { code: DIAL_CODES[String(country || '').toUpperCase()] || '+65', rest: s };
+}
+
+const fullNumber = (code, rest) => `${String(code || '').trim()} ${String(rest || '').trim()}`.trim();
+
+/* ---- Month calendar -------------------------------------------------------
+   Days come back as YYYY-MM-DD keys already resolved into the viewer's zone
+   (see dayKey), so the grid is built from string maths — no second timezone
+   conversion to disagree with the first. Only days the scheduler has open are
+   clickable; the rest are visibly there but dead, which is what tells someone
+   the gaps are real rather than a loading state. */
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'];
+const WEEKDAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+const pad2 = (n) => String(n).padStart(2, '0');
+const monthKey = (key) => (key || '').slice(0, 7);          // YYYY-MM
+const addMonth = (ym, step) => {
+  const [y, m] = ym.split('-').map(Number);
+  const d = new Date(Date.UTC(y, (m - 1) + step, 1));
+  return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}`;
+};
+
+/* What the closed control reads — the chosen day's own label ("Mon 21 Sept"). */
+const dayLabelFor = (days, key) => (days || []).find((d) => d.key === key)?.label || '';
+
+function MonthCalendar({ days, value, onPick, disabled }) {
+  const open = useMemo(() => new Map((days || []).map((d) => [d.key, d])), [days]);
+  const months = useMemo(() => [...new Set((days || []).map((d) => monthKey(d.key)))].sort(), [days]);
+  const [ym, setYm] = useState(() => monthKey(value) || months[0] || '');
+  // Follow the selection when it moves to another month (a restored booking).
+  useEffect(() => { if (value) setYm(monthKey(value)); }, [value]);
+  if (!ym) return null;
+
+  const [y, m] = ym.split('-').map(Number);
+  const lead = (new Date(Date.UTC(y, m - 1, 1)).getUTCDay() + 6) % 7;   // Monday-first
+  const count = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const cells = [...Array(lead).fill(null), ...Array.from({ length: count }, (_, i) => i + 1)];
+  const canPrev = ym > months[0];
+  const canNext = ym < months[months.length - 1];
+
+  return (
+    <div className="slots__cal">
+      <div className="slots__cal-head">
+        <button type="button" className="slots__cal-nav" onClick={() => setYm(addMonth(ym, -1))}
+          disabled={disabled || !canPrev} aria-label="Previous month">‹</button>
+        <span className="slots__cal-month">{MONTHS[m - 1]} {y}</span>
+        <button type="button" className="slots__cal-nav" onClick={() => setYm(addMonth(ym, 1))}
+          disabled={disabled || !canNext} aria-label="Next month">›</button>
+      </div>
+      <div className="slots__cal-grid" role="grid">
+        {WEEKDAYS.map((w) => <span key={w} className="slots__cal-dow">{w}</span>)}
+        {cells.map((d, i) => {
+          if (!d) return <span key={`p${i}`} className="slots__cal-pad" />;
+          const key = `${y}-${pad2(m)}-${pad2(d)}`;
+          const has = open.has(key);
+          const on = key === value;
+          return (
+            <button
+              key={key}
+              type="button"
+              className={`slots__cal-day${on ? ' is-on' : ''}${has ? '' : ' is-off'}`}
+              onClick={() => onPick(key)}
+              disabled={disabled || !has}
+              aria-pressed={on}
+              aria-label={`${d} ${MONTHS[m - 1]} ${y}${has ? '' : ' — no times open'}`}
+            >
+              {d}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default function SlotPicker({
   selected = null, onPick, busy = false, disabled = false, onUnavailable, refreshKey = 0,
   phone = '', onPhoneSaved,
+  // The market being benchmarked, used only to guess the dial code shown first.
+  country = 'SG',
   // A time is already held: the card stays on screen showing what was picked,
   // but its own button steps aside for the confirm-and-pay one below it.
   held = false,
@@ -77,17 +159,40 @@ export default function SlotPicker({
   const [loading, setLoading] = useState(true);
   const [retry, setRetry] = useState(0);
   const [day, setDay] = useState('');
+  const [calOpen, setCalOpen] = useState(false);
+  const calRef = useRef(null);
   const [choice, setChoice] = useState(selected || '');
   const tz = useMemo(() => viewerZone(), []);
 
   // The number the specialist actually rings. Only collected when we don't
   // already have one — the profile and auth metadata are both checked upstream.
   const needNumber = !phone;
-  const [num, setNum] = useState(phone || '');
-  const [onWhatsApp, setOnWhatsApp] = useState(true);
+  // Dial code and the rest of the number are two fields, so the country code
+  // can't be left off (the commonest way a WhatsApp number arrives unusable)
+  // and isn't buried in the same box as the digits.
+  const [dialCode, setDialCode] = useState(() => splitPhone(phone, country).code);
+  const [num, setNum] = useState(() => splitPhone(phone, country).rest);
+  // The field is labelled "Phone or WhatsApp number", so the number is offered
+  // for both — the opt-in checkbox that used to ask again was a step for a
+  // question already answered.
+  const onWhatsApp = true;
   const [code, setCode] = useState('');     // issued once the number is saved
   const [formErr, setFormErr] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Close the calendar on a click outside it or on Escape — it behaves like the
+  // native dropdown next to it, which closes the same two ways.
+  useEffect(() => {
+    if (!calOpen) return undefined;
+    const onDown = (e) => { if (!calRef.current?.contains(e.target)) setCalOpen(false); };
+    const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); setCalOpen(false); } };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey, true);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey, true);
+    };
+  }, [calOpen]);
 
   // onUnavailable swaps the whole screen back to Calendly. Held in a ref so a
   // parent that re-creates the callback each render can't re-trigger the load.
@@ -150,16 +255,17 @@ export default function SlotPicker({
     if (!choice) { setFormErr('Pick a time first.'); return; }
     // Save when the number is new to us, or when a stored one has been edited
     // here — this field is now always on screen, so it is always the truth.
-    if (!looksDialable(num)) {
+    const full = fullNumber(dialCode, num);
+    if (!looksDialable(full) || missingCountryCode(dialCode)) {
       setFormErr('Please enter a number we can reach you on, including the country code.');
       return;
     }
-    if (needNumber || num.trim() !== phone.trim()) {
+    if (needNumber || full !== phone.trim()) {
       setSaving(true);
       try {
-        const issued = await saveWhatsAppNumber({ phone: num.trim(), onWhatsApp, updateUserMetadata });
+        const issued = await saveWhatsAppNumber({ phone: full, onWhatsApp, updateUserMetadata });
         if (issued) setCode(issued);
-        onPhoneSaved?.(num.trim());
+        onPhoneSaved?.(full);
       } catch {
         setFormErr('We couldn’t save that number. Please try again.');
         setSaving(false);
@@ -218,25 +324,53 @@ export default function SlotPicker({
           <PhoneGlyph /><VideoGlyph />
           Phone or WhatsApp number
         </span>
-        <input
-          type="tel" value={num} onChange={(e) => setNum(e.target.value)}
-          placeholder="+65 9123 4567" autoComplete="tel" inputMode="tel"
-          disabled={disabled || busy || saving}
-        />
+        <span className="slots__telrow">
+          <input
+            className="slots__dial"
+            type="tel" value={dialCode} onChange={(e) => setDialCode(e.target.value)}
+            placeholder="+65" autoComplete="tel-country-code" inputMode="tel"
+            aria-label="Country code"
+            disabled={disabled || busy || saving}
+          />
+          <input
+            type="tel" value={num} onChange={(e) => setNum(e.target.value)}
+            placeholder="9123 4567" autoComplete="tel-national" inputMode="tel"
+            aria-label="Phone or WhatsApp number"
+            disabled={disabled || busy || saving}
+          />
+        </span>
       </label>
-      {missingCountryCode(num) && (
-        <p className="slots__hint">Start with your country code, e.g. +65 or +91 — WhatsApp needs it.</p>
+      {missingCountryCode(dialCode) && (
+        <p className="slots__hint">Start the code with +, e.g. +65 or +91 — WhatsApp needs it.</p>
       )}
 
       <div className="slots__row">
-        <label className="slots__select">
+        <div className="slots__select" ref={calRef}>
           <span className="slots__label">Date</span>
-          <select value={day} onChange={(e) => setDay(e.target.value)} disabled={disabled || busy || saving}>
-            {days.map((d) => (
-              <option key={d.key} value={d.key}>{dateOption(d)}</option>
-            ))}
-          </select>
-        </label>
+          {/* A dropdown like the one beside it, except what drops down is a
+              month rather than a list of days — the gaps in the diary are part
+              of the answer, and a list of free days never shows them. */}
+          <button
+            type="button"
+            className="slots__datebtn"
+            onClick={() => setCalOpen((o) => !o)}
+            disabled={disabled || busy || saving}
+            aria-haspopup="dialog"
+            aria-expanded={calOpen}
+          >
+            {dayLabelFor(days, day) || 'Pick a date'}
+          </button>
+          {calOpen && (
+            <div className="slots__cal-pop" role="dialog" aria-label="Choose a date">
+              <MonthCalendar
+                days={days}
+                value={day}
+                onPick={(k) => { setDay(k); setCalOpen(false); }}
+                disabled={disabled || busy || saving}
+              />
+            </div>
+          )}
+        </div>
         <label className="slots__select">
           <span className="slots__label">Time</span>
           <select value={choice} onChange={(e) => setChoice(e.target.value)} disabled={disabled || busy || saving}>
@@ -256,16 +390,6 @@ export default function SlotPicker({
         Times shown in <strong>{zoneLabel(tz)}</strong> — your device&apos;s clock.
       </p>
 
-      <label className="slots__check">
-        <input
-          type="checkbox" checked={onWhatsApp} onChange={(e) => setOnWhatsApp(e.target.checked)}
-          disabled={disabled || busy || saving}
-        />
-        <span>This number is on WhatsApp</span>
-      </label>
-      {!onWhatsApp && (
-        <p className="slots__hint">No problem — we’ll call you instead, and use email for anything in writing.</p>
-      )}
 
       {formErr && <div className="jny-note jny-note--warn" role="alert">{formErr}</div>}
 

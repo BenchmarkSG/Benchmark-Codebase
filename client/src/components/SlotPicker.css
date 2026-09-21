@@ -92,14 +92,104 @@
 }
 .slots__zone strong { color: var(--ink-3); }
 
+/* ---- Month calendar -------------------------------------------------------
+   A month at a glance instead of a dropdown of open days: the gaps in a
+   specialist's diary are part of the answer, and a list of the days that
+   happen to be free never shows them. */
+/* The closed Date control: same box as the Time select beside it, so the pair
+   reads as one row of controls. */
+.slots__datebtn {
+  width: 100%;
+  text-align: left;
+  border: 1.5px solid #cfe0f6;
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 13px 34px 13px 13px;
+  cursor: pointer;
+}
+.slots__datebtn:focus-visible { outline: 2px solid var(--blue-600); outline-offset: 1px; }
+.slots__datebtn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* The month itself, hanging under the control. */
+.slots__cal-pop {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 6px); left: 0;
+  width: min(300px, 86vw);
+  box-shadow: 0 14px 34px rgba(11, 31, 58, 0.18);
+  border-radius: 12px;
+}
+.slots__cal-pop .slots__cal { background: var(--surface); }
+
+.slots__cal {
+  border: 1.5px solid #cfe0f6;
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 10px 12px 12px;
+}
+.slots__cal-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-bottom: 8px;
+}
+.slots__cal-month { font-size: 14px; font-weight: 800; color: var(--ink); }
+.slots__cal-nav {
+  width: 30px; height: 30px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--surface);
+  color: var(--ink-2); font-size: 18px; line-height: 1; cursor: pointer;
+}
+.slots__cal-nav:disabled { opacity: 0.35; cursor: not-allowed; }
+.slots__cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.slots__cal-dow {
+  text-align: center; font-size: 11px; font-weight: 800; color: var(--muted);
+  padding-bottom: 2px;
+}
+.slots__cal-pad { aspect-ratio: 1 / 1; }
+.slots__cal-day {
+  aspect-ratio: 1 / 1;
+  display: grid; place-items: center;
+  border: 1px solid transparent; border-radius: 9px;
+  background: var(--surface-2); color: var(--ink);
+  font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.slots__cal-day:hover:not(:disabled) { border-color: var(--blue-600); }
+/* Open days carry a dot; a day with nothing free is flat and dead. */
+.slots__cal-day.is-off { background: transparent; color: var(--muted); opacity: 0.45; cursor: not-allowed; }
+.slots__cal-day.is-on {
+  background: var(--blue-600); color: #fff;
+  border-color: var(--blue-600);
+}
+
+
 /* ---- The callback number: a control in the card, beside the date and time --- */
 .slots__field { display: flex; flex-direction: column; gap: 5px; }
 .slots__field > span { font-size: 12.5px; font-weight: 700; color: var(--ink-2); }
-.slots__field--phone { margin-top: 14px; }
+/* Label and the two boxes on ONE line: the number needs room for a dozen
+   digits, not the width of the card. It wraps to two lines on a narrow phone. */
+.slots__field--phone {
+  margin-top: 14px;
+  flex-direction: row; flex-wrap: wrap;
+  align-items: center; gap: 10px 14px;
+}
 /* The two glyphs sit on the label, which is where the old meta line said what
    kind of call this is. */
-.slots__field--phone > span { display: flex; align-items: center; gap: 6px; }
+.slots__field--phone > span {
+  display: flex; align-items: center; gap: 6px;
+  flex: none; font-size: 14.5px;
+}
 .slots__field--phone > span svg { color: var(--ink-3); }
+/* Dial code and number: two boxes on one line, the code sized to hold "+xxx"
+   and no more, so the number keeps the width. */
+/* Pushed to the card's right edge, so the boxes line up with the Date and Time
+   controls below rather than trailing the label. */
+.slots__telrow { display: flex; gap: 8px; flex: 0 1 auto; margin-left: auto; }
+.slots__telrow input { min-width: 0; }
+.slots__telrow input.slots__dial { flex: 0 0 72px; text-align: center; }
+/* Wide enough for the longest national number, and no wider. */
+.slots__telrow input:not(.slots__dial) { flex: 0 1 190px; }
 .slots__field input {
   width: 100%;
   border: 1.5px solid #cfe0f6;
