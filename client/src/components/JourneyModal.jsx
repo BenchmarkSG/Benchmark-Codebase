@@ -603,7 +603,7 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
     if (!user) {
       pendingSlotRef.current = iso;
       onRequireAuth?.({ kind: 'journey', context, view, expert });
-      return;
+      return null;
     }
     setSlotBusy(true);
     try {
@@ -618,19 +618,41 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
       // then there is no checkout to come back from. Keyed to the tier being
       // booked, not to "some tier was paid for at some point": the latter booked
       // an unpaid call outright for anyone who had bought a different tier.
+      let booked = false;
       if (ownsTier(bookingTier) || !paymentsEnabled) {
         await confirmCallSlot(leadId);
         setSlotBooked(true);
         setHoldUntil(null);
+        booked = true;
       }
+      // Handed back, not just flagged: the caller needs the slot ITSELF. Reading
+      // it from state instead gets the value from before this call — setState is
+      // asynchronous, and the redirect to Stripe happens in the same tick.
+      return { iso, holdUntil: booked ? null : (expires || null), booked };
     } catch (e) {
       // Someone else took it while this grid was on screen: re-read availability
       // so they are not staring at a time that no longer exists.
       if (e instanceof SlotTakenError) setSlotsKey((n) => n + 1);
       setSlotErr(e.message || 'We could not hold that time. Please pick another.');
+      return null;
     } finally {
       setSlotBusy(false);
     }
+  };
+
+  /* One press, not two: the picker's button takes the slot AND goes on to
+     checkout. The hold still happens first — it is what stops the time being
+     sold twice while Stripe has the customer — but it is no longer a step the
+     customer has to notice, and nothing new appears below to be found. */
+  const holdAndPay = (tier, adv = null) => async (iso, mins = 0) => {
+    const held = await pickSlot(iso, mins);
+    if (!held) return;                                // sign-in prompt, or the slot went
+    if (!paymentsEnabled || ownsTier(tier)) return;   // nothing left to charge for
+    // The hold travels to checkout explicitly. Without it the stash carried the
+    // state from BEFORE the hold — no slot — so the return leg had nothing to
+    // confirm, the hold lapsed, and the customer was asked to book all over
+    // again after paying.
+    pay(tier, adv, { slotIso: held.iso, holdUntil: held.holdUntil, slotBooked: held.booked });
   };
 
   /* Give a held time back. Never touches a confirmed booking — release_call_slot
@@ -890,8 +912,9 @@ Kind regards,
             // runs the slot is still only held, and still lapses on its own.
             recordPaidBooking(resume.tier, resume.sessionId, resume.leadId, resume.expert)
               .then(() => {
-                if (!resume.slotIso || !leadRef.current) return undefined;
-                return confirmCallSlot(leadRef.current).then(() => {
+                const leadId = resume.leadId || leadRef.current;
+                if (!resume.slotIso || !leadId) return undefined;
+                return confirmCallSlot(leadId).then(() => {
                   setSlotBooked(true);
                   setHoldUntil(null);
                 });
@@ -1019,7 +1042,7 @@ Kind regards,
   };
 
   // Redirect to Stripe Checkout for a paid tier; stash context to resume on return.
-  const pay = async (tier, adv) => {
+  const pay = async (tier, adv, over = {}) => {
     // Require sign-in before any payment/booking, so the appointment is tied to a
     // known account (and Calendly is prefilled with their name + email). After
     // auth the resume flow returns them to this exact tier to complete payment.
@@ -1034,7 +1057,13 @@ Kind regards,
       // Checkout without paying sees "your time is held" and no countdown —
       // the hold is still live in the database, but nothing on screen says for
       // how long.
-      stashJourney({ tier, expert: snap, context, leadId: leadRef.current, slotBooked, slotIso, holdUntil });
+      stashJourney({
+        tier, expert: snap, context, leadId: leadRef.current,
+        // `over` is what a just-taken hold passes in; state is a render behind it.
+        slotBooked: over.slotBooked ?? slotBooked,
+        slotIso: over.slotIso ?? slotIso,
+        holdUntil: over.holdUntil ?? holdUntil,
+      });
       const { url } = await createCheckout({
         tier,
         currency: context?.currency || 'SGD', // bill in the currency we showed
@@ -1404,7 +1433,7 @@ Kind regards,
           <div className="jny-sub">
             <h4 className="jny-sub__title">Book your call with a specialist</h4>
             <p className="jny-sub__sub">
-              <span className="jny-pill">{priceOf('call', 'S$99')}</span> A FeeOptima specialist reviews your numbers and coaches you through the negotiation.
+              A FeeOptima specialist reviews your numbers and coaches you through the negotiation.
             </p>
             {payError && <div className="jny-note jny-note--warn">{payError}</div>}
             {stalled && checkoutUrl && (
@@ -1484,8 +1513,8 @@ Kind regards,
                         appear under it. */}
                     <SlotPicker
                       selected={slotIso}
-                      onPick={pickSlot}
-                      busy={slotBusy}
+                      onPick={holdAndPay('call')}
+                      busy={slotBusy || busy}
                       disabled={!!slotIso}
                       held={!!slotIso}
                       refreshKey={slotsKey}
@@ -1493,6 +1522,12 @@ Kind regards,
                       phone={phone}
                       onPhoneSaved={setPhone}
                       country={context?.country}
+                      cta={!user ? 'Sign in to confirm →'
+                        : ownsTier('call') || !paymentsEnabled ? 'Confirm this time →'
+                        : `Confirm & pay ${priceOf('call', 'S$99')} →`}
+                      busyLabel="Taking you to secure checkout…"
+                      footnote={ownsTier('call') || !paymentsEnabled ? null
+                        : `🔒 Secure payment via Stripe. ${priceOf('call', 'S$99')} will be debited — 100% cashback if not satisfied.`}
                     />
 
                     {slotIso && (
@@ -1518,7 +1553,11 @@ Kind regards,
                     )}
 
                     {/* Payment, only once a time is actually held. */}
-                    {slotIso && paymentsEnabled && !ownsTier('call') && (
+                    {/* Only reachable by coming back from Checkout without
+                        paying: the hold is still live, so finish it rather than
+                        make them pick the same time again. The first pass
+                        through this screen pays from the picker's own button. */}
+                    {slotIso && !slotBooked && paymentsEnabled && !ownsTier('call') && (
                       <div className="jny-confirmpay">
                         <p className="jny-confirmpay__lead">
                           <strong>{priceOf('call', 'S$99')} will be debited</strong> — click to pay.
@@ -1559,7 +1598,7 @@ Kind regards,
                 ) : (
                   <>
                     <div className="jny-note jny-note--ok">✓ Payment received — pick a time below.</div>
-                    <p className="jny-sub__sub"><span className="jny-pill">{priceOf('call', 'S$99')}</span> A FeeOptima specialist coaches you through the negotiation.</p>
+                    <p className="jny-sub__sub">A FeeOptima specialist coaches you through the negotiation.</p>
                     {phone
                       ? <Scheduler url={CALENDLY_URL} prefill={bookingPrefill} onDone={finishTo} onScheduled={stampBooking} feedback={{ source: 'call', benchmarkId: context?.benchmarkId }} note="You and the specialist both receive the calendar invite from Calendly." />
                       : <PhoneGate onSaved={setPhone} />}
@@ -1569,7 +1608,7 @@ Kind regards,
             ) : !paymentsEnabled ? (
               /* Stripe not configured — booking is all there is to do. */
               <>
-                <p className="jny-sub__sub"><span className="jny-pill">{priceOf('call', 'S$99')}</span> A FeeOptima specialist coaches you through the negotiation.</p>
+                <p className="jny-sub__sub">A FeeOptima specialist coaches you through the negotiation.</p>
                 {phone
                   ? <Scheduler url={CALENDLY_URL} prefill={bookingPrefill} onDone={finishTo} onScheduled={stampBooking} feedback={{ source: 'call', benchmarkId: context?.benchmarkId }} note="You and the specialist both receive the calendar invite from Calendly." />
                   : <PhoneGate onSaved={setPhone} />}
@@ -1577,7 +1616,7 @@ Kind regards,
             ) : (
               <>
                 <p className="jny-sub__sub">
-                  <span className="jny-pill">{priceOf('call', 'S$99')}</span> A FeeOptima specialist reviews your numbers and coaches you through the negotiation.
+                  A FeeOptima specialist reviews your numbers and coaches you through the negotiation.
                 </p>
                 {!user && (
                   <div className="jny-note jny-note--warn">
@@ -1618,7 +1657,7 @@ Kind regards,
                 panel opens under it, so picking someone never replaces what you
                 were picking from. */}
             <h4 className="jny-sub__title">Find an expert · select one</h4>
-            <p className="jny-sub__sub"><span className="jny-pill">{priceOf('expert', 'S$199')}</span> An expert prepares and leads the negotiation for you.</p>
+            <p className="jny-sub__sub">An expert prepares and leads the negotiation for you.</p>
             <div className="jny-experts">
               {experts.map((x) => {
                 const picked = expert?.id === x.id;
@@ -1655,7 +1694,7 @@ Kind regards,
             {expert && (
               <div className="jny-pick">
                 <h5 className="jny-pick__title">{expert.real ? `Book with ${expert.name}` : 'Get matched with an expert'}</h5>
-                <p className="jny-sub__sub"><span className="jny-pill">{priceOf('expert', 'S$199')}</span> {expert.real ? `${expert.name.split(' ')[0]} prepares and leads the negotiation. Fully refundable if no savings.` : 'Your matched expert prepares and leads the negotiation. Fully refundable if no savings.'}</p>
+                <p className="jny-sub__sub">{expert.real ? `${expert.name.split(' ')[0]} prepares and leads the negotiation. Fully refundable if no savings.` : 'Your matched expert prepares and leads the negotiation. Fully refundable if no savings.'}</p>
                 {!expert.real && (
                   <div className="jny-note">
                     {expert.name} is an example profile. You'll be matched with a verified
@@ -1724,8 +1763,8 @@ Kind regards,
 
                     <SlotPicker
                       selected={slotIso}
-                      onPick={pickSlot}
-                      busy={slotBusy}
+                      onPick={holdAndPay('expert', expert.real ? expert : null)}
+                      busy={slotBusy || busy}
                       disabled={!!slotIso}
                       held={!!slotIso}
                       refreshKey={slotsKey}
@@ -1733,6 +1772,12 @@ Kind regards,
                       phone={phone}
                       onPhoneSaved={setPhone}
                       country={context?.country}
+                      cta={!user ? 'Sign in to confirm →'
+                        : ownsTier('expert') || !paymentsEnabled ? 'Confirm this time →'
+                        : `Confirm & pay ${priceOf('expert', 'S$199')} →`}
+                      busyLabel="Taking you to secure checkout…"
+                      footnote={ownsTier('expert') || !paymentsEnabled ? null
+                        : `🔒 Secure payment via Stripe. ${priceOf('expert', 'S$199')} will be debited — fully refundable if no savings.`}
                     />
 
                     {slotIso && (
@@ -1751,7 +1796,7 @@ Kind regards,
                       </div>
                     )}
 
-                    {slotIso && paymentsEnabled && !ownsTier('expert') && (
+                    {slotIso && !slotBooked && paymentsEnabled && !ownsTier('expert') && (
                       <div className="jny-confirmpay">
                         <p className="jny-confirmpay__lead">
                           <strong>Your time is held.</strong> Confirm it with payment and{' '}

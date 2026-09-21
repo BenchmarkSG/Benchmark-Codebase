@@ -575,6 +575,40 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
   );
 }
 
+/* A piggy bank, drawn rather than fetched. Monoline: one stroke weight, one
+   colour, no fills — it sits on the blue wash beside a 30px figure, and a
+   shaded illustration at that size turns to mud. `flip` mirrors it so the pair
+   faces the amount between them. */
+function PiggyGlyph({ flip = false }) {
+  return (
+    <svg
+      className={`res__piggy${flip ? ' res__piggy--flip' : ''}`}
+      viewBox="0 0 48 40" width="38" height="32" aria-hidden="true" focusable="false"
+      fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round"
+    >
+      {/* the coin, above the slot */}
+      <circle cx="21" cy="4" r="3" />
+      {/* ear */}
+      <path d="M13 13 L12.5 6.5 L19 9.5" />
+      {/* body */}
+      <path d="M33 14.5 a13 11 0 1 1 -18.5 4.2" />
+      <path d="M14.5 18.7 a13 11 0 0 0 18.5 13.6" />
+      {/* snout */}
+      <path d="M33 14.5 a5.5 5 0 0 1 0 17.8" />
+      <path d="M35.5 20 h0.01 M35.5 26 h0.01" strokeWidth="2.6" />
+      {/* eye */}
+      <path d="M28 18 h0.01" strokeWidth="2.6" />
+      {/* coin slot */}
+      <path d="M16.5 11.5 L24 10" strokeWidth="2.2" />
+      {/* legs */}
+      <path d="M17 33.5 V37 M29 33 V37" />
+      {/* tail */}
+      <path d="M9.4 22.5 q-3.4 1.6 -1.4 4.4" />
+    </svg>
+  );
+}
+
 // "better than X% of the N providers" — the credible standing phrase.
 function standingText(result) {
   if (result.beatsAll) return `better than all ${result.poolSize} providers we benchmark`;
@@ -682,7 +716,11 @@ function Result({ result, product, compact, localCcy, country = 'SG', yourBank =
             <span className="res__overpay-lead">
               {higher ? <>Hey, you&apos;re <strong>missing out</strong> on</> : <>Hey, you&apos;re <strong>losing</strong></>}
             </span>
-            <strong className="res__overpay-amt">{formatMoney(result.annualSaving, ccy)} per year!</strong>
+            <strong className="res__overpay-amt">
+              <PiggyGlyph />
+              <span>{formatMoney(result.annualSaving, ccy)} per year!</span>
+              <PiggyGlyph flip />
+            </strong>
             <span className="res__overpay-sub">Here&apos;s the rate comparison</span>
           </div>
 
@@ -727,15 +765,6 @@ function Result({ result, product, compact, localCcy, country = 'SG', yourBank =
       )}
       {/* Say what a "~" or a "from" means the moment one is on screen — the
           number is honest only if the reader knows what kind of number it is. */}
-      {/* A flat rate is not an effective rate — on the same loan it reads about
-          half as large. Say so before the reader compares it with their own. */}
-      {result.flatPool && (
-        <p className="res__basis res__basis--warn">
-          These are <strong>flat rates</strong>: interest on the original amount for the whole
-          tenor, which is how car loans are advertised here. On the same loan a flat rate looks
-          about half the size of an effective rate — compare it with your own flat rate, not your EIR.
-        </p>
-      )}
       {/* Only when there is something left to say. 'from' used to satisfy
           `bestBasis !== 'exact'` and bring its own sentence; with that sentence
           gone, the old test would render an empty paragraph and its margin. */}

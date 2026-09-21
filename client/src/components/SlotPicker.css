@@ -222,6 +222,7 @@
 
 .slots .jny-note { margin-top: 12px; }
 .slots__go { width: 100%; margin-top: 14px; justify-content: center; }
+.slots__foot { margin: 8px 0 0; text-align: center; font-size: 12px; line-height: 1.45; color: var(--muted); }
 
 .slots__wa { margin: 10px 0 0; font-size: 11.5px; line-height: 1.5; color: var(--muted); text-align: center; }
 .slots__wa a { color: var(--accent); font-weight: 800; }

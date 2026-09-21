@@ -208,8 +208,11 @@
    comparison, two buttons and their fine print inside one screen beside the
    hero copy. Nothing here changes what is said — only the air between. */
 .calc-card .res__overpay { margin-top: 4px; }
-.calc-card .res__overpay-amt { margin-top: 11px; font-size: 28px; padding: 11px 14px; }
+.calc-card .res__overpay-amt { margin-top: 11px; font-size: 24px; padding: 11px 14px; }
 .calc-card .res__overpay-sub { margin-top: 7px; font-size: 13.5px; }
+.calc-card .res__overpay-lead { font-size: 13.5px; }
+.calc-card .res__cmp-label { font-size: 13.5px; }
+.calc-card .res__piggy { width: 32px; height: 28px; }
 .calc-card .res__cmp { margin-top: 12px; row-gap: 8px; }
 .calc-card .res__tagline { margin-top: 12px; font-size: 13.5px; }
 .calc-card .res__findout { margin-top: 10px; margin-bottom: 8px; font-size: 13.5px; }
@@ -403,7 +406,12 @@
 .res__overpay {
   text-align: center; margin-top: 16px;
 }
-.res__overpay-lead { display: block; font-size: 15px; font-weight: 700; color: var(--ink-3); }
+/* Every line on this screen but the amount is set the same way — one size, one
+   weight, one colour — so the figure is the only thing that stands out. */
+.res__overpay-lead { display: block; font-size: 14px; font-weight: 700; color: var(--ink-2); }
+/* One colour, taken from the band it sits on. */
+.res__piggy { flex: none; display: block; color: var(--blue-600); opacity: 0.85; }
+.res__piggy--flip { transform: scaleX(-1); }
 /* The emphasised word blends with its neighbours in colour; a red hand-drawn
    brush swoosh underneath does the emphasising instead of a red font. */
 .res__overpay-lead strong { position: relative; color: inherit; font-weight: 800; }
@@ -417,9 +425,10 @@
    the thing that gets a panel. It used to be inline-block to fit a brush swoosh
    that has since gone; as a block it takes the card's width and the wash reads
    as a band behind the figure rather than a highlighter behind the digits. */
+/* The saving, flanked by the two piggy banks. */
 .res__overpay-amt {
-  display: block;
-  margin-top: 16px; font-size: 30px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em;
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+  margin-top: 16px; font-size: 26px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em;
   background: var(--blue-50);
   border: 1px solid #c3d8f5;
   border-radius: 16px;
@@ -429,7 +438,7 @@
    panel below, so it is sized between the amount and the panel's labels. */
 .res__overpay-sub {
   display: block;
-  margin-top: 10px; font-size: 14.5px; font-weight: 700; color: var(--ink-3);
+  margin-top: 10px; font-size: 14px; font-weight: 700; color: var(--ink-2);
 }
 
 /* "You vs best" — two rows of label + figure. One shared 2-column grid (rows
@@ -448,13 +457,13 @@
   row-gap: 10px;
 }
 .res__cmp-row { display: contents; }
-.res__cmp-label { font-size: 13px; font-weight: 700; color: var(--ink-2); text-align: left; }
+.res__cmp-label { font-size: 14px; font-weight: 700; color: var(--ink-2); text-align: left; }
 /* Tinted, not white: these were white chips read against the blue wash that
    used to sit behind this block. With the wash on the amount above, a white
    chip on a white card is carried by its border alone. */
 .res__cmp-val {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  min-width: 62px; text-align: center;
+  display: inline-flex; align-items: center; justify-content: flex-end; gap: 8px;
+  min-width: 62px; text-align: right;
   border-radius: 9px; padding: 6px 10px; font-size: 15px; font-weight: 800;
   border: 1px solid var(--line); background: var(--surface); color: var(--ink);
 }
@@ -502,14 +511,14 @@
   .res__cmp-bank--revealed { animation: none; }
 }
 
-/* Same size as the lead-in below it (.res__findout) — the two are one pair of
-   lines, and the tagline outsizing it made them read as heading and caption. */
-.res__tagline { margin-top: 16px; text-align: center; font-size: 14px; line-height: 1.4; font-weight: 800; color: var(--ink-2); }
+/* Same size AND weight as every other line here — it used to be the one bold
+   sentence, which set it against the amount rather than with its neighbours. */
+.res__tagline { margin-top: 16px; text-align: center; font-size: 14px; line-height: 1.4; font-weight: 700; color: var(--ink-2); }
 /* Lead-in above the reveal button. Quieter than the tagline so the two don't
    compete, but darker than the fine print below the button. */
 .res__findout {
   margin-top: 18px; margin-bottom: 10px;
-  text-align: center; font-size: 14px; line-height: 1.4; font-weight: 700; color: var(--ink-3);
+  text-align: center; font-size: 14px; line-height: 1.4; font-weight: 700; color: var(--ink-2);
 }
 
 /* Primary result CTA — blue (overrides the global red .btn* unification) */

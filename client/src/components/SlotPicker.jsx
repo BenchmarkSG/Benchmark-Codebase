@@ -152,6 +152,12 @@ export default function SlotPicker({
   // A time is already held: the card stays on screen showing what was picked,
   // but its own button steps aside for the confirm-and-pay one below it.
   held = false,
+  // What the button says. This IS the commitment on this screen now — it holds
+  // the slot and goes on to payment in one press — so the caller words it.
+  cta = 'Hold this time →',
+  busyLabel = 'Holding your time…',
+  // Fine print under the button, where the pay panel's used to be.
+  footnote = null,
 }) {
   const { updateUserMetadata } = useAuth();
   const [slots, setSlots] = useState(null);
@@ -394,9 +400,12 @@ export default function SlotPicker({
       {formErr && <div className="jny-note jny-note--warn" role="alert">{formErr}</div>}
 
       {!held && (
-        <button className="btn btn--primary slots__go" disabled={busy || saving || !choice}>
-          {saving ? 'Saving…' : busy ? 'Holding your time…' : 'Hold this time →'}
-        </button>
+        <>
+          <button className="btn btn--primary slots__go" disabled={busy || saving || !choice}>
+            {saving ? 'Saving…' : busy ? busyLabel : cta}
+          </button>
+          {footnote && <p className="slots__foot">{footnote}</p>}
+        </>
       )}
 
       {waLink && (
