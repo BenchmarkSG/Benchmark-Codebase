@@ -587,6 +587,12 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
     return leadRef.current;
   };
 
+  /* Which tier the scheduler on screen is booking, and whether it is paid for.
+     A higher tier covers a lower one (an expert purchase includes the call), so
+     ownership is a rank comparison, not an equality. */
+  const bookingTier = view === 'expert' ? 'expert' : 'call';
+  const ownsTier = (tier) => !!paidTier && TIER_RANK[paidTier] >= TIER_RANK[tier];
+
   /* Take a time.
      Already paid (or nothing to pay) → the hold is confirmed on the spot, since
      there is no checkout to come back from. Otherwise it stays a hold and the
@@ -606,9 +612,13 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
       const expires = await holdCallSlot(leadId, iso);
       setSlotIso(iso);
       setHoldUntil(expires || null);
-      // 'expert' books through this same scheduler now, so either paid tier
-      // means there is no checkout to come back from and the hold is a booking.
-      if (paidTier || !paymentsEnabled) {
+      // A fresh hold is a hold, whatever a previous screen left behind.
+      setSlotBooked(false);
+      // Confirm on the spot only when THIS screen's tier is already paid for —
+      // then there is no checkout to come back from. Keyed to the tier being
+      // booked, not to "some tier was paid for at some point": the latter booked
+      // an unpaid call outright for anyone who had bought a different tier.
+      if (ownsTier(bookingTier) || !paymentsEnabled) {
         await confirmCallSlot(leadId);
         setSlotBooked(true);
         setHoldUntil(null);
@@ -859,6 +869,9 @@ Kind regards,
       setSentTo(resume.expert?.id || null);
       setSlotBooked(!!resume.slotBooked);
       setSlotIso(resume.slotIso || null);
+      // Only while it is still in the future — a lapsed hold must not come back
+      // as a ticking clock.
+      setHoldUntil(resume.holdUntil && new Date(resume.holdUntil).getTime() > Date.now() ? resume.holdUntil : null);
       if (resume.canceled) { setPaidTier(null); setPayError('Payment canceled — you can try again below.'); return; }
       setPayError(''); setPaidTier(resume.tier); // optimistic; verify below
       if (resume.sessionId) {
@@ -1017,7 +1030,11 @@ Kind regards,
       years: adv.years, blurb: adv.blurb, photo: adv.photo, accent: adv.accent, calendly_url: adv.calendly_url,
     } : null;
     try {
-      stashJourney({ tier, expert: snap, context, leadId: leadRef.current, slotBooked, slotIso });
+      // holdUntil travels too: without it a customer who comes back from
+      // Checkout without paying sees "your time is held" and no countdown —
+      // the hold is still live in the database, but nothing on screen says for
+      // how long.
+      stashJourney({ tier, expert: snap, context, leadId: leadRef.current, slotBooked, slotIso, holdUntil });
       const { url } = await createCheckout({
         tier,
         currency: context?.currency || 'SGD', // bill in the currency we showed
@@ -1485,7 +1502,7 @@ Kind regards,
                               above, so this says only what the picker cannot:
                               that the time is now held, and for how long. */}
                           <span className="jny-hold__when">
-                            <strong>✓ Your time is held</strong>
+                            <strong>{slotBooked ? '✓ Your time is booked' : '✓ Your time is held'}</strong>
                             {holdUntil && !slotBooked && (
                               <em><HoldTimer until={holdUntil} onExpire={onHoldExpired} /> left to confirm — nobody else can take it.</em>
                             )}
@@ -1501,11 +1518,11 @@ Kind regards,
                     )}
 
                     {/* Payment, only once a time is actually held. */}
-                    {slotIso && paymentsEnabled && paidTier !== 'call' && (
+                    {slotIso && paymentsEnabled && !ownsTier('call') && (
                       <div className="jny-confirmpay">
                         <p className="jny-confirmpay__lead">
-                          <strong>Your time is held.</strong> Confirm it with payment and the
-                          specialist is booked — you&apos;ll get a calendar invite and a WhatsApp message before the call.
+                          <strong>{priceOf('call', 'S$99')} will be debited</strong> — click to pay.
+                          100% cashback if not satisfied.
                         </p>
                         <button className="btn btn--primary jny-pay" disabled={busy} onClick={() => pay('call')}>
                           {!user ? 'Sign in to confirm →' : busy ? 'Redirecting to secure checkout…' : `Confirm & pay ${priceOf('call', 'S$99')} →`}
@@ -1722,7 +1739,7 @@ Kind regards,
                       <div className="jny-hold">
                         <div className="jny-hold__row">
                           <span className="jny-hold__when">
-                            <strong>✓ Your time is held</strong>
+                            <strong>{slotBooked ? '✓ Your time is booked' : '✓ Your time is held'}</strong>
                             {holdUntil && !slotBooked && (
                               <em><HoldTimer until={holdUntil} onExpire={onHoldExpired} /> left to confirm — nobody else can take it.</em>
                             )}
@@ -1734,7 +1751,7 @@ Kind regards,
                       </div>
                     )}
 
-                    {slotIso && paymentsEnabled && paidTier !== 'expert' && (
+                    {slotIso && paymentsEnabled && !ownsTier('expert') && (
                       <div className="jny-confirmpay">
                         <p className="jny-confirmpay__lead">
                           <strong>Your time is held.</strong> Confirm it with payment and{' '}

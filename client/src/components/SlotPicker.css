@@ -171,9 +171,8 @@
    digits, not the width of the card. It wraps to two lines on a narrow phone. */
 .slots__field--phone {
   margin-top: 14px;
-  /* One line, and it stays one line: the boxes shrink to fit beside the label
-     rather than dropping to a row of their own, which left the label stranded
-     above an empty half-row. */
+  /* Label and boxes on one line, always: nothing here wraps, and the number box
+     takes whatever width is left over. */
   flex-direction: row; flex-wrap: nowrap;
   align-items: center; gap: 10px 14px;
 }
@@ -181,19 +180,26 @@
    kind of call this is. */
 .slots__field--phone > span {
   display: flex; align-items: center; gap: 6px;
-  flex: none; font-size: 14.5px;
+  /* The label keeps its full width — it was being squeezed to nothing, leaving
+     the two glyphs and no words. The boxes beside it give way instead. */
+  flex: 0 0 auto;
+  font-size: 13.5px; white-space: nowrap;
 }
 .slots__field--phone > span svg { color: var(--ink-3); }
 /* Dial code and number: two boxes on one line, the code sized to hold "+xxx"
    and no more, so the number keeps the width. */
 /* Pushed to the card's right edge, so the boxes line up with the Date and Time
    controls below rather than trailing the label. */
-.slots__telrow { display: flex; gap: 8px; flex: 0 1 auto; margin-left: auto; }
+.slots__telrow {
+  display: flex; gap: 8px;
+  /* Fixed, not elastic: 58 + 8 + 150 = 216px, so the pair can't grow past the
+     card's edge whatever is beside it. */
+  flex: 0 0 auto; min-width: 0; margin-left: auto;
+}
 .slots__telrow input { min-width: 0; }
-.slots__telrow input.slots__dial { flex: 0 0 68px; text-align: center; }
-/* Room for the longest national number, giving way first when the card is
-   narrow — never below what a number needs to stay readable. */
-.slots__telrow input:not(.slots__dial) { flex: 0 1 180px; min-width: 120px; }
+.slots__telrow input.slots__dial { flex: 0 0 58px; text-align: center; padding-left: 6px; padding-right: 6px; }
+/* A dozen digits' worth, and no wider. */
+.slots__telrow input:not(.slots__dial) { flex: 0 0 150px; width: 150px; }
 .slots__field input {
   width: 100%;
   border: 1.5px solid #cfe0f6;
