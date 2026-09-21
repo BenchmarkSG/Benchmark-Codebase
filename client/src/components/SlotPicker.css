@@ -171,7 +171,10 @@
    digits, not the width of the card. It wraps to two lines on a narrow phone. */
 .slots__field--phone {
   margin-top: 14px;
-  flex-direction: row; flex-wrap: wrap;
+  /* One line, and it stays one line: the boxes shrink to fit beside the label
+     rather than dropping to a row of their own, which left the label stranded
+     above an empty half-row. */
+  flex-direction: row; flex-wrap: nowrap;
   align-items: center; gap: 10px 14px;
 }
 /* The two glyphs sit on the label, which is where the old meta line said what
@@ -187,9 +190,10 @@
    controls below rather than trailing the label. */
 .slots__telrow { display: flex; gap: 8px; flex: 0 1 auto; margin-left: auto; }
 .slots__telrow input { min-width: 0; }
-.slots__telrow input.slots__dial { flex: 0 0 72px; text-align: center; }
-/* Wide enough for the longest national number, and no wider. */
-.slots__telrow input:not(.slots__dial) { flex: 0 1 190px; }
+.slots__telrow input.slots__dial { flex: 0 0 68px; text-align: center; }
+/* Room for the longest national number, giving way first when the card is
+   narrow — never below what a number needs to stay readable. */
+.slots__telrow input:not(.slots__dial) { flex: 0 1 180px; min-width: 120px; }
 .slots__field input {
   width: 100%;
   border: 1.5px solid #cfe0f6;
@@ -218,6 +222,10 @@
 
 @media (max-width: 560px) {
   .slots { padding: 16px 14px; }
+  /* Too narrow to hold both beside the label: now they may wrap under it. */
+  .slots__field--phone { flex-wrap: wrap; }
+  .slots__telrow { margin-left: 0; width: 100%; }
+  .slots__telrow input:not(.slots__dial) { flex: 1 1 auto; }
 }
 /* Side by side, each control holds about 150px of text; below this the date
    stops fitting, so they take a line each. */
