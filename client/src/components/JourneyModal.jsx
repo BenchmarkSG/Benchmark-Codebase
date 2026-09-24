@@ -440,6 +440,10 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
   const [payError, setPayError] = useState('');
   const [checkoutUrl, setCheckoutUrl] = useState(''); // set once Stripe hands us a URL
   const [stalled, setStalled] = useState(false);      // redirect didn't take
+  // Back from Checkout and still checking the payment (and, for a call, locking
+  // the held time in). Shown on its own, so the screen they paid from doesn't
+  // flash up before the confirmation replaces it.
+  const [verifying, setVerifying] = useState(false);
   const bookedRef = useRef(null); // Stripe session already logged to the dashboard
   const leadRef = useRef(null);   // the lead row for THIS engagement, stamped once a slot is booked
   const unlockRef = useRef(null); // benchmark stage already marked for this tier
@@ -638,21 +642,6 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
     } finally {
       setSlotBusy(false);
     }
-  };
-
-  /* One press, not two: the picker's button takes the slot AND goes on to
-     checkout. The hold still happens first — it is what stops the time being
-     sold twice while Stripe has the customer — but it is no longer a step the
-     customer has to notice, and nothing new appears below to be found. */
-  const holdAndPay = (tier, adv = null) => async (iso, mins = 0) => {
-    const held = await pickSlot(iso, mins);
-    if (!held) return;                                // sign-in prompt, or the slot went
-    if (!paymentsEnabled || ownsTier(tier)) return;   // nothing left to charge for
-    // The hold travels to checkout explicitly. Without it the stash carried the
-    // state from BEFORE the hold — no slot — so the return leg had nothing to
-    // confirm, the hold lapsed, and the customer was asked to book all over
-    // again after paying.
-    pay(tier, adv, { slotIso: held.iso, holdUntil: held.holdUntil, slotBooked: held.booked });
   };
 
   /* Give a held time back. Never touches a confirmed booking — release_call_slot
@@ -875,7 +864,7 @@ Kind regards,
   useEffect(() => {
     if (!open) return;
     setEmailTo(''); setEmailBody(defaultBody); setCopied(false); setShared(false); setCcUs(false);
-    setCheckoutUrl(''); setStalled(false);
+    setCheckoutUrl(''); setStalled(false); setVerifying(false);
     if (resume?.afterAuth) {
       // Returned from signing in/up — restore the exact screen they were on.
       // `unlockedTier` lets the dashboard reopen an already-purchased tier in
@@ -897,6 +886,7 @@ Kind regards,
       if (resume.canceled) { setPaidTier(null); setPayError('Payment canceled — you can try again below.'); return; }
       setPayError(''); setPaidTier(resume.tier); // optimistic; verify below
       if (resume.sessionId) {
+        setVerifying(true);
         // Signed in? Say so. Without the token the server treats every payer as
         // anonymous and mails them a sign-in link they don't need.
         getAccessToken().then((tok) => getCheckoutSession(resume.sessionId, tok)).then((s) => {
@@ -906,11 +896,13 @@ Kind regards,
             return;
           }
           // Payment confirmed — log the paid engagement + unlock the source benchmark.
+          applyUnlock(resume.tier);
           if (resume.tier === 'call' || resume.tier === 'expert') {
             // The hold becomes a booking HERE and nowhere else: this is the first
             // point at which the payment is known to have gone through. Until it
             // runs the slot is still only held, and still lapses on its own.
-            recordPaidBooking(resume.tier, resume.sessionId, resume.leadId, resume.expert)
+            // Returned so the verifying state lasts until the slot is locked in.
+            return recordPaidBooking(resume.tier, resume.sessionId, resume.leadId, resume.expert)
               .then(() => {
                 const leadId = resume.leadId || leadRef.current;
                 if (!resume.slotIso || !leadId) return undefined;
@@ -926,8 +918,8 @@ Kind regards,
                 setSlotErr('Your payment went through, but we could not lock the time in. Pick your time again below — you will not be charged twice.');
               });
           }
-          applyUnlock(resume.tier);
-        });
+          return undefined;
+        }).finally(() => setVerifying(false));
       }
     } else {
       setView('options'); setExpert(null); setSentTo(null); setPaidTier(null); setPayError(''); setSlotBooked(false);
@@ -1451,7 +1443,9 @@ Kind regards,
                 customer never comes back out of Checkout. The Calendly fallback
                 below cannot do that — it books for good the moment they pick —
                 which is exactly why this exists. */}
-            {ownScheduler ? (
+            {verifying ? (
+              <div className="jny-note" role="status">Payment received — confirming your booking…</div>
+            ) : ownScheduler ? (
               <>
                 {paidTier === 'call' && slotBooked ? (
                   /* Paid AND timed — the whole job is done. Showing the picker
@@ -1511,9 +1505,14 @@ Kind regards,
                         picker out for a summary card. The picker stays put,
                         locked to what was chosen, and the hold and the payment
                         appear under it. */}
+                    {/* Choosing a time takes the hold straight away, so the
+                        countdown is running before any payment is asked for.
+                        The pay button appears under it; Stripe opens only
+                        when that is pressed. */}
                     <SlotPicker
                       selected={slotIso}
-                      onPick={holdAndPay('call')}
+                      onPick={pickSlot}
+                      holdOnSelect
                       busy={slotBusy || busy}
                       disabled={!!slotIso}
                       held={!!slotIso}
@@ -1522,12 +1521,10 @@ Kind regards,
                       phone={phone}
                       onPhoneSaved={setPhone}
                       country={context?.country}
-                      cta={!user ? 'Sign in to confirm →'
+                      cta={!user ? 'Sign in to hold this time →'
                         : ownsTier('call') || !paymentsEnabled ? 'Confirm this time →'
-                        : `Confirm & pay ${priceOf('call', 'S$99')} →`}
-                      busyLabel="Taking you to secure checkout…"
-                      footnote={ownsTier('call') || !paymentsEnabled ? null
-                        : `🔒 Secure payment via Stripe. ${priceOf('call', 'S$99')} will be debited — 100% cashback if not satisfied.`}
+                        : 'Hold this time →'}
+                      busyLabel="Holding your time…"
                     />
 
                     {slotIso && (
@@ -1552,11 +1549,9 @@ Kind regards,
                       </div>
                     )}
 
-                    {/* Payment, only once a time is actually held. */}
-                    {/* Only reachable by coming back from Checkout without
-                        paying: the hold is still live, so finish it rather than
-                        make them pick the same time again. The first pass
-                        through this screen pays from the picker's own button. */}
+                    {/* Payment, only once a time is actually held — and the
+                        same panel when they come back from Checkout without
+                        paying, since the hold is still live. */}
                     {slotIso && !slotBooked && paymentsEnabled && !ownsTier('call') && (
                       <div className="jny-confirmpay">
                         <p className="jny-confirmpay__lead">
@@ -1726,7 +1721,9 @@ Kind regards,
                     payment second — no Calendly. */}
                 <AwayNote windows={expert.away} name={expert.name} />
 
-                {paidTier === 'expert' && slotBooked ? (
+                {verifying ? (
+                  <div className="jny-note" role="status">Payment received — confirming your booking…</div>
+                ) : paidTier === 'expert' && slotBooked ? (
                   <>
                     <div className="jny-note jny-note--ok">
                       {slotIso
@@ -1761,9 +1758,12 @@ Kind regards,
                     )}
                     {slotErr && <div className="jny-note jny-note--warn">{slotErr}</div>}
 
+                    {/* As in option 2: choosing a time holds it and starts the
+                        countdown; Stripe opens only from the pay button below. */}
                     <SlotPicker
                       selected={slotIso}
-                      onPick={holdAndPay('expert', expert.real ? expert : null)}
+                      onPick={pickSlot}
+                      holdOnSelect
                       busy={slotBusy || busy}
                       disabled={!!slotIso}
                       held={!!slotIso}
@@ -1772,12 +1772,10 @@ Kind regards,
                       phone={phone}
                       onPhoneSaved={setPhone}
                       country={context?.country}
-                      cta={!user ? 'Sign in to confirm →'
+                      cta={!user ? 'Sign in to hold this time →'
                         : ownsTier('expert') || !paymentsEnabled ? 'Confirm this time →'
-                        : `Confirm & pay ${priceOf('expert', 'S$199')} →`}
-                      busyLabel="Taking you to secure checkout…"
-                      footnote={ownsTier('expert') || !paymentsEnabled ? null
-                        : `🔒 Secure payment via Stripe. ${priceOf('expert', 'S$199')} will be debited — fully refundable if no savings.`}
+                        : 'Hold this time →'}
+                      busyLabel="Holding your time…"
                     />
 
                     {slotIso && (

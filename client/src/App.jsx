@@ -127,7 +127,10 @@ export default function App() {
      owner is proved by the saved row's stage instead. If the call fails we still
      open the journey: everything else on that screen (certificate, the three
      options) is usable, and the name retries on the next open. */
-  const openRevealed = useCallback(async (ctx, { sessionId = null, tier = 'reveal' } = {}) => {
+  // `strict`: when the server says the proof doesn't pay for this benchmark
+  // (402), open nothing and resolve null so the caller can send them to
+  // checkout instead. Other failures still open, as above.
+  const openRevealed = useCallback(async (ctx, { sessionId = null, tier = 'reveal', strict = false } = {}) => {
     let full = ctx || {};
     try {
       // Neither proof to hand? A signed-in buyer who has claimed their purchase
@@ -145,7 +148,10 @@ export default function App() {
         benchmarkId,
       }, await getAccessToken());
       if (bestBank) full = { ...full, bestBank };
-    } catch { /* leave bestBank unset — the modal handles a missing name */ }
+    } catch (err) {
+      if (strict && err?.code === 'payment_required') return null;
+      /* otherwise leave bestBank unset — the modal handles a missing name */
+    }
     setContext(full);
     setResume({ afterAuth: true, view: 'options', unlockedTier: tier });
     setTiersOpen(true);
@@ -193,8 +199,17 @@ export default function App() {
     // Bought anonymously, earlier. The Stripe session id outlives the tab, so a
     // returning payer re-unlocks for free instead of being charged again — the
     // server re-verifies that session with Stripe before it answers.
+    // Recorded as unlocked once it opens, so the result card stops offering to
+    // sell it. A session the server won't honour (another Stripe account, a
+    // different benchmark with the same figures) is dropped, and they pay.
     const paidSession = revealSessionFor(ready);
-    if (paidSession) { await openRevealed(ready, { sessionId: paidSession }); return; }
+    if (paidSession) {
+      if (await openRevealed(ready, { sessionId: paidSession, strict: true })) {
+        markUnlocked(ready, 'reveal');
+        return;
+      }
+      forgetRevealSession(paidSession);
+    }
 
     // Persist first so the reveal lands in their dashboard; reuse an existing
     // row. Anonymous buyers have no row to write to (RLS) — they get one when

@@ -3,7 +3,7 @@ import './BenchmarkCalculator.css';
 import { getReference, calcBenchmark, formatMoney, getBanks, getRevealPrice, revealBestBank } from '../api.js';
 import { BANK_LOGOS, logoForBank } from './BankLogos.jsx';
 import { findPaidBenchmarkId } from '../lib/dashboardApi.js';
-import { unlockedTierFor, revealSessionFor, revealPayload } from '../lib/unlocks.js';
+import { unlockedTierFor, revealSessionFor, forgetRevealSession, revealPayload } from '../lib/unlocks.js';
 import { getAccessToken } from '../lib/supabase.js';
 import StepBar from './StepBar.jsx';
 
@@ -422,7 +422,13 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
   // so they are one step: it becomes current the moment Compute is pressed. The
   // unlock is read from the same place the result card reads it, so paying for
   // the reveal advances the bar with no round-trip.
-  const unlockedTier = result ? unlockedTierFor(revealContext()) : null;
+  // A remembered paid Stripe session (localStorage, outlives the tab) counts
+  // too: the reveal button reopens it for free, so the card must not say "pay".
+  // `sessionCheck` re-renders after the server rejects one and it is dropped.
+  const [sessionCheck, setSessionCheck] = useState(0);
+  const unlockedTier = result
+    ? (unlockedTierFor(revealContext()) || (revealSessionFor(revealContext()) ? 'reveal' : null))
+    : null;
   const step = !result && !loading ? 'input'
     : unlockedTier ? 'unlock'
     : 'compare';
@@ -444,12 +450,22 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
       if (!sessionId && !benchmarkId) {
         benchmarkId = (await findPaidBenchmarkId({ country: ctx.country, productId: ctx.productId })) || undefined;
       }
-      const res = await revealBestBank({ ...revealPayload(ctx), sessionId, benchmarkId }, await getAccessToken());
-      if (live && res?.bestBank) setBestBank(res.bestBank);
+      try {
+        const res = await revealBestBank({ ...revealPayload(ctx), sessionId, benchmarkId }, await getAccessToken());
+        if (live && res?.bestBank) setBestBank(res.bestBank);
+      } catch (err) {
+        // The server won't honour this session for this benchmark: forget it,
+        // so the card goes back to offering the (paid) reveal.
+        if (sessionId && err?.code === 'payment_required') {
+          forgetRevealSession(sessionId);
+          if (live) setSessionCheck((n) => n + 1);
+        }
+        throw err;
+      }
     })().catch(() => { /* stays masked; the journey modal retries on open */ });
     return () => { live = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [unlockedTier, result]);
+  }, [unlockedTier, result, sessionCheck]);
 
   return (
     <section className={compact ? 'calc-sec calc-sec--compact' : 'section calc-sec'} id="calculator">

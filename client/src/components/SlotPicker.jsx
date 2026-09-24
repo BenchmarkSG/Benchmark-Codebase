@@ -18,6 +18,11 @@
  *   drop a hold per keystroke. The hold is taken when the button is pressed,
  *   once, deliberately.
  *
+ *   Option 2 opts out (`holdOnSelect`): its countdown has to be running before
+ *   the pay button appears. That stays one hold, not one per keystroke,
+ *   because the caller disables the picker as soon as a time is held, and the
+ *   list starts blank so the default time is never taken without being chosen.
+ *
  * Deliberately shows times to ANYONE, signed in or not. Being asked to sign in
  * or pay before you can even see whether a workable time exists is what makes a
  * booking flow feel like a trap — and availability is not private. Taking a
@@ -158,6 +163,10 @@ export default function SlotPicker({
   busyLabel = 'Holding your time…',
   // Fine print under the button, where the pay panel's used to be.
   footnote = null,
+  // Take the hold the moment a time is chosen, rather than on the button. The
+  // time list then starts blank, so nothing is held until someone picks one.
+  // The button stays only as a retry, for when that hold could not be taken.
+  holdOnSelect = false,
 }) {
   const { updateUserMetadata } = useAuth();
   const [slots, setSlots] = useState(null);
@@ -250,21 +259,21 @@ export default function SlotPicker({
   useEffect(() => {
     const open = (today?.slots || []).map((s) => s.start);
     if (!open.length) { setChoice(''); return; }
-    setChoice((c) => (c && open.includes(c) ? c : (selected && open.includes(selected) ? selected : open[0])));
-  }, [today, selected]);
+    setChoice((c) => (c && open.includes(c) ? c
+      : selected && open.includes(selected) ? selected
+      : holdOnSelect ? '' : open[0]));
+  }, [today, selected, holdOnSelect]);
 
   const minutes = slotMinutes((slots || [])[0]);
 
-  async function submit(e) {
-    e.preventDefault();
-    setFormErr('');
-    if (!choice) { setFormErr('Pick a time first.'); return; }
+  /* The number is checked (and saved when new) before any hold is taken. */
+  async function ensureNumber() {
     // Save when the number is new to us, or when a stored one has been edited
     // here — this field is now always on screen, so it is always the truth.
     const full = fullNumber(dialCode, num);
     if (!looksDialable(full) || missingCountryCode(dialCode)) {
       setFormErr('Please enter a number we can reach you on, including the country code.');
-      return;
+      return false;
     }
     if (needNumber || full !== phone.trim()) {
       setSaving(true);
@@ -275,13 +284,30 @@ export default function SlotPicker({
       } catch {
         setFormErr('We couldn’t save that number. Please try again.');
         setSaving(false);
-        return;
+        return false;
       }
       setSaving(false);
     }
+    return true;
+  }
+
+  async function commit(iso) {
+    setFormErr('');
+    if (!iso) { setFormErr('Pick a time first.'); return; }
+    if (!(await ensureNumber())) return;
     // The duration travels with the time: the calendar invite is written from
     // it, and booking_settings.slot_minutes is the owner's to change.
-    onPick?.(choice, minutes || 0);
+    onPick?.(iso, minutes || 0);
+  }
+
+  function submit(e) {
+    e.preventDefault();
+    commit(choice);
+  }
+
+  function chooseTime(iso) {
+    setChoice(iso);
+    if (holdOnSelect && iso) commit(iso);
   }
 
   if (loading) return <div className="slots slots--msg">Loading available times…</div>;
@@ -379,13 +405,11 @@ export default function SlotPicker({
         </div>
         <label className="slots__select">
           <span className="slots__label">Time</span>
-          <select value={choice} onChange={(e) => setChoice(e.target.value)} disabled={disabled || busy || saving}>
+          <select value={choice} onChange={(e) => chooseTime(e.target.value)} disabled={disabled || busy || saving}>
+            {holdOnSelect && !choice && <option value="" disabled>Select a time</option>}
             {(today?.slots || []).map((s) => (
               <option key={s.start} value={s.start}>
                 {timeIn(s.start, tz)}
-                {/* Only when it is genuinely the last one — "1 left" on every
-                    row is pressure, not information. */}
-                {s.remaining === 1 ? ' — last one' : ''}
               </option>
             ))}
           </select>
@@ -399,7 +423,7 @@ export default function SlotPicker({
 
       {formErr && <div className="jny-note jny-note--warn" role="alert">{formErr}</div>}
 
-      {!held && (
+      {!held && (!holdOnSelect || choice) && (
         <>
           <button className="btn btn--primary slots__go" disabled={busy || saving || !choice}>
             {saving ? 'Saving…' : busy ? busyLabel : cta}
