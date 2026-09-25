@@ -338,7 +338,7 @@ export default function SlotPicker({
   const waLink = code ? confirmLink(code) : null;
 
   return (
-    <form className="slots" onSubmit={submit}>
+    <form className={`slots${held ? ' slots--held' : ''}`} onSubmit={submit}>
       <div className="slots__head">
         <span className="slots__icon" aria-hidden="true"><CalendarGlyph /></span>
         <div className="slots__headings">

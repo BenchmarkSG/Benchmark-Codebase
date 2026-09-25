@@ -368,7 +368,7 @@ export function createApp({ repo = ratesRepo, fx = fxModule, pay = payments } = 
 /* Cross-border: compute the customer's all-in cost from what they sent vs.
    received, priced against the live mid-market rate, then benchmark it. */
 async function handleCrossBorder(req, res, { repo, fx }, meta, country) {
-  const { send_currency, receive_currency, sent_amount, received_amount, amount, time_taken_hours } = req.body || {};
+  const { send_currency, receive_currency, sent_amount, received_amount } = req.body || {};
   // The pool is priced for THIS transfer: same receive currency, fees sized
   // on the amount actually sent (a flat S$20 is 2% of S$1,000).
   const data = await repo.getProductValues(country, meta.id, null, null, {
@@ -386,8 +386,9 @@ async function handleCrossBorder(req, res, { repo, fx }, meta, country) {
   const result = buildBenchmarkResult({
     product: meta.id, country, currency: send_currency || null,
     values: data.values, items: data.items, dataQuality: data.dataQuality,
-    yourRate: yourCostPct, amount, // amount = annual transfer volume
-    extra: { yourCostPct: yourCostPct ?? null, settlementHours: Number(time_taken_hours) || null },
+    // Sized on this transfer: the saving is per transfer, not per year.
+    yourRate: yourCostPct, amount: sent_amount,
+    extra: { yourCostPct: yourCostPct ?? null },
   });
   if (result.error) return res.status(404).json({ error: result.error });
   await attachMarketReference(repo, result, country, meta.id);

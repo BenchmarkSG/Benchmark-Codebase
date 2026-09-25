@@ -46,8 +46,6 @@ const crossBorderInputs = () => [
   { key: 'sent_amount', label: 'Amount sent / debited (Dr)', type: 'amount', role: 'context', required: true, placeholder: 'e.g. 5000' },
   { key: 'receive_currency', label: 'Received currency', type: 'currency', role: 'context', required: true },
   { key: 'received_amount', label: 'Amount received / credited (Cr)', type: 'amount', role: 'context', required: true, placeholder: 'e.g. 305000' },
-  { key: 'time_taken_hours', label: 'Time taken (hours)', type: 'duration', role: 'context', required: false, placeholder: 'e.g. 24' },
-  amount('Annual transfer volume'), // savings basis (in send currency)
 ];
 
 /* ---- Product catalog ------------------------------------------------------
@@ -103,7 +101,9 @@ export const PRODUCTS = [
   {
     id: 'cross_border', label: 'Cross-border transfer', blurb: 'FX margins & transfer fees', category: 'remittance',
     segments: ['individual', 'sme'], family: 'crossborder', rateType: 'apr', unit: '% all-in cost',
-    currencyMode: 'multi', annualiser: 1, metricKey: 'cost_pct', amountKey: 'amount',
+    // The saving is sized on the amount sent, so it is PER TRANSFER, not per
+    // year — the client labels it that way (see the product id checks there).
+    currencyMode: 'multi', annualiser: 1, metricKey: 'cost_pct', amountKey: 'sent_amount',
     inputs: crossBorderInputs(),
     tip: 'The real cost is the FX margin baked into the rate — not the visible fee. We compute it against the mid-market rate.',
   },

@@ -239,3 +239,39 @@
 @media (max-width: 420px) {
   .slots__row { grid-template-columns: 1fr; }
 }
+
+/* Phone: tighter, so the picker, the hold and the pay panel share one screen.
+   Date and time stay side by side down to 340px — the labels are short
+   ("Fri 25 Sept", "09:30") — which saves a whole control's height. */
+@media (max-width: 720px) {
+  .slots { padding: 12px; border-radius: 14px; }
+  .slots__title { font-size: 15px; }
+  .slots__sub { font-size: 12px; margin-top: 1px; }
+  .slots__field--phone, .slots__row { margin-top: 10px; }
+  .slots__field--phone { gap: 6px 10px; }
+  .slots__field input { padding: 10px 12px; }
+  .slots__select select, .slots__datebtn {
+    padding: 10px 26px 10px 10px; font-size: 14px; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  /* Follows the shorter control: 10px padding instead of 13px. */
+  .slots__select::after { right: 10px; bottom: 17px; }
+  .slots__zone { margin-top: 6px; }
+  .slots__go { margin-top: 10px; }
+}
+@media (max-width: 420px) and (min-width: 340px) {
+  .slots__row { grid-template-columns: 1fr 1fr; }
+}
+@media (max-height: 760px) {
+  .slots { padding: 12px 14px; }
+  .slots__sub { display: none; }
+  .slots__field--phone, .slots__row { margin-top: 10px; }
+}
+
+/* A time is held: the controls are locked, so the explanation around them can
+   go. The number stays on screen — it is who the specialist will ring. */
+.slots--held .slots__sub, .slots--held .slots__zone { display: none; }
+@media (max-height: 760px) {
+  .slots--held .slots__head { display: none; }
+  .slots--held .slots__field--phone { margin-top: 0; }
+}

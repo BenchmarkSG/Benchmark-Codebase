@@ -452,6 +452,8 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
 
   const segment = context?.segment && SEG_LABEL[context.segment] ? context.segment : 'individual';
   const savings = context?.annualSaving ?? null;
+  // Cross-border savings are sized on one transfer, not a year (server/app.js).
+  const perTransfer = context?.productId === 'cross_border';
   const savingsCcy = context?.currency || 'SGD';
   const fmtSaving = (n) => formatMoney(n, savingsCcy);
   const isYield = context?.direction === 'higher';
@@ -744,7 +746,7 @@ Kind regards,
 [Your name]`;
     }
     const saveLine = savings
-      ? `\n• That's roughly ${fmtSaving(savings)} a year I could ${isYield ? 'earn' : 'save'}.`
+      ? `\n• That's roughly ${fmtSaving(savings)} ${perTransfer ? 'on every transfer' : 'a year'} I could ${isYield ? 'earn' : 'save'}.`
       : '';
     return `Dear Relationship Manager,
 
@@ -1296,7 +1298,7 @@ Kind regards,
                   so the rule underlines the figure at exactly its width. */}
               <div className="jny-reveal__amtline">
                 {savings
-                  ? <div className="jny-reveal__amt">{fmtSaving(savings)}<span> {isYield ? 'extra / year' : 'a year'}</span></div>
+                  ? <div className="jny-reveal__amt">{fmtSaving(savings)}<span> {perTransfer ? 'per transfer' : isYield ? 'extra / year' : 'a year'}</span></div>
                   : <div className="jny-reveal__amt jny-reveal__amt--sm">Pick how you’d like to act below</div>}
                 <div className="jny-reveal__rule jny-reveal__rule--thick" />
               </div>
@@ -1553,15 +1555,14 @@ Kind regards,
                         same panel when they come back from Checkout without
                         paying, since the hold is still live. */}
                     {slotIso && !slotBooked && paymentsEnabled && !ownsTier('call') && (
+                      /* Just the button and one line: the box above already says
+                         the time is held and for how long, and the screen has to
+                         fit without scrolling. */
                       <div className="jny-confirmpay">
-                        <p className="jny-confirmpay__lead">
-                          <strong>{priceOf('call', 'S$99')} will be debited</strong> — click to pay.
-                          100% cashback if not satisfied.
-                        </p>
                         <button className="btn btn--primary jny-pay" disabled={busy} onClick={() => pay('call')}>
                           {!user ? 'Sign in to confirm →' : busy ? 'Redirecting to secure checkout…' : `Confirm & pay ${priceOf('call', 'S$99')} →`}
                         </button>
-                        <p className="jny-note">🔒 Secure payment via Stripe. Your slot is held while you pay.</p>
+                        <p className="jny-note">🔒 Secure payment via Stripe · 100% cashback if not satisfied.</p>
                       </div>
                     )}
                     {slotIso && slotBooked && !paymentsEnabled && (
@@ -1651,10 +1652,13 @@ Kind regards,
             {/* One screen: the list stays put and the chosen expert's booking
                 panel opens under it, so picking someone never replaces what you
                 were picking from. */}
-            <h4 className="jny-sub__title">Find an expert · select one</h4>
-            <p className="jny-sub__sub">An expert prepares and leads the negotiation for you.</p>
+            <h4 className="jny-sub__title">{expert ? 'Your expert' : 'Find an expert · select one'}</h4>
+            {!expert && <p className="jny-sub__sub">An expert prepares and leads the negotiation for you.</p>}
             <div className="jny-experts">
-              {experts.map((x) => {
+              {/* Once someone is chosen the list folds down to them, so their
+                  booking panel fits on the screen without scrolling. "Change"
+                  opens the full list again. */}
+              {(expert ? experts.filter((x) => x.id === expert.id) : experts).map((x) => {
                 const picked = expert?.id === x.id;
                 return (
                   <div className={`jny-expert${picked ? ' jny-expert--picked' : ''}`} key={x.id}>
@@ -1671,13 +1675,20 @@ Kind regards,
                       {x.blurb && <div className="jny-expert__blurb">{x.blurb}</div>}
                       <AwayNote windows={x.away} />
                     </div>
-                    <button
-                      className="jny-expert__pick"
-                      aria-pressed={picked}
-                      onClick={() => connectExpert(x)}
-                    >
-                      {picked ? '✓ Selected' : 'Select Me'}
-                    </button>
+                    {picked ? (
+                      !slotBooked && (
+                        <button
+                          className="jny-expert__pick"
+                          onClick={() => { if (slotIso) dropHold({ quiet: true }); setExpert(null); }}
+                        >
+                          Change
+                        </button>
+                      )
+                    ) : (
+                      <button className="jny-expert__pick" onClick={() => connectExpert(x)}>
+                        Select Me
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -1751,7 +1762,7 @@ Kind regards,
                     {paidTier === 'expert' && !slotIso && (
                       <div className="jny-note jny-note--ok">✓ Payment received — pick a time below.</div>
                     )}
-                    {!user && !slotIso && (
+                    {!user && !slotIso && !expert.real && (
                       <div className="jny-note jny-note--warn">
                         Pick a time below — we&apos;ll ask you to sign in before we hold it, so the booking lands on your account.
                       </div>
@@ -1796,15 +1807,10 @@ Kind regards,
 
                     {slotIso && !slotBooked && paymentsEnabled && !ownsTier('expert') && (
                       <div className="jny-confirmpay">
-                        <p className="jny-confirmpay__lead">
-                          <strong>Your time is held.</strong> Confirm it with payment and{' '}
-                          {expert.real ? expert.name.split(' ')[0] : 'your matched expert'} is booked — you&apos;ll get a
-                          calendar invite and a WhatsApp message before the session.
-                        </p>
                         <button className="btn btn--primary jny-pay" disabled={busy} onClick={() => pay('expert', expert.real ? expert : null)}>
                           {!user ? 'Sign in to confirm →' : busy ? 'Redirecting to secure checkout…' : `Confirm & pay ${priceOf('expert', 'S$199')} →`}
                         </button>
-                        <p className="jny-note">🔒 Secure payment via Stripe. Your slot is held while you pay.</p>
+                        <p className="jny-note">🔒 Secure payment via Stripe · fully refundable if no savings.</p>
                       </div>
                     )}
                     {slotIso && slotBooked && !paymentsEnabled && (

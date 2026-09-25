@@ -832,3 +832,118 @@ body.jny-open .needhelp { display: none; }
 }
 
 .jny-ics { margin-top: 10px; width: 100%; }
+
+/* ---- Fit each step on one phone screen, no scrolling -----------------------
+   Stacked as the desktop layout draws them, the options screen ran to ~1,300px
+   on a 390×844 phone: the bank box, a full-width certificate and three tall
+   cards, one under the other. Here the bank and the certificate share a row,
+   and each option becomes one line — price and title beside its button. The
+   description is dropped on a phone; the title already says what the option
+   is, and the screen it opens repeats the detail. */
+@media (max-width: 720px) {
+  .jny-reveal {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 12px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .jny-reveal > * { grid-column: 1 / -1; }
+  .jny-reveal > .jny-unlock--reveal { grid-column: 1; }
+  .jny-reveal > .jny-certthumb { grid-column: 2; }
+  .jny-reveal__top:empty { display: none; }
+  .jny-reveal__label { margin-bottom: 8px; font-size: 10px; letter-spacing: 0.06em; }
+
+  .jny-unlock--reveal {
+    width: 100%; margin: 0;
+    padding: 10px 12px; gap: 4px;
+    flex-direction: column;
+  }
+  .jny-unlock--reveal .jny-unlock__bank { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .jny-unlock--reveal .jny-unlock__logo { width: 104px; height: auto; padding: 2px 6px; }
+  .jny-unlock--reveal .jny-unlock__name { font-size: 18px; }
+  .jny-unlock--reveal .jny-unlock__rate { font-size: 13px; }
+
+  /* 420px of certificate at 76px wide. */
+  .jny-certthumb { margin: 0; width: 76px; gap: 4px; }
+  .jny-certthumb__inner { width: 76px; }
+  .jny-certthumb__inner .cert-wrap { zoom: 0.181; }
+  .jny-certthumb__cap { font-size: 9px; letter-spacing: 0.04em; }
+
+  .jny-reveal__summary { margin-top: 12px; }
+  .jny-reveal__headline,
+  .jny-reveal__summary .jny-reveal__amt,
+  .jny-reveal__summary .jny-reveal__amt span { font-size: 16px; }
+
+  .jny-tiers { margin-top: 18px; gap: 18px; }
+  .jny-tiers .jny-tier {
+    display: grid;
+    /* Resets the desktop subgrid rows, which would stack price over title. */
+    grid-template-rows: auto auto; grid-row: auto;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: 'price cta' 'title cta';
+    align-items: center; justify-items: start;
+    column-gap: 12px; row-gap: 2px;
+    padding: 16px 12px 12px 14px;
+    text-align: left;
+  }
+  .jny-tiers .jny-tier__price { grid-area: price; text-align: left; font-size: 17px; }
+  .jny-tiers .jny-tier__title { grid-area: title; text-align: left; font-size: 13.5px; line-height: 1.3; }
+  .jny-tiers .jny-tier__desc { display: none; }
+  .jny-tiers .jny-tier__cta {
+    grid-area: cta; width: auto; margin: 0;
+    padding: 10px 12px; font-size: 13px;
+  }
+  .jny-tiers .jny-tier__badge { top: -11px; left: 14px; transform: none; font-size: 10.5px; padding: 2px 10px; }
+
+  /* Expert rows keep their button beside them rather than under them. */
+  .jny-expert { flex-wrap: nowrap; padding: 10px 12px; gap: 10px; }
+  .jny-expert__avatar { width: 38px; height: 38px; font-size: 13px; }
+  .jny-expert__pick { width: auto; padding: 8px 12px; }
+  .jny-expert__blurb { display: none; }
+  .jny-experts { margin-top: 10px; }
+  /* No box of its own on a phone: nested inside the picker's card it cost the
+     date and time controls the width they need to show "Fri 25 Sept". */
+  .jny-pick { margin-top: 12px; padding: 0; border: 0; }
+  .jny-pick > .jny-sub__sub { display: none; }
+
+  .jny-sub__title { font-size: 16px; }
+  .jny-sub__sub { font-size: 12.5px; margin-top: 3px; }
+  .jny-note--warn, .jny-note--ok { margin-top: 8px; padding: 8px 10px; }
+  .jny-confirmpay { margin-top: 10px; padding: 12px; }
+  .jny-confirmpay__lead { font-size: 12.5px; line-height: 1.45; margin-bottom: 8px; }
+  .jny-confirmpay .jny-note { margin-top: 6px; }
+  .jny-hold { padding: 8px 12px; }
+}
+
+/* Short screens — an SE-sized phone (667px), or a laptop whose browser leaves
+   ~680px — lose what is decoration rather than decision: the certificate's
+   caption, the line above the bank, the explanatory sub-copy. */
+@media (max-height: 760px) {
+  .jny__panel { --jny-pad-y: 14px; max-height: 96vh; }
+  .jny__head { margin-bottom: 6px; padding-top: 10px; padding-bottom: 8px; }
+  .jny-reveal__label, .jny-certthumb__cap { display: none; }
+  .jny-pick > .jny-sub__sub { display: none; }
+  /* "Your expert" and their card sit directly above — the name is on screen. */
+  .jny-pick__title { display: none; }
+  .jny-pick { margin-top: 10px; }
+  .jny-experts { margin-top: 10px; }
+}
+@media (max-width: 720px) {
+  /* A narrower button leaves the title two lines instead of three. */
+  .jny-tiers .jny-tier__cta { padding: 9px 10px; font-size: 12.5px; }
+}
+@media (max-width: 720px) and (max-height: 760px) {
+  .jny-tiers { margin-top: 16px; gap: 16px; }
+  .jny-tiers .jny-tier { padding: 13px 10px 9px 12px; }
+  .jny-reveal__summary { margin-top: 8px; }
+}
+
+/* The pay step under a held time: one full-width button and a single line.
+   Framed lightly — the hold box above it is the context. */
+.jny-confirmpay { margin-top: 10px; padding: 0; border: 0; background: none; }
+.jny-confirmpay .jny-pay { width: 100%; justify-content: center; }
+.jny-confirmpay .jny-note { margin-top: 6px; }
+/* The chosen expert already heads the panel, so the booking panel needs no box
+   of its own — nested boxes cost the height this screen doesn't have. */
+.jny-pick { border: 0; padding: 0; margin-top: 12px; }

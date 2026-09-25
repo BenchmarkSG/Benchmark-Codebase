@@ -284,11 +284,17 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
       return;
     }
     const opts = ccyList(product, nextLocal, allCcys);
-    // Keep currency fields valid for the new market.
+    const prevOpts = ccyList(product, localCcy, allCcys);
+    // Keep currency fields valid for the new market, and move any still on the
+    // old market's default to the new one — cross-border offers every major
+    // currency everywhere, so "still valid" alone left India sending SGD.
     setValues((v) => {
       const patch = { ...v };
       for (const f of product.inputs) {
-        if (f.type === 'currency' && !opts.includes(patch[f.key])) patch[f.key] = defaultValue(f, opts);
+        if (f.type !== 'currency') continue;
+        if (!opts.includes(patch[f.key]) || patch[f.key] === defaultValue(f, prevOpts)) {
+          patch[f.key] = defaultValue(f, opts);
+        }
       }
       return patch;
     });
@@ -734,7 +740,8 @@ function Result({ result, product, compact, localCcy, country = 'SG', yourBank =
             </span>
             <strong className="res__overpay-amt">
               <PiggyGlyph />
-              <span>{formatMoney(result.annualSaving, ccy)} per year!</span>
+              {/* Cross-border is sized on the one transfer entered, not a year. */}
+              <span>{formatMoney(result.annualSaving, ccy)} {crossBorder ? 'per transfer' : 'per year'}!</span>
               <PiggyGlyph flip />
             </strong>
             <span className="res__overpay-sub">Here&apos;s the rate comparison</span>

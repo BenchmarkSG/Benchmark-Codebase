@@ -236,7 +236,7 @@ const PRODUCT = {
     ],
     pitch: [
       'Your all-in cost is {rate}. Best available is {best}.',
-      'That’s {gap} a year.',
+      'That’s {gap} on this one transfer.',
       'The fee is the small part. The real cost is hidden in the exchange rate.',
     ],
     ask: 'What is my all-in cost as a percentage — your fee plus your margin over the mid-market rate? And what improves if I commit my annual volume?',

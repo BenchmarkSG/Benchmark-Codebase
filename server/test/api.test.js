@@ -61,14 +61,14 @@ test('POST /api/benchmark (cross-border) -> computes all-in cost via FX', async 
   const r = await post('/api/benchmark', {
     country: 'SG', product: 'cross_border',
     send_currency: 'SGD', receive_currency: 'USD',
-    sent_amount: 1000, received_amount: 740, amount: 100000, time_taken_hours: 24,
+    sent_amount: 1000, received_amount: 740,
   });
   assert.equal(r.status, 200);
   const j = await r.json();
   assert.equal(j.yourCostPct, 1.33);     // (1 - 740/750) * 100
   assert.equal(j.benchmarkRate, 0.9);    // best market cost %
-  assert.equal(j.settlementHours, 24);
-  assert.ok(j.annualSaving > 0);
+  // Sized on the transfer itself: (1.33 - 0.9)% of 1000.
+  assert.equal(j.annualSaving, 4);
   // Same paywall as the rate path. This handler returned the result unchanged
   // for a long time and nobody noticed, because with no cross-border rows every
   // request 404'd before it could leak anything. The test above covers the rate
