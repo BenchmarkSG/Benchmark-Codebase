@@ -275,3 +275,10 @@
   .slots--held .slots__head { display: none; }
   .slots--held .slots__field--phone { margin-top: 0; }
 }
+/* Short phone: the number's label goes (the icons and the boxes' own labels
+   remain), so the field is one row rather than two. */
+@media (max-height: 760px) and (max-width: 720px) {
+  .slots__field--phone { flex-wrap: nowrap; }
+  .slots__field--phone > span { font-size: 0; gap: 4px; }
+  .slots__telrow { width: auto; flex: 1 1 auto; }
+}

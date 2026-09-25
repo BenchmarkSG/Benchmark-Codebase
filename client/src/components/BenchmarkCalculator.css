@@ -212,7 +212,7 @@
 .calc-card .res__overpay-sub { margin-top: 7px; font-size: 13.5px; }
 .calc-card .res__overpay-lead { font-size: 13.5px; }
 .calc-card .res__cmp-label { font-size: 13.5px; }
-.calc-card .res__piggy { width: 32px; height: 28px; }
+.calc-card .res__piggy { width: 40px; height: 37px; }
 .calc-card .res__cmp { margin-top: 12px; row-gap: 8px; }
 .calc-card .res__tagline { margin-top: 12px; font-size: 13.5px; }
 .calc-card .res__findout { margin-top: 10px; margin-bottom: 8px; font-size: 13.5px; }
@@ -410,8 +410,11 @@
    weight, one colour — so the figure is the only thing that stands out. */
 .res__overpay-lead { display: block; font-size: 14px; font-weight: 700; color: var(--ink-2); }
 /* One colour, taken from the band it sits on. */
-.res__piggy { flex: none; display: block; color: var(--blue-600); opacity: 0.85; }
-.res__piggy--flip { transform: scaleX(-1); }
+.res__piggy { flex: none; display: block; color: #438f74; width: 42px; height: 38px; }
+/* A little clear air between each piggy and the amount, so the pair frames
+   the figure rather than crowding it. */
+.res__overpay-amt .res__piggy:first-child { margin-right: 10px; }
+.res__overpay-amt .res__piggy:last-child { margin-left: 10px; }
 /* The emphasised word blends with its neighbours in colour; a red hand-drawn
    brush swoosh underneath does the emphasising instead of a red font. */
 .res__overpay-lead strong { position: relative; color: inherit; font-weight: 800; }
@@ -681,4 +684,10 @@
   line-height: 1.45;
   color: var(--ink-3);
   text-align: center;
+}
+/* Narrow phone: the amount needs the width, so the piggies shrink a little. */
+@media (max-width: 420px) {
+  .res__piggy, .calc-card .res__piggy { width: 34px; height: 31px; }
+  .res__overpay-amt .res__piggy:first-child { margin-right: 4px; }
+  .res__overpay-amt .res__piggy:last-child { margin-left: 4px; }
 }

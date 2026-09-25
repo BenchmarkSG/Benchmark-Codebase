@@ -167,6 +167,8 @@ export default function SlotPicker({
   // time list then starts blank, so nothing is held until someone picks one.
   // The button stays only as a retry, for when that hold could not be taken.
   holdOnSelect = false,
+  // The card's heading. Option 3's sketch words it "Select date & time".
+  title = 'Choose Date & Time',
 }) {
   const { updateUserMetadata } = useAuth();
   const [slots, setSlots] = useState(null);
@@ -342,7 +344,7 @@ export default function SlotPicker({
       <div className="slots__head">
         <span className="slots__icon" aria-hidden="true"><CalendarGlyph /></span>
         <div className="slots__headings">
-          <h5 className="slots__title">Choose Date &amp; Time</h5>
+          <h5 className="slots__title">{title}</h5>
           <p className="slots__sub">{minutes ? `${minutes}-minute` : ''} specialist call</p>
         </div>
       </div>

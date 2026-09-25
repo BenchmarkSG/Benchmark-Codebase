@@ -597,38 +597,55 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
   );
 }
 
-/* A piggy bank, drawn rather than fetched. Monoline: one stroke weight, one
-   colour, no fills — it sits on the blue wash beside a 30px figure, and a
-   shaded illustration at that size turns to mud. `flip` mirrors it so the pair
-   faces the amount between them. */
-function PiggyGlyph({ flip = false }) {
+/* A piggy bank with a coin dropping in, drawn rather than fetched: a solid
+   green pig, the coin above it carrying the result's own currency symbol, and
+   light rays either side. Inline SVG so it stays sharp at 32px and the coin
+   can say ₹ or $ rather than whatever a stock image was drawn with.
+   `flip` mirrors the PIG only (so the pair faces the amount between them) —
+   mirroring the whole glyph would print the currency symbol backwards. */
+function PiggyGlyph({ flip = false, symbol = '$' }) {
   return (
     <svg
-      className={`res__piggy${flip ? ' res__piggy--flip' : ''}`}
-      viewBox="0 0 48 40" width="38" height="32" aria-hidden="true" focusable="false"
-      fill="none" stroke="currentColor" strokeWidth="2"
-      strokeLinecap="round" strokeLinejoin="round"
+      className="res__piggy"
+      viewBox="0 0 48 44" width="36" height="33" aria-hidden="true" focusable="false"
     >
-      {/* the coin, above the slot */}
-      <circle cx="21" cy="4" r="3" />
-      {/* ear */}
-      <path d="M13 13 L12.5 6.5 L19 9.5" />
-      {/* body */}
-      <path d="M33 14.5 a13 11 0 1 1 -18.5 4.2" />
-      <path d="M14.5 18.7 a13 11 0 0 0 18.5 13.6" />
-      {/* snout */}
-      <path d="M33 14.5 a5.5 5 0 0 1 0 17.8" />
-      <path d="M35.5 20 h0.01 M35.5 26 h0.01" strokeWidth="2.6" />
-      {/* eye */}
-      <path d="M28 18 h0.01" strokeWidth="2.6" />
-      {/* coin slot */}
-      <path d="M16.5 11.5 L24 10" strokeWidth="2.2" />
-      {/* legs */}
-      <path d="M17 33.5 V37 M29 33 V37" />
-      {/* tail */}
-      <path d="M9.4 22.5 q-3.4 1.6 -1.4 4.4" />
+      <g transform={flip ? 'translate(48 0) scale(-1 1)' : undefined}>
+        {/* rays */}
+        <g stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" opacity="0.45">
+          <path d="M13 8 L9 5" /><path d="M12 13 L7 12.5" />
+          <path d="M35 8 L39 5" /><path d="M36 13 L41 12.5" />
+        </g>
+        {/* the pig */}
+        <g fill="currentColor">
+          <ellipse cx="22" cy="30" rx="14" ry="10" />
+          <rect x="33" y="25.5" width="6.5" height="8" rx="2.4" />
+          <path d="M14.6 22.6 Q13.4 15.8 16.6 16.2 Q19.6 16.8 21.6 20.6 Z" />
+          <rect x="13" y="36" width="4.5" height="6" rx="1.4" />
+          <rect x="26" y="36" width="4.5" height="6" rx="1.4" />
+        </g>
+        <path d="M8.4 28.5 q-3.4 -0.6 -2.2 -4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        <circle cx="29.5" cy="26" r="1.2" fill="#fff" />
+        <path d="M18 21.6 L25.5 21.2" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" />
+      </g>
+      {/* the coin, never mirrored */}
+      <circle cx="24" cy="8.5" r="7" fill="currentColor" />
+      <text
+        x="24" y="8.5" dy="0.36em" textAnchor="middle"
+        fontSize={symbol.length > 1 ? 6 : 9} fontWeight="800" fill="#fff"
+        fontFamily="inherit"
+      >{symbol}</text>
     </svg>
   );
+}
+
+// The short symbol for a currency ("$" for SGD/USD, "₹" for INR) for the coin.
+function currencySymbol(ccy) {
+  try {
+    return new Intl.NumberFormat('en', { style: 'currency', currency: ccy, currencyDisplay: 'narrowSymbol' })
+      .formatToParts(0).find((x) => x.type === 'currency')?.value || '$';
+  } catch {
+    return '$';
+  }
 }
 
 // "better than X% of the N providers" — the credible standing phrase.
@@ -739,10 +756,10 @@ function Result({ result, product, compact, localCcy, country = 'SG', yourBank =
               {higher ? <>Hey, you&apos;re <strong>missing out</strong> on</> : <>Hey, you&apos;re <strong>losing</strong></>}
             </span>
             <strong className="res__overpay-amt">
-              <PiggyGlyph />
+              <PiggyGlyph symbol={currencySymbol(ccy)} />
               {/* Cross-border is sized on the one transfer entered, not a year. */}
               <span>{formatMoney(result.annualSaving, ccy)} {crossBorder ? 'per transfer' : 'per year'}!</span>
-              <PiggyGlyph flip />
+              <PiggyGlyph flip symbol={currencySymbol(ccy)} />
             </strong>
             <span className="res__overpay-sub">Here&apos;s the rate comparison</span>
           </div>

@@ -448,8 +448,8 @@ body.jny-open .needhelp { display: none; }
 .jny-reveal__label {
   margin: 0 0 10px;
   text-align: center;
-  font-size: 11px; font-weight: 800; letter-spacing: 0.12em;
-  text-transform: uppercase; color: var(--muted);
+  font-size: 14px; font-weight: 700;
+  color: var(--ink-3);
 }
 
 .jny-unlock--reveal {
@@ -852,7 +852,7 @@ body.jny-open .needhelp { display: none; }
   .jny-reveal > .jny-unlock--reveal { grid-column: 1; }
   .jny-reveal > .jny-certthumb { grid-column: 2; }
   .jny-reveal__top:empty { display: none; }
-  .jny-reveal__label { margin-bottom: 8px; font-size: 10px; letter-spacing: 0.06em; }
+  .jny-reveal__label { margin-bottom: 8px; font-size: 13px; }
 
   .jny-unlock--reveal {
     width: 100%; margin: 0;
@@ -922,7 +922,7 @@ body.jny-open .needhelp { display: none; }
 @media (max-height: 760px) {
   .jny__panel { --jny-pad-y: 14px; max-height: 96vh; }
   .jny__head { margin-bottom: 6px; padding-top: 10px; padding-bottom: 8px; }
-  .jny-reveal__label, .jny-certthumb__cap { display: none; }
+  .jny-certthumb__cap { display: none; }
   .jny-pick > .jny-sub__sub { display: none; }
   /* "Your expert" and their card sit directly above — the name is on screen. */
   .jny-pick__title { display: none; }
@@ -947,3 +947,174 @@ body.jny-open .needhelp { display: none; }
 /* The chosen expert already heads the panel, so the booking panel needs no box
    of its own — nested boxes cost the height this screen doesn't have. */
 .jny-pick { border: 0; padding: 0; margin-top: 12px; }
+
+/* ---- Option 3 as sketched: experts as a 2×2 grid of cards ------------------
+   Avatar and name across the top of each card, the select button at its
+   bottom-right. Two columns on a phone too — the cards stack their text, so
+   ~165px each is enough, and a single column would push the date and the pay
+   button off the screen. */
+.jny-experts--grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.jny-experts--grid .jny-expert {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: 'avatar body' 'pick pick';
+  align-items: start;
+  gap: 10px;
+  padding: 12px;
+}
+.jny-experts--grid .jny-expert__avatar { grid-area: avatar; width: 40px; height: 40px; font-size: 14px; }
+.jny-experts--grid .jny-expert__body { grid-area: body; }
+.jny-experts--grid .jny-expert__name { font-size: 14px; line-height: 1.25; }
+.jny-experts--grid .jny-expert__role { font-size: 11.5px; line-height: 1.35; }
+.jny-experts--grid .jny-expert__pick {
+  grid-area: pick; justify-self: end;
+  width: auto; padding: 7px 14px; font-size: 12.5px;
+}
+.jny-experts--grid .jny-expert__pick:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* The rule the sketch draws between choosing and paying. */
+.jny-confirmpay--rule { margin-top: 14px; padding-top: 14px; border-top: 1.5px solid var(--line); }
+.jny-pay:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+@media (max-width: 720px) {
+  .jny-experts--grid { gap: 8px; }
+  .jny-experts--grid .jny-expert { padding: 10px; gap: 8px; }
+  .jny-experts--grid .jny-expert__avatar { width: 32px; height: 32px; font-size: 12px; }
+  .jny-experts--grid .jny-expert__name { font-size: 13px; }
+  .jny-experts--grid .jny-expert__role { font-size: 11px; }
+  .jny-experts--grid .jny-expert__pick { padding: 6px 12px; font-size: 12px; }
+  .jny-confirmpay--rule { margin-top: 10px; padding-top: 10px; }
+}
+.jny-confirmpay--rule { border-radius: 0; }
+.jny-experts--grid .jny-expert__name,
+.jny-experts--grid .jny-expert__role { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jny-experts--grid .jny-expert { gap: 8px 10px; padding: 10px 12px; }
+.jny-experts--grid .jny-expert__avatar { width: 36px; height: 36px; }
+/* The sketch's picker is just the two boxes: no sub-line under its heading. */
+.jny-pick .slots__sub { display: none; }
+@media (max-height: 760px) {
+  .jny-pick .slots__zone { display: none; }
+  .jny-experts--grid { margin-top: 8px; }
+}
+.jny__panel { max-height: 96vh; }
+/* The hold on one line under the picker, not a box of its own. */
+.jny-pick .jny-hold { padding: 6px 10px; margin-top: 8px; }
+.jny-pick .jny-hold__when { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 0 8px; }
+.jny-pick .jny-hold__when strong { font-size: 14px; }
+.jny-pick .jny-hold__change { padding: 5px 10px; }
+@media (max-height: 760px) {
+  .jny-pick .slots__head { display: none; }
+  .jny-pick .slots__field--phone { margin-top: 0; }
+}
+.jny-pick .jny-hold__row { flex-wrap: nowrap; }
+.jny-pick .jny-hold__when { flex: 1 1 auto; min-width: 0; }
+.jny-pick .jny-hold__when em { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jny-confirmpay--rule { padding-top: 10px; }
+.jny-confirmpay--rule .jny-pay { margin-top: 0; }
+
+
+/* Option 3 heading centred over the grid; the company on the button's row,
+   left of it, so the card reads name → role → company · Select. */
+.jny-sub__title--center { text-align: center; }
+.jny-experts--grid .jny-expert {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: 'avatar body body' 'company company pick';
+  align-items: center;
+}
+.jny-experts--grid .jny-expert__avatar { align-self: start; }
+.jny-expert__company {
+  grid-area: company; min-width: 0;
+  font-size: 12px; font-weight: 700; color: var(--ink-2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* A narrow phone: one card per row. Half-width cards left the company beside
+   the button as "G…" — full width, each card is two short lines and holds it. */
+@media (max-width: 420px) {
+  .jny-experts--grid { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .jny-experts--grid .jny-expert {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: 'avatar body pick' 'avatar company pick';
+    row-gap: 0; padding: 8px 10px;
+  }
+  .jny-experts--grid .jny-expert__avatar { align-self: center; }
+}
+@media (max-width: 420px) {
+  .jny-experts--grid .jny-expert { padding: 6px 10px; }
+  .jny-experts--grid .jny-expert__name { font-size: 13px; line-height: 1.2; }
+  .jny-experts--grid .jny-expert__role,
+  .jny-expert__company { font-size: 11px; line-height: 1.25; }
+  .jny-experts--grid .jny-expert__avatar { width: 30px; height: 30px; font-size: 11px; }
+  .jny-sub__title--center { font-size: 15px; }
+}
+@media (max-width: 420px) and (max-height: 760px) {
+  .jny-confirmpay--rule { margin-top: 8px; padding-top: 8px; }
+  /* The countdown says it all ("14:59 left to confirm"); the heading goes. */
+  .jny-pick .jny-hold__when strong { display: none; }
+}
+
+/* Option 3 paging: ‹ heading › on one row. */
+.jny-expert-head { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.jny-expert-head .jny-sub__title { flex: 0 1 auto; min-width: 0; }
+.jny-expert-count { margin-left: 8px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.jny-expert-nav {
+  flex: none; width: 32px; height: 32px; border-radius: 50%;
+  display: grid; place-items: center;
+  border: 1.5px solid var(--line); background: var(--surface);
+  color: var(--accent); font-size: 20px; font-weight: 800; line-height: 1;
+  cursor: pointer;
+}
+.jny-expert-nav:hover:not(:disabled) { border-color: var(--accent); }
+.jny-expert-nav:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* Four experts a page: a phone card is two lines — name, then role · company —
+   with Select on the right. `display: contents` lets the body's own lines sit
+   in the card's grid, so the company can share a row with the role. */
+@media (max-width: 420px) {
+  .jny-experts--grid .jny-expert {
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    grid-template-areas: 'avatar name name pick' 'avatar role company pick';
+    column-gap: 0; row-gap: 1px;
+  }
+  .jny-experts--grid .jny-expert__avatar { margin-right: 10px; }
+  .jny-experts--grid .jny-expert__pick { margin-left: 10px; }
+  .jny-experts--grid .jny-expert__body { display: contents; }
+  .jny-experts--grid .jny-expert__name { grid-area: name; }
+  .jny-experts--grid .jny-expert__role { grid-area: role; max-width: 150px; }
+  .jny-experts--grid .jny-expert__body > :not(.jny-expert__name):not(.jny-expert__role) { grid-column: 2 / 4; }
+  .jny-expert__company { font-weight: 600; color: var(--muted); }
+  .jny-expert__company::before { content: ' · '; white-space: pre; }
+}
+@media (max-height: 760px) {
+  .jny-experts--grid { gap: 6px; }
+  .jny-experts--grid .jny-expert { padding-top: 7px; padding-bottom: 7px; }
+}
+@media (max-width: 420px) and (max-height: 760px) {
+  .jny-expert-nav { width: 28px; height: 28px; font-size: 18px; }
+  .jny-pick .slots { padding: 10px 12px; }
+  .jny-pick .slots__row { margin-top: 8px; }
+  .jny-pick .slots__label { margin-bottom: 3px; }
+}
+@media (max-width: 420px) and (max-height: 760px) {
+  .jny-pick .jny-hold { margin-top: 6px; }
+  .jny-confirmpay .jny-note { margin-top: 4px; }
+}
+@media (max-width: 720px) and (max-height: 760px) {
+  .jny-reveal__label { margin-bottom: 6px; }
+}
+
+/* Option 3's Select is a call to action, so it wears the CTA red (.btn--red).
+   The chosen card's "✓ Selected" keeps the outlined style, now in red too. */
+.jny-experts--grid .jny-expert__pick { background: var(--red-600); color: #fff; }
+.jny-experts--grid .jny-expert__pick:hover:not(:disabled) { background: #b91820; filter: none; }
+.jny-experts--grid .jny-expert--picked { border-color: var(--red-600); box-shadow: 0 0 0 3px color-mix(in srgb, var(--red-600) 14%, transparent); }
+.jny-experts--grid .jny-expert--picked .jny-expert__pick {
+  background: var(--surface); color: var(--red-600);
+  box-shadow: inset 0 0 0 1.5px var(--red-600);
+}
+/* The note that heads the picker while no expert is chosen. */
+.jny-note--lead { margin: 0 0 8px; }
