@@ -593,6 +593,29 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
     return leadRef.current;
   };
 
+  /* Option 2 and Option 3 each have their own booking. The slot state above is
+     one set, so it is swapped when the customer moves between them: without
+     this, a call booked under Option 2 showed up on Option 3 as "Your time is
+     booked", and an Option 3 hold was filed against the call's lead. Holds are
+     left alone on the way out — they lapse on their own if never paid for. */
+  const bookingOwnerRef = useRef(null);  // 'call' | 'expert' — whose booking is in state
+  const savedBookingsRef = useRef({});   // the other tier's, parked
+  const switchBookingTier = (id) => {
+    if (id !== 'call' && id !== 'expert') return;
+    const owner = bookingOwnerRef.current;
+    if (owner === id) return;
+    if (owner) savedBookingsRef.current[owner] = { slotIso, holdUntil, slotBooked, leadId: leadRef.current };
+    const next = savedBookingsRef.current[id] || {};
+    // A hold that ran out while they were on the other option is gone.
+    const live = next.slotBooked || (next.holdUntil && new Date(next.holdUntil).getTime() > Date.now());
+    setSlotIso(live ? next.slotIso : null);
+    setHoldUntil(live && !next.slotBooked ? next.holdUntil : null);
+    setSlotBooked(!!next.slotBooked);
+    setSlotErr('');
+    leadRef.current = next.leadId || null;
+    bookingOwnerRef.current = id;
+  };
+
   /* Which tier the scheduler on screen is booking, and whether it is paid for.
      A higher tier covers a lower one (an expert purchase includes the call), so
      ownership is a rank comparison, not an equality. */
@@ -872,12 +895,15 @@ Kind regards,
       // `unlockedTier` lets the dashboard reopen an already-purchased tier in
       // read/manage mode (bank + scheduler shown, no re-payment prompt).
       setView(resume.view || 'options');
+      switchBookingTier(resume.view);
       setExpert(resume.expert || null);
       setSentTo(null); setPaidTier(resume.unlockedTier || null); setPayError('');
       return;
     }
     if (resume) {
       setView(VIEW_FOR_TIER[resume.tier] || resume.tier || 'options');
+      bookingOwnerRef.current = resume.tier === 'call' || resume.tier === 'expert' ? resume.tier : null;
+      savedBookingsRef.current = {};
       setExpert(resume.expert || null);
       setSentTo(resume.expert?.id || null);
       setSlotBooked(!!resume.slotBooked);
@@ -926,6 +952,7 @@ Kind regards,
     } else {
       setView('options'); setExpert(null); setSentTo(null); setPaidTier(null); setPayError(''); setSlotBooked(false);
       setSlotIso(null); setHoldUntil(null); setSlotErr('');
+      bookingOwnerRef.current = null; savedBookingsRef.current = {}; leadRef.current = null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, resume]);
@@ -978,8 +1005,15 @@ Kind regards,
     return () => { on = false; };
   }, [open, context?.currency]);
 
-  // Localized label for a tier, with the hardcoded SGD price as the fallback.
-  const priceOf = (tier, fallback) => prices[tier] || fallback;
+  // Localized label for a tier. The hardcoded fallback is an SGD price, so it is
+  // only used for an SGD benchmark — anywhere else it put "S$199" in front of an
+  // Indian customer whenever the price call failed. Empty until it loads.
+  const priceOf = (tier, fallback) =>
+    prices[tier] || ((context?.currency || 'SGD') === 'SGD' ? fallback : '');
+  const payLabel = (tier, fallback) => {
+    const p = priceOf(tier, fallback);
+    return p ? `Confirm & pay ${p} →` : 'Confirm & pay →';
+  };
 
   // Upcoming blocked windows, keyed by advisor (admin → Advisor availability).
   const blackoutsFor = (id) => blackouts.filter((b) => b.advisor_id === id).slice(0, 6);
@@ -1032,6 +1066,7 @@ Kind regards,
   // account.
   const chooseTier = (id, owned) => {
     if (!user && !owned) { onRequireAuth?.({ kind: 'journey', context, view: id, expert }); return; }
+    switchBookingTier(id);
     setView(id);
   };
 
@@ -1342,7 +1377,7 @@ Kind regards,
                   <div className={`jny-tier jny-tier--${t.accent}${owned ? ' jny-tier--owned' : ''}`} key={t.id}>
                     <span className="jny-tier__badge">{current ? 'Your plan' : `Option ${i + 1}`}</span>
                     <div className="jny-tier__price">
-                      {owned ? (current ? '✓ Purchased' : '✓ Included') : priceOf(t.id, t.price)}
+                      {owned ? (current ? '✓ Purchased' : '✓ Included') : (priceOf(t.id, t.price) || '…')}
                     </div>
                     <div className="jny-tier__title">{t.title}</div>
                     {/* What the option is, then the button that buys it: the
@@ -1560,7 +1595,7 @@ Kind regards,
                          fit without scrolling. */
                       <div className="jny-confirmpay">
                         <button className="btn btn--primary jny-pay" disabled={busy} onClick={() => pay('call')}>
-                          {!user ? 'Sign in to confirm →' : busy ? 'Redirecting to secure checkout…' : `Confirm & pay ${priceOf('call', 'S$99')} →`}
+                          {!user ? 'Sign in to confirm →' : busy ? 'Redirecting to secure checkout…' : payLabel('call', 'S$99')}
                         </button>
                         <p className="jny-note">🔒 Secure payment via Stripe · 100% cashback if not satisfied.</p>
                       </div>
@@ -1633,7 +1668,7 @@ Kind regards,
                           specialist is booked — you&apos;ll get the calendar invite and a WhatsApp message before the call.
                         </p>
                         <button className="btn btn--primary jny-pay" disabled={busy} onClick={() => pay('call')}>
-                          {!user ? 'Sign in to confirm →' : busy ? 'Redirecting to secure checkout…' : `Confirm & pay ${priceOf('call', 'S$99')} →`}
+                          {!user ? 'Sign in to confirm →' : busy ? 'Redirecting to secure checkout…' : payLabel('call', 'S$99')}
                         </button>
                         <p className="jny-note">🔒 Secure payment via Stripe. Your slot is held while you pay.</p>
                       </div>
@@ -1808,7 +1843,7 @@ Kind regards,
                     {slotIso && !slotBooked && paymentsEnabled && !ownsTier('expert') && (
                       <div className="jny-confirmpay">
                         <button className="btn btn--primary jny-pay" disabled={busy} onClick={() => pay('expert', expert.real ? expert : null)}>
-                          {!user ? 'Sign in to confirm →' : busy ? 'Redirecting to secure checkout…' : `Confirm & pay ${priceOf('expert', 'S$199')} →`}
+                          {!user ? 'Sign in to confirm →' : busy ? 'Redirecting to secure checkout…' : payLabel('expert', 'S$199')}
                         </button>
                         <p className="jny-note">🔒 Secure payment via Stripe · fully refundable if no savings.</p>
                       </div>
