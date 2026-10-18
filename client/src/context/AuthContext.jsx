@@ -118,6 +118,29 @@ export function AuthProvider({ children }) {
   // Change the account email. Supabase sends a confirmation link to the NEW
   // address (and, when "secure email change" is on, the old one too); the change
   // only lands once confirmed.
+  /* Guest sessions. Booking a call no longer asks for an account up front: the
+     first database write starts an anonymous Supabase session, so the booking's
+     rows are still owned by someone (RLS is unchanged). It needs "Anonymous
+     sign-ins" enabled in the Supabase project; resolves null when it isn't, and
+     the caller falls back to the sign-in prompt. */
+  const startGuestSession = useCallback(async () => {
+    if (!isSupabaseConfigured) return null;
+    const { data: existing } = await supabase.auth.getSession();
+    if (existing?.session?.user) return existing.session.user;
+    try {
+      const { data, error } = await supabase.auth.signInAnonymously();
+      if (error) return null;
+      return data?.user ?? null;
+    } catch { return null; }
+  }, []);
+
+  /* Turn the guest into a real account with the email they booked with. Same
+     user id, so the booking stays theirs. Supabase mails a confirmation link. */
+  const upgradeGuest = useCallback(
+    (email) => supabase.auth.updateUser({ email }, { emailRedirectTo: redirectTo }),
+    [redirectTo]
+  );
+
   const updateEmail = useCallback(
     (email) => supabase.auth.updateUser({ email }, { emailRedirectTo: redirectTo }),
     [redirectTo]
@@ -158,7 +181,12 @@ export function AuthProvider({ children }) {
       configured: isSupabaseConfigured,
       loading,
       session,
-      user: session?.user ?? null,
+      // A guest (anonymous) session is not an account: everything that shows
+      // "signed in" reads `user`, so a guest stays signed out there.
+      user: session?.user && !session.user.is_anonymous ? session.user : null,
+      guest: session?.user?.is_anonymous ? session.user : null,
+      startGuestSession,
+      upgradeGuest,
       recovery,
       signInWithEmail,
       signUpWithEmail,
@@ -180,7 +208,7 @@ export function AuthProvider({ children }) {
       clearRecovery,
       signOut,
     }),
-    [loading, session, recovery, signInWithEmail, signUpWithEmail, signInWithOtp, signInWithProvider, resetPassword, updatePassword, updateEmail, updateUserMetadata, verifyPassword, signOutEverywhere, clearRecovery, signOut]
+    [loading, session, recovery, startGuestSession, upgradeGuest, signInWithEmail, signUpWithEmail, signInWithOtp, signInWithProvider, resetPassword, updatePassword, updateEmail, updateUserMetadata, verifyPassword, signOutEverywhere, clearRecovery, signOut]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

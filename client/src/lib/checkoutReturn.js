@@ -72,6 +72,10 @@ export function readCheckoutReturn(page) {
     // tell the hold to become a booking, and the slot would quietly lapse after
     // a successful payment.
     slotIso: stash?.slotIso || null,
+    // When the hold lapses — so a canceled checkout still shows its countdown.
+    holdUntil: stash?.holdUntil || null,
+    // A guest has no account email: the one they typed is what "Sign Up" uses.
+    contactEmail: stash?.contactEmail || null,
     canceled: checkout === 'cancel',
   };
 
@@ -94,6 +98,8 @@ export function readCheckoutReturn(page) {
     leadId: out.leadId,
     slotBooked: out.slotBooked,
     slotIso: out.slotIso,
+    holdUntil: out.holdUntil,
+    contactEmail: out.contactEmail,
   };
   return out;
 }

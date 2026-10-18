@@ -1,5 +1,5 @@
 /* -----------------------------------------------------------------------------
- * FeeOptima — the five-step progress bar
+ * FeeOptima — the three-step progress bar
  *
  * WHY
  *   The funnel spans several screens that don't look like a sequence: a form, a
@@ -8,12 +8,11 @@
  *   differently when you can see it's step 4 of 5 rather than an open-ended ask.
  *
  * WHICH SCREEN IS WHICH STEP
- *   input      the calculator form
- *   compare    computing, and the free result: "you're losing $X a year" plus
- *              the rate comparison. One screen, one step.
- *   unlock     the reveal has been paid for (the result card knows this from
+ *   compare    the calculator form (`input`), computing, and the free result:
+ *              "you're losing $X a year" plus the rate comparison.
+ *   unlock     "Reveal" — the reveal has been paid for (the result card knows this from
  *              unlockedTierFor(), so the bar advances without a round-trip)
- *   negotiate  the journey modal: the three ways to act on the saving
+ *   negotiate  "Save" — the journey modal: the three ways to act on the saving
  *
  *   Exactly one step is ever `now`, so there is never more than one green
  *   circle on screen. Everything before it is `done`; everything after, `todo`.
@@ -23,22 +22,24 @@
  * --------------------------------------------------------------------------- */
 import './StepBar.css';
 
+// Three steps shown, four screens: the form and the free result are both
+// "Compare", so `input` is an alias for the first step.
 export const STEPS = [
-  { key: 'input',     label: 'Input' },
-  { key: 'compare',   label: 'Compare' },
-  { key: 'unlock',    label: 'Unlock savings' },
-  { key: 'negotiate', label: 'Negotiate' },
+  { key: 'compare',   label: 'Compare', aliases: ['input'] },
+  { key: 'unlock',    label: 'Reveal' },
+  { key: 'negotiate', label: 'Save' },
 ];
 
-export default function StepBar({ current = 'input', className = '', active = true }) {
+// `steps` swaps in another track — the call booking runs its own Book · Confirm · Negotiate.
+export default function StepBar({ current = 'input', className = '', active = true, steps = STEPS }) {
   // An unknown key falls back to the first step rather than rendering a bar
   // with nothing lit — findIndex returns -1 for a typo.
-  const idx = STEPS.findIndex((s) => s.key === current);
+  const idx = steps.findIndex((s) => s.key === current || s.aliases?.includes(current));
   const at = idx < 0 ? 0 : idx;
 
   return (
     <ol className={`steps${className ? ` ${className}` : ''}`} aria-label="Your progress">
-      {STEPS.map((s, i) => {
+      {steps.map((s, i) => {
         // `active` false means the screen has been reached but nothing done on
         // it yet — the first step before a single field is filled. It draws as
         // a step still ahead, and lights up the moment there is something to

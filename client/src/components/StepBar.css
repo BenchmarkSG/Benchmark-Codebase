@@ -1,5 +1,5 @@
 /* ---------------------------------------------------------------------------
-   Four-step progress bar — Input · Compare · Unlock savings · Negotiate
+   Three-step progress bar — Compare · Reveal · Save
 
    Colours come from --step-ok / --step-ok-on, declared in global.css for both
    themes AND again on .jny__panel (which forces light in either theme). The bar
@@ -105,7 +105,7 @@
   .steps__dot { transition: none; }
 }
 
-/* ---- On the calculator's navy heading band ------------------------------- */
+/* ---- On the navy heading band (calculator and journey modal) ------------------------------- */
 /* The band is a fixed navy gradient in both themes, so these are literal values
    rather than tokens — there is nothing for them to follow. The green lifts to
    the dark-mode one and takes dark text, because white on a light green is
@@ -133,13 +133,8 @@
   box-shadow: none;
 }
 
-/* ---- On the calculator's plain heading band (every screen after the input).
-        No background of its own, so the default light token set already fits;
-        only the offset from the nav row above it differs. -------------------- */
-.steps--oncard { margin-top: 10px; }
-
 /* ---- In the journey modal: inside the header itself, under the title. Capped
-        and centred because the options screen widens the panel to 1000px, and
+        and centred because the options screen widens the panel to 656px, and
         four circles stretched across that read as four unrelated badges rather
         than one track. The header draws the hairline that used to sit on this
         bar, so it carries none of its own. --------------------------------- */
@@ -154,5 +149,4 @@
   .steps__dot { font-size: 11px; }
   .steps__label { font-size: 9.5px; }
   .steps--onblue { margin-top: 12px; }
-  .steps--oncard { margin-top: 8px; }
 }

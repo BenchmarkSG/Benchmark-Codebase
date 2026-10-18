@@ -15,6 +15,23 @@ export default function EfficiencyChecks() {
     getReference().then((r) => setQuestionnaires(r.questionnaires || [])).catch(() => {});
   }, []);
 
+  // Deep link: #health-check/<questionnaire id> scrolls here and opens that
+  // assessment (the confirmation screen links to both).
+  useEffect(() => {
+    if (!questionnaires.length) return undefined;
+    const openFromHash = () => {
+      const m = window.location.hash.match(/^#health-check\/([\w-]+)$/);
+      if (!m) return;
+      const q = questionnaires.find((x) => x.id === m[1]);
+      if (!q) return;
+      document.getElementById('health-check')?.scrollIntoView({ behavior: 'smooth' });
+      setActive(q);
+    };
+    openFromHash();
+    window.addEventListener('hashchange', openFromHash);
+    return () => window.removeEventListener('hashchange', openFromHash);
+  }, [questionnaires]);
+
   if (!questionnaires.length) return null;
 
   return (
@@ -42,7 +59,18 @@ export default function EfficiencyChecks() {
         </div>
       </div>
 
-      {active && <QuestionnaireModal questionnaire={active} onClose={() => setActive(null)} />}
+      {active && (
+        <QuestionnaireModal
+          questionnaire={active}
+          onClose={() => {
+            setActive(null);
+            // Drop a deep link once used, so following it again reopens it.
+            if (/^#health-check\//.test(window.location.hash)) {
+              window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#health-check`);
+            }
+          }}
+        />
+      )}
     </section>
   );
 }

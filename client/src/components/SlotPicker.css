@@ -1,12 +1,11 @@
-/* Slot picker — one soft card: a heading, a date and a time, and (only when we
-   don't already have one) the number the specialist will ring.
+/* Slot picker — one card: date chips, time chips, contact details.
    Lives inside .jny__panel, which pins the light token set in either theme. */
 .slots {
   display: block;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 18px;
-  padding: 18px;
+  border-radius: 16px;
+  padding: 14px 16px 16px;
 }
 
 /* The three states that replace the card entirely: loading, failed, empty. */
@@ -25,260 +24,83 @@
 .slots--err { border-color: var(--err-line); background: var(--err-bg); color: var(--err-ink); }
 .slots--err .btn { margin-top: 10px; }
 
-/* ---- Heading ---- */
-.slots__head { display: flex; align-items: flex-start; gap: 12px; }
-.slots__icon { display: grid; place-items: center; color: var(--blue-600); padding-top: 1px; }
-.slots__headings { min-width: 0; }
-.slots__title { margin: 0; font-size: 17px; font-weight: 800; color: var(--ink); line-height: 1.2; }
-.slots__sub { margin: 3px 0 0; font-size: 13px; color: var(--muted); }
+/* ---- Sections: Choose Date / Choose Time / Your Contact Details ---- */
+.slots__sec + .slots__sec { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+.slots__title { margin: 0 0 8px; font-size: 14.5px; font-weight: 800; color: var(--ink); line-height: 1.25; }
+.slots__title span { font-weight: 600; color: var(--muted); }
 
-/* ---- The date and time dropdowns ---- */
-/* Two equal columns: neither decision is the senior one. They stack below the
-   width where a date like "Tomorrow, 20 Sept" would start clipping — a native
-   select truncates rather than ellipsising, so it has to fit. */
-.slots__row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-top: 14px;
-}
-.slots__select { display: block; position: relative; min-width: 0; }
-.slots__label {
-  display: flex;
-  align-items: baseline;
-  gap: 5px;
-  margin-bottom: 5px;
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--ink-2);
-}
-/* The chevron is drawn here rather than left to the platform: `appearance:none`
-   removes the native one, and a select with no affordance reads as a text box. */
-.slots__select::after {
-  content: '';
-  position: absolute;
-  right: 14px;
-  /* Measured from the BOTTOM: the label above makes the box taller than the
-     control, so a 50% offset would sit on the label, not the chevron's row. */
-  bottom: 20px;
-  width: 8px; height: 8px;
-  border-right: 2px solid var(--ink-3);
-  border-bottom: 2px solid var(--ink-3);
-  transform: rotate(45deg);
-  pointer-events: none;
-}
-.slots__select select {
-  width: 100%;
-  appearance: none;
-  -webkit-appearance: none;
+/* ---- Chips ---- */
+.slots__chips { display: flex; flex-wrap: wrap; gap: 8px; }
+/* Five dates in one row, no scrolling. */
+.slots__chips--dates { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+/* Five per row, dates and times alike, so the card can stay narrow. */
+.slots__chips--times { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.slots__chip {
   border: 1.5px solid #cfe0f6;
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--surface);
   color: var(--ink);
-  font-family: inherit;
-  font-size: 15px;
-  font-weight: 700;
-  padding: 13px 34px 13px 13px;
+  font-family: inherit; font-size: 14px; font-weight: 700;
+  padding: 8px 10px;
   cursor: pointer;
-}
-.slots__select select:focus-visible { outline: 2px solid var(--blue-600); outline-offset: 1px; }
-.slots__select select:disabled { opacity: 0.6; cursor: not-allowed; }
-
-.slots__zone {
-  margin: 10px 0 0;
-  font-size: 11.5px;
-  color: var(--muted);
   text-align: center;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
-.slots__zone strong { color: var(--ink-3); }
+.slots__chip:hover:not(:disabled) { border-color: var(--blue-600); }
+.slots__chip:focus-visible { outline: 2px solid var(--blue-600); outline-offset: 1px; }
+.slots__chip.is-on { background: var(--blue-600); border-color: var(--blue-600); color: #fff; }
+.slots__chip:disabled { cursor: not-allowed; }
+.slots__chip:disabled:not(.is-on) { opacity: 0.5; }
+.slots__chip--date {
+  min-width: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 7px 4px;
+}
+.slots__chip--date span { font-size: 11.5px; font-weight: 700; color: var(--muted); }
+.slots__chip--date strong { font-size: 14px; font-weight: 800; white-space: nowrap; }
+.slots__chip--date.is-on span { color: rgba(255, 255, 255, 0.85); }
 
-/* ---- Month calendar -------------------------------------------------------
-   A month at a glance instead of a dropdown of open days: the gaps in a
-   specialist's diary are part of the answer, and a list of the days that
-   happen to be free never shows them. */
-/* The closed Date control: same box as the Time select beside it, so the pair
-   reads as one row of controls. */
-.slots__datebtn {
-  width: 100%;
-  text-align: left;
-  border: 1.5px solid #cfe0f6;
-  border-radius: 12px;
-  background: var(--surface);
-  color: var(--ink);
-  font-family: inherit;
-  font-size: 15px;
-  font-weight: 700;
-  padding: 13px 34px 13px 13px;
-  cursor: pointer;
-}
-.slots__datebtn:focus-visible { outline: 2px solid var(--blue-600); outline-offset: 1px; }
-.slots__datebtn:disabled { opacity: 0.6; cursor: not-allowed; }
-
-/* The month itself, hanging under the control. */
-.slots__cal-pop {
-  position: absolute;
-  z-index: 5;
-  top: calc(100% + 6px); left: 0;
-  width: min(300px, 86vw);
-  box-shadow: 0 14px 34px rgba(11, 31, 58, 0.18);
-  border-radius: 12px;
-}
-.slots__cal-pop .slots__cal { background: var(--surface); }
-
-.slots__cal {
-  border: 1.5px solid #cfe0f6;
-  border-radius: 12px;
-  background: var(--surface);
-  padding: 10px 12px 12px;
-}
-.slots__cal-head {
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  margin-bottom: 8px;
-}
-.slots__cal-month { font-size: 14px; font-weight: 800; color: var(--ink); }
-.slots__cal-nav {
-  width: 30px; height: 30px; border-radius: 8px;
-  border: 1px solid var(--line); background: var(--surface);
-  color: var(--ink-2); font-size: 18px; line-height: 1; cursor: pointer;
-}
-.slots__cal-nav:disabled { opacity: 0.35; cursor: not-allowed; }
-.slots__cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-.slots__cal-dow {
-  text-align: center; font-size: 11px; font-weight: 800; color: var(--muted);
-  padding-bottom: 2px;
-}
-.slots__cal-pad { aspect-ratio: 1 / 1; }
-.slots__cal-day {
-  aspect-ratio: 1 / 1;
-  display: grid; place-items: center;
-  border: 1px solid transparent; border-radius: 9px;
-  background: var(--surface-2); color: var(--ink);
-  font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
-}
-.slots__cal-day:hover:not(:disabled) { border-color: var(--blue-600); }
-/* Open days carry a dot; a day with nothing free is flat and dead. */
-.slots__cal-day.is-off { background: transparent; color: var(--muted); opacity: 0.45; cursor: not-allowed; }
-.slots__cal-day.is-on {
-  background: var(--blue-600); color: #fff;
-  border-color: var(--blue-600);
-}
-
-
-/* ---- The callback number: a control in the card, beside the date and time --- */
-.slots__field { display: flex; flex-direction: column; gap: 5px; }
+/* ---- Contact details: number and email side by side ---- */
+.slots__contact { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.slots__field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .slots__field > span { font-size: 12.5px; font-weight: 700; color: var(--ink-2); }
-/* Label and the two boxes on ONE line: the number needs room for a dozen
-   digits, not the width of the card. It wraps to two lines on a narrow phone. */
-.slots__field--phone {
-  margin-top: 14px;
-  /* Label and boxes on one line, always: nothing here wraps, and the number box
-     takes whatever width is left over. */
-  flex-direction: row; flex-wrap: nowrap;
-  align-items: center; gap: 10px 14px;
-}
-/* The two glyphs sit on the label, which is where the old meta line said what
-   kind of call this is. */
-.slots__field--phone > span {
-  display: flex; align-items: center; gap: 6px;
-  /* The label keeps its full width — it was being squeezed to nothing, leaving
-     the two glyphs and no words. The boxes beside it give way instead. */
-  flex: 0 0 auto;
-  font-size: 13.5px; white-space: nowrap;
-}
-.slots__field--phone > span svg { color: var(--ink-3); }
-/* Dial code and number: two boxes on one line, the code sized to hold "+xxx"
-   and no more, so the number keeps the width. */
-/* Pushed to the card's right edge, so the boxes line up with the Date and Time
-   controls below rather than trailing the label. */
-.slots__telrow {
-  display: flex; gap: 8px;
-  /* Fixed, not elastic: 58 + 8 + 150 = 216px, so the pair can't grow past the
-     card's edge whatever is beside it. */
-  flex: 0 0 auto; min-width: 0; margin-left: auto;
-}
+.slots__field > span i { font-style: normal; color: var(--red-600); }
+.slots__telrow { display: flex; gap: 6px; min-width: 0; }
 .slots__telrow input { min-width: 0; }
 .slots__telrow input.slots__dial { flex: 0 0 58px; text-align: center; padding-left: 6px; padding-right: 6px; }
-/* A dozen digits' worth, and no wider. */
-.slots__telrow input:not(.slots__dial) { flex: 0 0 150px; width: 150px; }
+.slots__telrow input:not(.slots__dial) { flex: 1 1 auto; }
 .slots__field input {
   width: 100%;
   border: 1.5px solid #cfe0f6;
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--surface);
   color: var(--ink);
   font-family: inherit;
-  font-size: 15px;
-  padding: 12px 14px;
+  font-size: 14.5px;
+  padding: 10px 12px;
 }
+.slots__field input[readonly] { background: var(--surface-2); color: var(--ink-2); }
 .slots__field input:focus-visible { outline: 2px solid var(--blue-600); outline-offset: 1px; }
+.slots__field input:disabled { opacity: 0.7; }
 .slots__hint { margin: 6px 0 0; font-size: 11.5px; line-height: 1.45; color: var(--muted); }
-.slots__check {
-  display: flex; align-items: center; gap: 8px;
-  margin-top: 10px;
-  font-size: 12.5px; font-weight: 600; color: var(--ink-2);
-  cursor: pointer;
-}
-.slots__check input { width: 16px; height: 16px; accent-color: var(--blue-600); cursor: pointer; }
+.slots__hint--center { margin-top: 12px; text-align: center; font-size: 12.5px; font-weight: 600; }
 
 .slots .jny-note { margin-top: 12px; }
 .slots__go { width: 100%; margin-top: 14px; justify-content: center; }
+/* Blue, like the result screen's CTA. */
+.slots .slots__go { background: var(--blue-600); box-shadow: 0 8px 20px rgba(29, 99, 196, 0.22); }
+.slots .slots__go:hover:not(:disabled) { background: var(--blue-700); }
 .slots__foot { margin: 8px 0 0; text-align: center; font-size: 12px; line-height: 1.45; color: var(--muted); }
 
 .slots__wa { margin: 10px 0 0; font-size: 11.5px; line-height: 1.5; color: var(--muted); text-align: center; }
 .slots__wa a { color: var(--accent); font-weight: 800; }
 
 @media (max-width: 560px) {
-  .slots { padding: 16px 14px; }
-  /* Too narrow to hold both beside the label: now they may wrap under it. */
-  .slots__field--phone { flex-wrap: wrap; }
-  .slots__telrow { margin-left: 0; width: 100%; }
-  .slots__telrow input:not(.slots__dial) { flex: 1 1 auto; }
-}
-/* Side by side, each control holds about 150px of text; below this the date
-   stops fitting, so they take a line each. */
-@media (max-width: 420px) {
-  .slots__row { grid-template-columns: 1fr; }
-}
-
-/* Phone: tighter, so the picker, the hold and the pay panel share one screen.
-   Date and time stay side by side down to 340px — the labels are short
-   ("Fri 25 Sept", "09:30") — which saves a whole control's height. */
-@media (max-width: 720px) {
   .slots { padding: 12px; border-radius: 14px; }
-  .slots__title { font-size: 15px; }
-  .slots__sub { font-size: 12px; margin-top: 1px; }
-  .slots__field--phone, .slots__row { margin-top: 10px; }
-  .slots__field--phone { gap: 6px 10px; }
-  .slots__field input { padding: 10px 12px; }
-  .slots__select select, .slots__datebtn {
-    padding: 10px 26px 10px 10px; font-size: 14px; white-space: nowrap;
-    overflow: hidden; text-overflow: ellipsis;
-  }
-  /* Follows the shorter control: 10px padding instead of 13px. */
-  .slots__select::after { right: 10px; bottom: 17px; }
-  .slots__zone { margin-top: 6px; }
-  .slots__go { margin-top: 10px; }
-}
-@media (max-width: 420px) and (min-width: 340px) {
-  .slots__row { grid-template-columns: 1fr 1fr; }
-}
-@media (max-height: 760px) {
-  .slots { padding: 12px 14px; }
-  .slots__sub { display: none; }
-  .slots__field--phone, .slots__row { margin-top: 10px; }
-}
-
-/* A time is held: the controls are locked, so the explanation around them can
-   go. The number stays on screen — it is who the specialist will ring. */
-.slots--held .slots__sub, .slots--held .slots__zone { display: none; }
-@media (max-height: 760px) {
-  .slots--held .slots__head { display: none; }
-  .slots--held .slots__field--phone { margin-top: 0; }
-}
-/* Short phone: the number's label goes (the icons and the boxes' own labels
-   remain), so the field is one row rather than two. */
-@media (max-height: 760px) and (max-width: 720px) {
-  .slots__field--phone { flex-wrap: nowrap; }
-  .slots__field--phone > span { font-size: 0; gap: 4px; }
-  .slots__telrow { width: auto; flex: 1 1 auto; }
+  .slots__contact { grid-template-columns: 1fr; }
+  .slots__sec + .slots__sec { margin-top: 12px; padding-top: 12px; }
+  .slots__chips { gap: 6px; }
+  .slots__chip--date span { font-size: 10.5px; }
+  .slots__chip--date strong { font-size: 13px; }
+  .slots__chip { padding: 7px 4px; font-size: 13.5px; }
 }

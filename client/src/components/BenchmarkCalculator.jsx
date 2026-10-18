@@ -423,7 +423,7 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
     }
   }
 
-  // Which of the four funnel steps this card is showing (see StepBar.jsx).
+  // Which funnel step this card is showing (see StepBar.jsx).
   // Exactly one is ever current. The comparison and the saving are one screen,
   // so they are one step: it becomes current the moment Compute is pressed. The
   // unlock is read from the same place the result card reads it, so paying for
@@ -495,17 +495,16 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
               </div>
             ) : (
               <>
-                <h2 className="calc-card__title">Free Benchmarking Calculator</h2>
+                <h2 className="calc-card__title">Compare your Bank with the Best</h2>
               </>
             )}
             {/* Inside the band, not under it: the progress is chrome, and the
                 band is the card's chrome. It shows on the result screen too,
-                where the band swaps its contents for the back button — and its
-                skin for the plain one, since the blue stops at screen one. */}
+                where the band swaps its title for the back button. */}
             <StepBar
               current={step}
               active={step !== 'input' || touched}
-              className={result ? 'steps--oncard' : 'steps--onblue'}
+              className="steps--onblue"
             />
           </div>
         ) : (
@@ -564,9 +563,10 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
                   : cells[0];
               })}
 
-              <button className="btn btn--red btn--block" type="submit" disabled={loading || !product}>
-                {loading ? 'Calculating…' : 'Compute My Free Benchmark →'}
+              <button className="btn btn--red calcbox__submit" type="submit" disabled={loading || !product}>
+                {loading ? 'Calculating…' : 'Calculate my Savings'}
               </button>
+              <p className="calcbox__secure">Anonymous &amp; Secure</p>
               {error && <p className="calcbox__error">{error}</p>}
               {!compact && (
                 <p className="calcbox__consent">
@@ -595,57 +595,6 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
       </div>
     </section>
   );
-}
-
-/* A piggy bank with a coin dropping in, drawn rather than fetched: a solid
-   green pig, the coin above it carrying the result's own currency symbol, and
-   light rays either side. Inline SVG so it stays sharp at 32px and the coin
-   can say ₹ or $ rather than whatever a stock image was drawn with.
-   `flip` mirrors the PIG only (so the pair faces the amount between them) —
-   mirroring the whole glyph would print the currency symbol backwards. */
-function PiggyGlyph({ flip = false, symbol = '$' }) {
-  return (
-    <svg
-      className="res__piggy"
-      viewBox="0 0 48 44" width="36" height="33" aria-hidden="true" focusable="false"
-    >
-      <g transform={flip ? 'translate(48 0) scale(-1 1)' : undefined}>
-        {/* rays */}
-        <g stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" opacity="0.45">
-          <path d="M13 8 L9 5" /><path d="M12 13 L7 12.5" />
-          <path d="M35 8 L39 5" /><path d="M36 13 L41 12.5" />
-        </g>
-        {/* the pig */}
-        <g fill="currentColor">
-          <ellipse cx="22" cy="30" rx="14" ry="10" />
-          <rect x="33" y="25.5" width="6.5" height="8" rx="2.4" />
-          <path d="M14.6 22.6 Q13.4 15.8 16.6 16.2 Q19.6 16.8 21.6 20.6 Z" />
-          <rect x="13" y="36" width="4.5" height="6" rx="1.4" />
-          <rect x="26" y="36" width="4.5" height="6" rx="1.4" />
-        </g>
-        <path d="M8.4 28.5 q-3.4 -0.6 -2.2 -4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-        <circle cx="29.5" cy="26" r="1.2" fill="#fff" />
-        <path d="M18 21.6 L25.5 21.2" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" />
-      </g>
-      {/* the coin, never mirrored */}
-      <circle cx="24" cy="8.5" r="7" fill="currentColor" />
-      <text
-        x="24" y="8.5" dy="0.36em" textAnchor="middle"
-        fontSize={symbol.length > 1 ? 6 : 9} fontWeight="800" fill="#fff"
-        fontFamily="inherit"
-      >{symbol}</text>
-    </svg>
-  );
-}
-
-// The short symbol for a currency ("$" for SGD/USD, "₹" for INR) for the coin.
-function currencySymbol(ccy) {
-  try {
-    return new Intl.NumberFormat('en', { style: 'currency', currency: ccy, currencyDisplay: 'narrowSymbol' })
-      .formatToParts(0).find((x) => x.type === 'currency')?.value || '$';
-  } catch {
-    return '$';
-  }
 }
 
 // "better than X% of the N providers" — the credible standing phrase.
@@ -692,9 +641,12 @@ function Result({ result, product, compact, localCcy, country = 'SG', yourBank =
   // names a bank — those keep the generic wording.
   const namedBank = yourBank && yourBank !== 'Other' ? yourBank : '';
   const productLabel = product?.label || result.product || 'Product';
-  const yourLabel = crossBorder ? 'Your all-in cost:'
-    : moneyMetric ? 'What you pay now:'
-    : `Your ${productLabel} Rate:`;
+  // What each row's figure is — "Overdraft Rate", or the cost for fee products.
+  const metricLabel = crossBorder ? 'All-in cost'
+    : moneyMetric ? 'Annual charges'
+    : `${productLabel} Rate`;
+  // "8% p.a." — the unit rides on the figure when it is an annual rate.
+  const perAnnum = !moneyMetric && result.unit === '% p.a.' ? ' p.a.' : '';
   const bankLogo = useMemo(() => (namedBank ? logoForBank(country, namedBank) : null), [country, namedBank]);
   const bestLogo = useMemo(() => (bestBank ? logoForBank(country, bestBank) : null), [country, bestBank]);
   // The best bank stays behind a mask until the reveal is paid for AND the name
@@ -753,44 +705,55 @@ function Result({ result, product, compact, localCcy, country = 'SG', yourBank =
         <>
           <div className="res__overpay">
             <span className="res__overpay-lead">
-              {higher ? <>Hey, you&apos;re <strong>missing out</strong> on</> : <>Hey, you&apos;re <strong>losing</strong></>}
+              {higher
+                ? <>Hey, you&apos;re potentially <strong>missing out</strong> on</>
+                : <>Hey, you&apos;re potentially <strong>losing</strong></>}
             </span>
-            <strong className="res__overpay-amt">
-              <PiggyGlyph symbol={currencySymbol(ccy)} />
+            <div className="res__overpay-amt">
               {/* Cross-border is sized on the one transfer entered, not a year. */}
-              <span>{formatMoney(result.annualSaving, ccy)} {crossBorder ? 'per transfer' : 'per year'}!</span>
-              <PiggyGlyph flip symbol={currencySymbol(ccy)} />
-            </strong>
-            <span className="res__overpay-sub">Here&apos;s the rate comparison</span>
+              <strong>
+                {formatMoney(result.annualSaving, ccy)}
+                <span className="res__overpay-per">{crossBorder ? ' /transfer' : ' /year'}</span>
+              </strong>
+              <span className="res__overpay-sub">
+                {crossBorder ? 'Estimated loss per transfer'
+                  : higher ? 'Estimated annual earnings missed'
+                  : 'Estimated Annual Loss'}
+              </span>
+            </div>
           </div>
 
           <div className="res__cmp">
             <div className="res__cmp-row">
-              <span className="res__cmp-label">{yourLabel}</span>
-              <span className="res__cmp-val">{fmtMetric(result.yourRate)}</span>
-              <span className="res__cmp-bank">
-                {bankLogo ? <img className="res__cmp-logo" src={bankLogo.img} alt={namedBank} width="54" height="18" />
-                  : namedBank ? <span className="res__cmp-bankname">{namedBank}</span> : null}
-              </span>
+              <figure className="res__cmp-who">
+                <span className="res__cmp-bank">
+                  {bankLogo ? <img className="res__cmp-logo" src={bankLogo.img} alt={namedBank} width="54" height="18" />
+                    : <span className="res__cmp-bankname">{namedBank || 'Your bank'}</span>}
+                </span>
+                <figcaption>Your Current Bank</figcaption>
+              </figure>
+              <span className="res__cmp-label">{metricLabel}</span>
+              <span className="res__cmp-val">{fmtMetric(result.yourRate)}{perAnnum}</span>
             </div>
             <div className="res__cmp-row">
-              <span className="res__cmp-label">Best Available Rate:</span>
-              <span className="res__cmp-val">{fmtBest(result.benchmarkRate)}</span>
-              {bestShown ? (
-                <span className="res__cmp-bank res__cmp-bank--revealed">
-                  {bestLogo ? <img className="res__cmp-logo" src={bestLogo.img} alt={bestBank} width="54" height="18" />
-                    : <span className="res__cmp-bankname">{bestBank}</span>}
-                </span>
-              ) : (
-                <span className="res__cmp-bank res__cmp-bank--masked" role="img" aria-label="Best bank hidden until unlocked">
-                  <span className="res__cmp-mask" aria-hidden="true" />
-                  <span className="res__cmp-lock" aria-hidden="true">🔒</span>
-                </span>
-              )}
+              <figure className="res__cmp-who">
+                {bestShown ? (
+                  <span className="res__cmp-bank res__cmp-bank--revealed">
+                    {bestLogo ? <img className="res__cmp-logo" src={bestLogo.img} alt={bestBank} width="54" height="18" />
+                      : <span className="res__cmp-bankname">{bestBank}</span>}
+                  </span>
+                ) : (
+                  <span className="res__cmp-bank res__cmp-bank--masked" role="img" aria-label="Best bank hidden until unlocked">
+                    <span className="res__cmp-lock" aria-hidden="true">🔒</span>
+                    <span className="res__cmp-locked" aria-hidden="true">Locked</span>
+                  </span>
+                )}
+                <figcaption>Best Bank</figcaption>
+              </figure>
+              <span className="res__cmp-label">{metricLabel}</span>
+              <span className="res__cmp-val res__cmp-val--best">{fmtBest(result.benchmarkRate)}{perAnnum}</span>
             </div>
           </div>
-
-          <p className="res__tagline">Save this money your Bank is making off you.</p>
 
           {result.status === 'estimate' && (
             <p className="res__standing res__standing--muted">
@@ -839,20 +802,27 @@ function Result({ result, product, compact, localCcy, country = 'SG', yourBank =
               rather than after the tagline (the notes between the two are all
               conditional and would separate them). */}
           {!unlockedTier && (
-            <p className="res__findout">Find out which Bank is giving the Best Available Rate</p>
+            <p className="res__findout">Want to know which bank &amp; how to save?</p>
           )}
           {/* Already paid for this benchmark? Then this button reopens it — it
               never offers to sell the same reveal a second time. */}
           <button className="btn btn--block res__detail res__detail--reveal" onClick={handleReveal} disabled={revealBusy}>
             {revealBusy
               ? (unlockedTier ? 'Opening…' : 'Opening secure checkout…')
-              : (unlockedTier ? 'View Your Best Bank →' : 'Reveal Bank with Best Available Rate →')}
+              : (unlockedTier ? 'View Your Best Bank' : `Reveal Best Bank for ${revealLabel}`)}
+            {/* A chevron, not "→": the back button in the band above is an arrow,
+                and the two shouldn't read as the same control. */}
+            {!revealBusy && (
+              <svg className="res__detail-chev" viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">
+                <path d="M9 5 L16 12 L9 19" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
           </button>
           {revealErr && <p className="res__lead-err">{revealErr}</p>}
           <p className="res__reveal-note">
             {unlockedTier
               ? '✓ Already unlocked — reopening it is free.'
-              : `Click to pay ${revealLabel}. 100% cashback if not satisfied.`}
+              : '100% refund if not satisfied'}
           </p>
         </>
       )}

@@ -1,27 +1,15 @@
-/* The slot picker for Option 2 — one card: pick a time, leave a number.
+/* The slot picker for Options 2 and 3 — one card: pick a date, pick a time,
+ * leave your contact details.
  *
- * WHY TWO DROPDOWNS AND NOT A GRID
- *   The grid this replaced printed every open half-hour as its own tile: five
- *   dates across the top, fifteen times below, seventy-five tiles for a week.
- *   That is a wall of near-identical boxes to read before you can answer a
- *   question you already know the answer to ("when am I free?"). Selects
- *   collapse it to one row, open the platform's own picker on a phone, and are
- *   navigable by keyboard and screen reader without us building any of it.
+ * Dates and times are chips, not dropdowns: every open slot is visible at a
+ * glance and one tap picks it. The time chips only show the chosen day's slots,
+ * so the grid stays a handful of tiles rather than a week's worth.
  *
- *   Date and time are separate controls because they are separate decisions:
- *   a day is chosen from a diary, an hour from what is left on it. One combined
- *   list makes you scroll past every hour of Monday to reach Tuesday.
- *
- * WHY A BUTTON AND NOT AN INSTANT HOLD
- *   Choosing is not committing. A select fires `change` on every arrow key, so
- *   keyboarding down the list on the old "pick = hold" contract would take and
- *   drop a hold per keystroke. The hold is taken when the button is pressed,
- *   once, deliberately.
- *
- *   Option 2 opts out (`holdOnSelect`): its countdown has to be running before
- *   the pay button appears. That stays one hold, not one per keystroke,
- *   because the caller disables the picker as soon as a time is held, and the
- *   list starts blank so the default time is never taken without being chosen.
+ * With `holdOnSelect` (both options use it), tapping a time takes the hold
+ * straight away, so the countdown is running before the pay button appears.
+ * The hold needs a reachable number, so when the number isn't filled in yet the
+ * time is remembered and held as soon as the number field is left complete.
+ * The picker is disabled once a time is held, so it's one hold, not one per tap.
  *
  * Deliberately shows times to ANYONE, signed in or not. Being asked to sign in
  * or pay before you can even see whether a workable time exists is what makes a
@@ -41,113 +29,33 @@ import {
 } from '../lib/booking.js';
 import { looksDialable, missingCountryCode, saveWhatsAppNumber, confirmLink } from '../lib/whatsapp.js';
 
-const CalendarGlyph = () => (
-  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
-    strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
-    <rect x="3" y="5" width="18" height="16" rx="3" />
-    <path d="M3 10h18M8 3v4M16 3v4" />
-    <circle cx="9" cy="15" r="1.1" fill="currentColor" stroke="none" />
-    <circle cx="15" cy="15" r="1.1" fill="currentColor" stroke="none" />
-  </svg>
-);
-const PhoneGlyph = () => (
-  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
-    strokeWidth="1.9" strokeLinejoin="round" aria-hidden="true">
-    <path d="M6.5 3h3l1.5 4-2 1.5a12 12 0 0 0 6.5 6.5L17 13l4 1.5v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 3 5.2 2 2 0 0 1 5 3z" />
-  </svg>
-);
-const VideoGlyph = () => (
-  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
-    strokeWidth="1.9" strokeLinejoin="round" aria-hidden="true">
-    <rect x="2.5" y="6" width="13" height="12" rx="2.5" />
-    <path d="M15.5 10.5 21.5 7v10l-6-3.5z" />
-  </svg>
-);
-
 /* The dial code a market's numbers start with. Only a first guess — the field
    is editable, and someone benchmarking Singapore may well carry a UK number. */
 const DIAL_CODES = { SG: '+65', IN: '+91', MY: '+60', ID: '+62', TH: '+66' };
 
 /* Split a stored number back into the two fields. "+65 9123 4567" was saved as
    one string (and still is), so this is what puts it back on screen. */
-function splitPhone(phone, country) {
+export function splitPhone(phone, country) {
   const s = String(phone || '').trim().replace(/^00/, '+');
   const m = s.match(/^\+(\d{1,3})[\s-]*(.*)$/);
   if (m) return { code: `+${m[1]}`, rest: m[2].trim() };
   return { code: DIAL_CODES[String(country || '').toUpperCase()] || '+65', rest: s };
 }
 
-const fullNumber = (code, rest) => `${String(code || '').trim()} ${String(rest || '').trim()}`.trim();
-
-/* ---- Month calendar -------------------------------------------------------
-   Days come back as YYYY-MM-DD keys already resolved into the viewer's zone
-   (see dayKey), so the grid is built from string maths — no second timezone
-   conversion to disagree with the first. Only days the scheduler has open are
-   clickable; the rest are visibly there but dead, which is what tells someone
-   the gaps are real rather than a loading state. */
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'];
-const WEEKDAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
-const pad2 = (n) => String(n).padStart(2, '0');
-const monthKey = (key) => (key || '').slice(0, 7);          // YYYY-MM
-const addMonth = (ym, step) => {
-  const [y, m] = ym.split('-').map(Number);
-  const d = new Date(Date.UTC(y, (m - 1) + step, 1));
-  return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}`;
-};
-
-/* What the closed control reads — the chosen day's own label ("Mon 21 Sept"). */
-const dayLabelFor = (days, key) => (days || []).find((d) => d.key === key)?.label || '';
-
-function MonthCalendar({ days, value, onPick, disabled }) {
-  const open = useMemo(() => new Map((days || []).map((d) => [d.key, d])), [days]);
-  const months = useMemo(() => [...new Set((days || []).map((d) => monthKey(d.key)))].sort(), [days]);
-  const [ym, setYm] = useState(() => monthKey(value) || months[0] || '');
-  // Follow the selection when it moves to another month (a restored booking).
-  useEffect(() => { if (value) setYm(monthKey(value)); }, [value]);
-  if (!ym) return null;
-
-  const [y, m] = ym.split('-').map(Number);
-  const lead = (new Date(Date.UTC(y, m - 1, 1)).getUTCDay() + 6) % 7;   // Monday-first
-  const count = new Date(Date.UTC(y, m, 0)).getUTCDate();
-  const cells = [...Array(lead).fill(null), ...Array.from({ length: count }, (_, i) => i + 1)];
-  const canPrev = ym > months[0];
-  const canNext = ym < months[months.length - 1];
-
-  return (
-    <div className="slots__cal">
-      <div className="slots__cal-head">
-        <button type="button" className="slots__cal-nav" onClick={() => setYm(addMonth(ym, -1))}
-          disabled={disabled || !canPrev} aria-label="Previous month">‹</button>
-        <span className="slots__cal-month">{MONTHS[m - 1]} {y}</span>
-        <button type="button" className="slots__cal-nav" onClick={() => setYm(addMonth(ym, 1))}
-          disabled={disabled || !canNext} aria-label="Next month">›</button>
-      </div>
-      <div className="slots__cal-grid" role="grid">
-        {WEEKDAYS.map((w) => <span key={w} className="slots__cal-dow">{w}</span>)}
-        {cells.map((d, i) => {
-          if (!d) return <span key={`p${i}`} className="slots__cal-pad" />;
-          const key = `${y}-${pad2(m)}-${pad2(d)}`;
-          const has = open.has(key);
-          const on = key === value;
-          return (
-            <button
-              key={key}
-              type="button"
-              className={`slots__cal-day${on ? ' is-on' : ''}${has ? '' : ' is-off'}`}
-              onClick={() => onPick(key)}
-              disabled={disabled || !has}
-              aria-pressed={on}
-              aria-label={`${d} ${MONTHS[m - 1]} ${y}${has ? '' : ' — no times open'}`}
-            >
-              {d}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
+/* "IST", "SGT"-style short zone name for the time heading. Intl only knows a
+   few abbreviations per locale, so fall back to the GMT offset ("GMT+8"). */
+const ZONE_ABBR = { 'Asia/Kolkata': 'IST', 'Asia/Calcutta': 'IST', 'Asia/Singapore': 'SGT', 'Asia/Kuala_Lumpur': 'MYT', 'Asia/Jakarta': 'WIB', 'Asia/Bangkok': 'ICT' };
+export function zoneShort(tz) {
+  if (ZONE_ABBR[tz]) return ZONE_ABBR[tz];
+  try {
+    return new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'short' })
+      .formatToParts(new Date()).find((x) => x.type === 'timeZoneName')?.value || tz;
+  } catch { return tz; }
 }
+
+export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export const fullNumber = (code, rest) => `${String(code || '').trim()} ${String(rest || '').trim()}`.trim();
 
 export default function SlotPicker({
   selected = null, onPick, busy = false, disabled = false, onUnavailable, refreshKey = 0,
@@ -167,8 +75,13 @@ export default function SlotPicker({
   // time list then starts blank, so nothing is held until someone picks one.
   // The button stays only as a retry, for when that hold could not be taken.
   holdOnSelect = false,
-  // The card's heading. Option 3's sketch words it "Select date & time".
-  title = 'Choose Date & Time',
+  // The email under "Your Contact Details". Read-only (an account's own email)
+  // unless the caller passes onEmailChange — a guest types it in.
+  email = '',
+  onEmailChange,
+  // Called before the number is saved, so there is a session (a guest one if
+  // need be) to save it on. Resolves falsy when none can be had.
+  prepare,
 }) {
   const { updateUserMetadata } = useAuth();
   const [slots, setSlots] = useState(null);
@@ -176,8 +89,6 @@ export default function SlotPicker({
   const [loading, setLoading] = useState(true);
   const [retry, setRetry] = useState(0);
   const [day, setDay] = useState('');
-  const [calOpen, setCalOpen] = useState(false);
-  const calRef = useRef(null);
   const [choice, setChoice] = useState(selected || '');
   const tz = useMemo(() => viewerZone(), []);
 
@@ -196,20 +107,6 @@ export default function SlotPicker({
   const [code, setCode] = useState('');     // issued once the number is saved
   const [formErr, setFormErr] = useState('');
   const [saving, setSaving] = useState(false);
-
-  // Close the calendar on a click outside it or on Escape — it behaves like the
-  // native dropdown next to it, which closes the same two ways.
-  useEffect(() => {
-    if (!calOpen) return undefined;
-    const onDown = (e) => { if (!calRef.current?.contains(e.target)) setCalOpen(false); };
-    const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); setCalOpen(false); } };
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey, true);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey, true);
-    };
-  }, [calOpen]);
 
   // onUnavailable swaps the whole screen back to Calendly. Held in a ref so a
   // parent that re-creates the callback each render can't re-trigger the load.
@@ -233,14 +130,17 @@ export default function SlotPicker({
 
   // Group into calendar days in the viewer's zone. A slot at 23:30 in Singapore
   // is the following morning in London, and it has to sit under that date.
+  // Only the next five open days, starting tomorrow — never today.
   const days = useMemo(() => {
+    const todayKey = dayKey(new Date().toISOString(), tz);
     const map = new Map();
     for (const s of slots || []) {
       const k = dayKey(s.start, tz);
+      if (k <= todayKey) continue;
       if (!map.has(k)) map.set(k, { key: k, label: dayLabel(s.start, tz), rel: relativeDayLabel(s.start, tz), slots: [] });
       map.get(k).slots.push(s);
     }
-    return [...map.values()];
+    return [...map.values()].sort((a, b) => (a.key < b.key ? -1 : 1)).slice(0, 5);
   }, [slots, tz]);
 
   // Default to the soonest open day, and never leave a day selected that has
@@ -268,8 +168,14 @@ export default function SlotPicker({
 
   const minutes = slotMinutes((slots || [])[0]);
 
+  const emailOk = !onEmailChange || EMAIL_RE.test(String(email || '').trim());
+
   /* The number is checked (and saved when new) before any hold is taken. */
   async function ensureNumber() {
+    if (!emailOk) {
+      setFormErr('Please enter your email — your booking confirmation goes there.');
+      return false;
+    }
     // Save when the number is new to us, or when a stored one has been edited
     // here — this field is now always on screen, so it is always the truth.
     const full = fullNumber(dialCode, num);
@@ -279,6 +185,8 @@ export default function SlotPicker({
     }
     if (needNumber || full !== phone.trim()) {
       setSaving(true);
+      // No session to save it on: carry on to the pick, which asks to sign in.
+      if (prepare && !(await prepare())) { setSaving(false); return true; }
       try {
         const issued = await saveWhatsAppNumber({ phone: full, onWhatsApp, updateUserMetadata });
         if (issued) setCode(issued);
@@ -309,7 +217,16 @@ export default function SlotPicker({
 
   function chooseTime(iso) {
     setChoice(iso);
-    if (holdOnSelect && iso) commit(iso);
+    setFormErr('');
+    // Hold now if the number is ready; otherwise numberDone() holds it once
+    // the number is filled in.
+    if (holdOnSelect && iso && emailOk && looksDialable(fullNumber(dialCode, num)) && !missingCountryCode(dialCode)) commit(iso);
+  }
+
+  // Leaving a contact field with a time already chosen takes the hold.
+  function numberDone() {
+    if (holdOnSelect && choice && !held && !busy && !saving && emailOk
+      && looksDialable(fullNumber(dialCode, num)) && !missingCountryCode(dialCode)) commit(choice);
   }
 
   if (loading) return <div className="slots slots--msg">Loading available times…</div>;
@@ -339,93 +256,109 @@ export default function SlotPicker({
   // nothing here is blocked on the customer completing it.
   const waLink = code ? confirmLink(code) : null;
 
+  const off = disabled || busy || saving;
+  const numberOk = emailOk && looksDialable(fullNumber(dialCode, num)) && !missingCountryCode(dialCode);
+
   return (
     <form className={`slots${held ? ' slots--held' : ''}`} onSubmit={submit}>
-      <div className="slots__head">
-        <span className="slots__icon" aria-hidden="true"><CalendarGlyph /></span>
-        <div className="slots__headings">
-          <h5 className="slots__title">{title}</h5>
-          <p className="slots__sub">{minutes ? `${minutes}-minute` : ''} specialist call</p>
+      <div className="slots__sec">
+        <h5 className="slots__title">Choose Date</h5>
+        <div className="slots__chips slots__chips--dates" role="group" aria-label="Date">
+          {days.map((d) => {
+            // "Mon 21 Sep" → "Mon" over "21 Sep"; "Tomorrow" replaces the weekday.
+            const [wk, ...rest] = d.label.split(' ');
+            const on = d.key === day;
+            return (
+              <button
+                key={d.key} type="button"
+                className={`slots__chip slots__chip--date${on ? ' is-on' : ''}`}
+                onClick={() => { setDay(d.key); setFormErr(''); }}
+                disabled={off}
+                aria-pressed={on}
+              >
+                <span>{d.rel === 'Tomorrow' ? d.rel : wk}</span>
+                <strong>{rest.join(' ')}</strong>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* The number the specialist rings, in the same kind of control as the
-          date and the time — it is one of the three things this card collects,
-          not a footnote under them. Prefilled when we already hold one, so an
-          existing number is confirmed rather than re-typed. */}
-      <label className="slots__field slots__field--phone">
-        <span>
-          <PhoneGlyph /><VideoGlyph />
-          Phone or WhatsApp number
-        </span>
-        <span className="slots__telrow">
-          <input
-            className="slots__dial"
-            type="tel" value={dialCode} onChange={(e) => setDialCode(e.target.value)}
-            placeholder="+65" autoComplete="tel-country-code" inputMode="tel"
-            aria-label="Country code"
-            disabled={disabled || busy || saving}
-          />
-          <input
-            type="tel" value={num} onChange={(e) => setNum(e.target.value)}
-            placeholder="9123 4567" autoComplete="tel-national" inputMode="tel"
-            aria-label="Phone or WhatsApp number"
-            disabled={disabled || busy || saving}
-          />
-        </span>
-      </label>
-      {missingCountryCode(dialCode) && (
-        <p className="slots__hint">Start the code with +, e.g. +65 or +91 — WhatsApp needs it.</p>
-      )}
-
-      <div className="slots__row">
-        <div className="slots__select" ref={calRef}>
-          <span className="slots__label">Date</span>
-          {/* A dropdown like the one beside it, except what drops down is a
-              month rather than a list of days — the gaps in the diary are part
-              of the answer, and a list of free days never shows them. */}
-          <button
-            type="button"
-            className="slots__datebtn"
-            onClick={() => setCalOpen((o) => !o)}
-            disabled={disabled || busy || saving}
-            aria-haspopup="dialog"
-            aria-expanded={calOpen}
-          >
-            {dayLabelFor(days, day) || 'Pick a date'}
-          </button>
-          {calOpen && (
-            <div className="slots__cal-pop" role="dialog" aria-label="Choose a date">
-              <MonthCalendar
-                days={days}
-                value={day}
-                onPick={(k) => { setDay(k); setCalOpen(false); }}
-                disabled={disabled || busy || saving}
-              />
-            </div>
-          )}
-        </div>
-        <label className="slots__select">
-          <span className="slots__label">Time</span>
-          <select value={choice} onChange={(e) => chooseTime(e.target.value)} disabled={disabled || busy || saving}>
-            {holdOnSelect && !choice && <option value="" disabled>Select a time</option>}
-            {(today?.slots || []).map((s) => (
-              <option key={s.start} value={s.start}>
+      <div className="slots__sec">
+        <h5 className="slots__title" title={`Times shown in ${zoneLabel(tz)}`}>
+          Choose Time ({zoneShort(tz)}) <span>– Available slots</span>
+        </h5>
+        <div className="slots__chips slots__chips--times" role="group" aria-label="Time">
+          {(today?.slots || []).map((s) => {
+            const on = s.start === choice;
+            return (
+              <button
+                key={s.start} type="button"
+                className={`slots__chip${on ? ' is-on' : ''}`}
+                onClick={() => chooseTime(s.start)}
+                disabled={off}
+                aria-pressed={on}
+              >
                 {timeIn(s.start, tz)}
-              </option>
-            ))}
-          </select>
-        </label>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <p className="slots__zone">
-        Times shown in <strong>{zoneLabel(tz)}</strong> — your device&apos;s clock.
-      </p>
-
+      {/* The number the specialist rings, and the email the invite goes to.
+          Prefilled when we already hold them. */}
+      <div className="slots__sec">
+        <h5 className="slots__title">Your Contact Details</h5>
+        <div className="slots__contact">
+          <label className="slots__field">
+            <span>WhatsApp number <i aria-hidden="true">*</i></span>
+            <span className="slots__telrow">
+              <input
+                className="slots__dial"
+                type="tel" value={dialCode} onChange={(e) => setDialCode(e.target.value)}
+                onBlur={numberDone}
+                placeholder="+65" autoComplete="tel-country-code" inputMode="tel"
+                aria-label="Country code" required
+                disabled={off}
+              />
+              <input
+                type="tel" value={num} onChange={(e) => setNum(e.target.value)}
+                onBlur={numberDone}
+                placeholder="9123 4567" autoComplete="tel-national" inputMode="tel"
+                aria-label="WhatsApp number" required
+                disabled={off}
+              />
+            </span>
+          </label>
+          <label className="slots__field">
+            <span>Email <i aria-hidden="true">*</i></span>
+            <input
+              type="email" value={email}
+              readOnly={!onEmailChange}
+              onChange={onEmailChange ? (e) => onEmailChange(e.target.value) : undefined}
+              onBlur={numberDone}
+              placeholder="you@example.com" autoComplete="email" inputMode="email"
+              aria-label="Email" required
+              disabled={!!onEmailChange && off}
+            />
+          </label>
+        </div>
+        {missingCountryCode(dialCode) && (
+          <p className="slots__hint">Start the code with +, e.g. +65 or +91 — WhatsApp needs it.</p>
+        )}
+      </div>
 
       {formErr && <div className="jny-note jny-note--warn" role="alert">{formErr}</div>}
 
-      {!held && (!holdOnSelect || choice) && (
+      {/* With holdOnSelect the hold happens on its own once a time and a number
+          are both in; until the number is, say so rather than show a button. */}
+      {!held && choice && holdOnSelect && !numberOk && !formErr && (
+        <p className="slots__hint slots__hint--center">Add your WhatsApp number and email to hold this time.</p>
+      )}
+      {/* Without holdOnSelect this is the commit; with it, a retry for when the
+          automatic hold didn't go through. */}
+      {!held && choice && (!holdOnSelect || numberOk) && (
         <>
           <button className="btn btn--primary slots__go" disabled={busy || saving || !choice}>
             {saving ? 'Saving…' : busy ? busyLabel : cta}

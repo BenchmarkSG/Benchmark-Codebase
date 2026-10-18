@@ -110,17 +110,16 @@
 @keyframes pop { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: none; } }
 
 .jny__close {
-  position: absolute;
-  top: 14px; right: 14px;
-  border: 1px solid var(--line);
-  background: var(--surface-2);
+  flex: none;
+  width: 32px; height: 32px;
+  margin-top: -3px;
   display: grid; place-items: center;
-  width: 40px; height: 40px;
-  border-radius: 50%;
-  font-size: 24px; line-height: 1;
-  color: var(--ink-3); cursor: pointer;
-  z-index: 2;
+  border: 1px solid var(--line); border-radius: 50%;
+  background: var(--surface-2); color: var(--ink-3);
+  padding: 0; line-height: 0;
+  cursor: pointer;
 }
+.jny__close svg { display: block; }
 .jny__close:hover { background: var(--line); color: var(--ink); }
 
 /* Step back, mirroring the × across the header. Bigger glyph, no box: a dismiss
@@ -141,199 +140,33 @@
 .jny__backarrow:hover { background: var(--line); color: var(--ink); }
 
 /* Header band — the same chrome the calculator's phone mock wears, so the two
-   screens read as one product. It went navy in both places; on this screen that
-   was a full-width slab above a white panel and a white certificate, and it is
-   plain here for the same reason the calculator's is after screen one: a
-   hairline is enough to mark chrome off from content. Negative margins pull it
+   screens read as one product: navy in both places. Negative margins pull it
    out to the panel's edges without restructuring the padded body around it. */
 .jny__head {
   margin: calc(-1 * var(--jny-pad-y)) calc(-1 * var(--jny-pad-x)) 12px;
   /* Just the step bar and the back arrow, on one line. No hairline: the bar
      already marks the chrome off from the screen under it. */
   padding: 14px var(--jny-pad-x) 12px;
-  background: var(--surface);
-  color: var(--ink);
+  background: linear-gradient(150deg, var(--blue-600) 0%, var(--navy-800) 100%);
+  color: #fff;
   display: flex;
   align-items: flex-start;
   gap: 10px;
 }
-/* A spacer the width of the arrow (plus the × 's overhang on the right), so the
-   bar is centred on the panel rather than on what is left beside them. */
-.jny__head::after { content: ''; flex: none; width: 34px; }
 .jny__head .steps { flex: 1 1 auto; min-width: 0; }
+.jny__head .steps--onblue { margin-top: 0; }
+/* The back arrow and the × both sit on the navy band: translucent white. */
+.jny__head .jny__backarrow,
+.jny__close {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+.jny__head .jny__backarrow:hover,
+.jny__close:hover { background: rgba(255, 255, 255, 0.24); color: #fff; }
 
 /* Hide the floating WhatsApp "Need Help?" widget while the journey modal is open. */
 body.jny-open .needhelp { display: none; }
-
-/* Reveal panel */
-.jny-reveal {
-  position: relative;          /* anchors the certificate stamp, top-right */
-  background: transparent;
-  color: var(--ink);
-  padding: 0;
-  margin-bottom: 18px;
-}
-.jny-reveal__top { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
-.jny-reveal__share {
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--ink-2); font-weight: 700; font-size: 12.5px;
-  padding: 6px 12px; border-radius: 999px; cursor: pointer;
-  margin-right: 34px; /* clear the close button */
-}
-.jny-reveal__share:hover { background: var(--blue-50); }
-
-/* Sketch layout: the unlocked bank card → centred headline → centred amount →
-   red rule underscoring the pair. */
-/* Shrink-wraps the headline + amount + rule, so the rule stops where the widest
-   line stops instead of running the full panel width, then centres the band.
-   fit-content collapses to the available width once the headline wraps — right
-   on phones. */
-/* Headline and amount on ONE line — "…savings of ₹237 a year" is a sentence,
-   and breaking it left the figure orphaned under its own lead-in. They wrap to
-   two lines only when the panel is too narrow to hold them. Baseline alignment
-   keeps the 30px figure sitting on the same line as the 18px words. */
-.jny-reveal__summary {
-  width: fit-content; max-width: 100%;
-  /* Clear of the bank's box above it — they were reading as one block. */
-  margin: 16px auto 0;
-  display: flex; flex-wrap: wrap;
-  align-items: baseline; justify-content: center;
-  column-gap: 10px; row-gap: 2px;
-}
-.jny-reveal__summary .jny-reveal__headline { margin-top: 0; }
-.jny-reveal__summary .jny-reveal__amtline { margin-top: 0; }
-/* On one line the figure takes the headline's size: at 30px it read as a
-   different element that happened to sit alongside. The red rule under it, not
-   the type size, is what marks it out now. */
-.jny-reveal__summary .jny-reveal__amt { font-size: 18px; }
-.jny-reveal__summary .jny-reveal__amt span { font-size: 18px; font-weight: 800; color: var(--ink); }
-.jny-reveal__summary .jny-reveal__rule--thick { height: 3px; }
-.jny-reveal__headline { margin-top: 14px; text-align: center; font-size: 18px; font-weight: 800; color: var(--ink); line-height: 1.3; }
-.jny-reveal__headline strong { color: var(--accent); }
-.jny-reveal__rule { border-radius: 999px; background: var(--red-600); }
-.jny-reveal__rule--thick { height: 4px; margin: 0; }
-/* Shrink-wrapped around the amount alone, so the rule underlines the figure at
-   its own width rather than the headline's. */
-.jny-reveal__amtline { width: fit-content; max-width: 100%; margin: 12px auto 0; }
-/* line-height 1 strips the half-leading the body's 1.5 would otherwise hang
-   below the digits — that gap, not the margin, is what kept the rule from
-   reading as an underline. */
-.jny-reveal__amt { margin: 0; line-height: 1; text-align: center; font-size: 30px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; }
-.jny-reveal__amt span { font-size: 16px; font-weight: 700; color: var(--ink-3); letter-spacing: 0; }
-.jny-reveal__amt--sm { font-size: 16px; font-weight: 700; color: var(--ink-3); }
-
-.jny-sectlabel { text-align: center; font-size: 14px; font-weight: 800; color: var(--ink); margin: 24px 0 28px; }
-
-/* Vertical tiers */
-/* Three across, as drawn. Equal columns so no option looks like the default.
-   Stacks below 720px, where three columns would each be too narrow to read. */
-.jny-tiers {
-  /* The OPTION pills hang 16px above the cards, so the row needs that much
-     clear air of its own — without it they touch whatever sits above. */
-  margin-top: 26px;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  align-items: stretch;
-}
-
-/* Rows shared across the three cards, so price sits level with price and the
-   three CTAs land on one line however long the titles run. Without this the
-   CTA floats to wherever its own description leaves room, and the buttons
-   stagger — which is what makes three cards read as three unrelated boxes.
-   The badge is absolutely positioned, so the in-flow rows are exactly four:
-   price, title, description, CTA. */
-@supports (grid-template-rows: subgrid) {
-  .jny-tiers { grid-template-rows: auto auto auto auto; }
-  .jny-tiers .jny-tier {
-    display: grid;
-    grid-template-rows: subgrid;
-    grid-row: span 4;
-    justify-items: center;
-  }
-  /* The flex fallback's bottom-pinning would fight the grid row. */
-  .jny-tiers .jny-tier__cta { margin-top: 0; align-self: center; }
-  /* Hugs the title above it, so a short description leaves its slack over the
-     button rather than under the heading — the CTAs still share one row. */
-  .jny-tiers .jny-tier__desc { margin-top: 0; align-self: start; }
-}
-
-@media (max-width: 720px) {
-  /* One column: the shared rows must go, or three stacked cards would try to
-     share four row tracks between them. */
-  .jny-tiers { grid-template-columns: 1fr; grid-template-rows: none; gap: 26px; }
-  .jny-tiers .jny-tier { display: flex; grid-row: auto; }
-}
-.jny-tier {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  /* Centred inside its column, and stretched to the tallest card so the three
-     CTAs sit on one line however long the descriptions run. */
-  align-items: center;
-  text-align: center;
-  height: 100%;
-  gap: 10px;
-  /* The tier's colour frames the whole card rather than capping one edge. */
-  border: 2px solid var(--line);
-  border-radius: 14px;
-  background: var(--surface);
-  padding: 22px 18px 18px;
-  transition: box-shadow 0.15s ease, transform 0.12s ease;
-}
-.jny-tier:hover { box-shadow: var(--shadow-sm); }
-/* Already paid for — present as owned, not as something to buy again. */
-.jny-tier--owned { background: var(--surface-2); }
-.jny-tier--owned .jny-tier__price { color: #0f7a44; font-size: 16px; }
-.jny-tier--owned .jny-tier__cta { background: var(--surface); color: var(--ink-2); border: 1.5px solid var(--line); }
-.jny-tier--owned .jny-tier__cta:hover { border-color: var(--ink-3); filter: none; }
-.jny-tier--green { border-color: #1a9d6a; }
-.jny-tier--blue  { border-color: var(--blue-600); }
-.jny-tier--violet { border-color: #6a34c9; }
-
-/* "Option 1/2/3" badge straddling the card's top border (per the sketch). */
-.jny-tier__badge {
-  position: absolute;
-  /* The pill straddles the card's top border. `top` is measured from the
-     padding box, so centring it needs half the pill's height (~14px) PLUS the
-     card's 2px border — measured in the browser, not eyeballed. */
-  top: -16px; left: 50%; transform: translateX(-50%);
-  color: #fff; background: var(--navy-900);
-  font-size: 13.5px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase;
-  padding: 4px 16px; border-radius: 999px; white-space: nowrap;
-}
-.jny-tier--green .jny-tier__badge { background: #1a9d6a; }
-.jny-tier--blue  .jny-tier__badge { background: var(--blue-600); }
-.jny-tier--violet .jny-tier__badge { background: #6a34c9; }
-/* Price and title are centred; the card's flex parent aligns children to the
-   start, so they need a full-width box before text-align can do anything. */
-.jny-tier__price {
-  width: 100%; text-align: center;
-  font-size: 20px; font-weight: 800;
-  color: var(--ink);
-}
-.jny-tier__was { color: var(--muted); font-weight: 600; font-size: 15px; margin-right: 4px; }
-.jny-tier__title { width: 100%; text-align: center; font-size: 15.5px; font-weight: 800; color: var(--ink); }
-/* Sits between the title and the CTA — spacing comes from the card's flex gap. */
-.jny-tier__desc { width: 100%; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
-.jny-tier__cta {
-  /* Half the card, centred. min-width keeps the longest label ("Book an
-     Expert →") on one line when half a narrow card isn't enough for it. */
-  width: 50%;
-  min-width: max-content;
-  align-self: center;
-  margin-top: 2px;
-  border: none; cursor: pointer;
-  background: var(--navy-900); color: #fff;
-  font-weight: 800; font-size: 14px;
-  padding: 12px 16px; border-radius: 10px;
-  text-align: center;
-}
-.jny-tier--green .jny-tier__cta { background: #1a9d6a; }
-.jny-tier--blue  .jny-tier__cta { background: var(--blue-600); }
-.jny-tier--violet .jny-tier__cta { background: #6a34c9; }
-.jny-tier__cta:hover { filter: brightness(1.06); }
 
 /* Sub-views (email / call / expert) */
 .jny-sub__title { font-size: 18px; font-weight: 800; color: var(--ink); }
@@ -424,10 +257,6 @@ body.jny-open .needhelp { display: none; }
   font-size: 15px;
 }
 
-/* Option 1 card promo subtext (Standard $9 · $1 when you share) */
-.jny-tier__promo { margin-top: 8px; font-size: 12px; font-weight: 700; color: var(--ink-3); }
-.jny-tier__promo s { color: var(--muted); font-weight: 600; }
-
 /* Reveal view — unlocked bank + two pricing paths */
 .jny-unlock {
   display: flex; flex-direction: column; gap: 2px;
@@ -436,94 +265,15 @@ body.jny-open .needhelp { display: none; }
 }
 .jny-unlock__name { font-size: 24px; font-weight: 800; color: var(--ink); line-height: 1.1; }
 .jny-unlock__rate { font-size: 13px; font-weight: 700; color: var(--accent); }
-.jny-unlock__label {
-  font-size: 11px; font-weight: 800; letter-spacing: 0.12em;
-  text-transform: uppercase; color: var(--muted);
-}
 /* In the reveal panel everything is centred, and the card sits between the
    headline amount and the options. */
 /* Shrink-wrapped to the bank rather than spanning the panel, so the box frames
    the logo and name instead of reading as a full-width banner. */
-/* The reveal's own heading: centred under the step bar, above the bank's box. */
-.jny-reveal__label {
-  margin: 0 0 10px;
-  text-align: center;
-  font-size: 14px; font-weight: 700;
-  color: var(--ink-3);
-}
-
-.jny-unlock--reveal {
-  /* One row: the bank on the left, its rate on the right, with a hairline
-     between them. Wraps to stacked only when the panel is too narrow. */
-  flex-direction: row; flex-wrap: wrap;
-  align-items: center; justify-content: center; text-align: center;
-  gap: 10px 20px;
-  width: fit-content; max-width: 100%;
-  margin: 0 auto 2px; padding: 14px 24px;
-}
-.jny-unlock--reveal .jny-unlock__rate {
-  padding-left: 20px;
-  border-left: 1px solid var(--line);
-  font-size: 15px;
-}
-@media (max-width: 560px) {
-  .jny-unlock--reveal .jny-unlock__rate { padding-left: 0; border-left: none; }
-}
 
 /* The certificate is a keepsake, not a fourth option — narrower than the tier
    cards so it reads as a different kind of thing. The cap only binds on wide
    panels; on a phone it stays full width. */
 .jny .cert-wrap { width: 100%; max-width: 420px; margin: 0 auto; }
-
-/* ---- The certificate as a stamp in the corner of the reveal panel ---------
-   A real, scaled-down render rather than a picture of one, so it can never go
-   stale. The share strip is the enlarged view's job: at this size its buttons
-   would be 4px tall and unclickable. */
-.jny-certthumb {
-  position: absolute; top: 0; right: 0;
-  display: flex; flex-direction: column; align-items: center; gap: 6px;
-  width: 128px; padding: 0; border: 0; background: none;
-  cursor: zoom-in;
-}
-.jny-certthumb__inner {
-  /* No fixed height: the box takes the shrunken document's own height, so there
-     is no leftover white below it when the certificate is shorter than the box
-     it was being poured into. */
-  display: block; width: 128px; overflow: hidden;
-  border-radius: 8px; border: 1px solid var(--line);
-  box-shadow: 0 6px 18px rgba(11, 31, 58, 0.16);
-  background: #fff;
-  transition: transform 0.16s ease, box-shadow 0.16s ease;
-}
-/* 420px of certificate, drawn at its real width and shrunk to fit the stamp. */
-/* `zoom`, not `transform: scale()`: a transform draws the document smaller but
-   leaves its full size in the layout, so the parent could only be given a
-   guessed height. Zoom scales the layout box too, and the height follows the
-   content. 420 × 0.3048 = the 128px stamp. */
-.jny-certthumb__inner .cert-wrap {
-  width: 420px; max-width: none; margin: 0;
-  zoom: 0.3048;
-  pointer-events: none;
-}
-/* Anything without zoom falls back to the transform, which needs a height to
-   clip to — a little white below is better than a 420px document in a 128px box. */
-@supports not (zoom: 1) {
-  .jny-certthumb__inner { height: 200px; }
-  .jny-certthumb__inner .cert-wrap {
-    zoom: normal;
-    transform: scale(0.3048); transform-origin: top left;
-  }
-}
-.jny-certthumb__inner .certshare { display: none; }
-.jny-certthumb__cap {
-  font-size: 10.5px; font-weight: 800; letter-spacing: 0.08em;
-  text-transform: uppercase; color: var(--muted);
-}
-.jny-certthumb:hover .jny-certthumb__inner {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(11, 31, 58, 0.22);
-}
-.jny-certthumb:focus-visible .jny-certthumb__inner { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* Enlarged: its own layer over the journey panel, so the certificate is read at
    the size it was designed for without the options scrolling behind it. */
@@ -543,21 +293,6 @@ body.jny-open .needhelp { display: none; }
   width: 34px; height: 34px; border-radius: 50%;
   border: 1px solid var(--line); background: var(--surface); color: var(--ink);
   font-size: 22px; line-height: 1; cursor: pointer;
-}
-
-/* Under ~900px the panel is too narrow to hold a stamp beside the reveal, so it
-   comes back into the flow, centred under it. */
-@media (max-width: 900px) {
-  .jny-certthumb { position: static; margin: 16px auto 0; }
-}
-/* Where the stamp IS pinned to the corner it is out of the flow, so the panel
-   has to reserve its height itself — otherwise the options row slides up under
-   the certificate and its caption. */
-@media (min-width: 901px) {
-  /* The stamp is ~172px of certificate plus its caption, measured off the
-     rendered page — less than that and the options row rides up over it, which
-     is what a smaller figure did. */
-  .jny-reveal { min-height: 200px; }
 }
 
 /* Two pricing paths shown SIDE BY SIDE so they read as two parallel choices,
@@ -645,52 +380,11 @@ body.jny-open .needhelp { display: none; }
 .jny-sched__ph small { display: block; margin-top: 10px; font-size: 11.5px; color: var(--muted); }
 .jny-sched__ph code { background: var(--surface-2); padding: 1px 5px; border-radius: 5px; }
 
-/* Expert directory */
-.jny-experts { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
-.jny-expert {
-  display: flex; align-items: center; gap: 14px;
-  border: 1.5px solid var(--line); border-radius: 14px; padding: 14px;
-}
-.jny-expert__avatar {
-  flex: 0 0 auto;
-  width: 46px; height: 46px; border-radius: 50%;
-  display: grid; place-items: center;
-  color: #fff; font-weight: 800; font-size: 15px;
-}
-.jny-expert__avatar--img { object-fit: cover; }
-.jny-expert__body { flex: 1; min-width: 0; }
-.jny-expert__name { font-size: 15px; font-weight: 800; color: var(--ink); }
-.jny-expert__role { font-size: 12px; color: var(--accent); font-weight: 600; margin-top: 1px; }
-.jny-expert__blurb { font-size: 12.5px; color: var(--muted); margin-top: 4px; line-height: 1.45; }
-.jny-expert__pick {
-  flex: 0 0 auto; border: none; cursor: pointer;
-  background: var(--blue-600); color: #fff; font-weight: 800; font-size: 13px;
-  padding: 10px 15px; border-radius: 10px; white-space: nowrap;
-}
-.jny-expert__pick:hover { filter: brightness(1.06); }
-
-/* The chosen expert, with the list still on screen: the row is marked rather
-   than the list replaced, so the panel below is clearly about THIS person. */
-.jny-expert--picked { border-color: var(--blue-600); box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue-600) 14%, transparent); }
-.jny-expert--picked .jny-expert__pick { background: var(--surface); color: var(--blue-600); box-shadow: inset 0 0 0 1.5px var(--blue-600); }
-
-/* Their booking panel, under the list. */
-.jny-pick {
-  margin-top: 16px;
-  border: 1.5px solid var(--line);
-  border-radius: 14px;
-  padding: 16px;
-}
-.jny-pick__title { margin: 0 0 10px; font-size: 16px; font-weight: 800; color: var(--ink); }
-
 @media (max-width: 560px) {
   /* Thinner bezel on a phone, where 7px of it is a bigger share of the width. */
   .jny__panel { --jny-pad-x: 16px; --jny-pad-y: 20px; border-width: 5px; border-radius: 24px; }
   /* Keep the embedded scheduler from forcing a tall nested scroll on phones. */
   .jny-sched__frame, .jny-sched__frame iframe { min-height: 520px; }
-  .jny-tier { flex-wrap: wrap; }
-  .jny-expert { flex-wrap: wrap; }
-  .jny-expert__pick { width: 100%; }
   .jny-actions .btn { flex-basis: 100%; }
   /* Stack the two pricing paths; the OR becomes a horizontal divider between. */
   .jny-paths { grid-template-columns: 1fr; column-gap: 0; row-gap: 10px; }
@@ -752,27 +446,6 @@ body.jny-open .needhelp { display: none; }
 }
 .jny-phone__code strong { letter-spacing: 0.14em; font-size: 15px; color: var(--ink); }
 
-/* Horizontal tiers: the CTA is pushed to the foot of every card so the three
-   buttons align, with the description above it. (Fallback for browsers without
-   subgrid; the @supports block above takes over where there is.) */
-.jny-tiers .jny-tier__cta { margin-top: auto; width: 100%; }
-.jny-tiers .jny-tier__desc { margin-top: 0; }
-
-/* The revealed bank: mark on the left, name beside it. Wraps to stacked only
-   when a long name can't fit beside the logo on a narrow phone. */
-.jny-unlock__bank {
-  display: flex; flex-direction: row; flex-wrap: wrap;
-  align-items: center; justify-content: center; gap: 8px 12px;
-  margin-top: 6px; text-align: left;
-}
-.jny-unlock__logo {
-  height: 40px; width: auto; max-width: 160px;
-  object-fit: contain;
-  /* Logos ship as flat PNGs on white; a light plate keeps a dark mark legible
-     in dark mode without us re-cutting fifty assets. */
-  background: #fff; border-radius: 8px; padding: 6px 10px;
-}
-
 /* The confirm-and-pay step that now follows slot selection. Framed, because it
    is a second decision on a screen the user may think they have finished. */
 .jny-confirmpay {
@@ -785,7 +458,9 @@ body.jny-open .needhelp { display: none; }
 .jny-confirmpay__lead { font-size: 14px; line-height: 1.6; margin: 0 0 12px; }
 
 /* The options screen only — see .jny__panel's max-width note. */
-.jny__panel--wide { max-width: 1000px; }
+.jny__panel--wide { max-width: 656px; }
+/* Book a call: five chips a row fit in this. */
+.jny__panel--call { max-width: 520px; }
 
 /* ---- A held / booked slot (Option 2, own scheduler) ----------------------- */
 .jny-hold {
@@ -824,6 +499,16 @@ body.jny-open .needhelp { display: none; }
   color: var(--muted);
   line-height: 1.45;
 }
+/* The ticking clock beside the countdown. */
+.jny-hold__timer { display: inline-flex; align-items: center; gap: 4px; vertical-align: -3px; }
+.jny-hold__dial { flex: none; display: block; color: var(--ink); }
+.jny-hold__hand { transform-origin: 12px 12px; }
+.jny-hold__hand--sec { animation: jny-hand 60s steps(60) infinite; }
+.jny-hold__hand--min { animation: jny-hand 600s linear infinite; }
+@keyframes jny-hand { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .jny-hold__hand { animation: none; }
+}
 /* Tabular figures so the countdown doesn't jitter the line as digits change. */
 .jny-hold__clock {
   font-variant-numeric: tabular-nums;
@@ -841,71 +526,6 @@ body.jny-open .needhelp { display: none; }
    description is dropped on a phone; the title already says what the option
    is, and the screen it opens repeats the detail. */
 @media (max-width: 720px) {
-  .jny-reveal {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    column-gap: 12px;
-    align-items: center;
-    margin-bottom: 8px;
-  }
-  .jny-reveal > * { grid-column: 1 / -1; }
-  .jny-reveal > .jny-unlock--reveal { grid-column: 1; }
-  .jny-reveal > .jny-certthumb { grid-column: 2; }
-  .jny-reveal__top:empty { display: none; }
-  .jny-reveal__label { margin-bottom: 8px; font-size: 13px; }
-
-  .jny-unlock--reveal {
-    width: 100%; margin: 0;
-    padding: 10px 12px; gap: 4px;
-    flex-direction: column;
-  }
-  .jny-unlock--reveal .jny-unlock__bank { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-  .jny-unlock--reveal .jny-unlock__logo { width: 104px; height: auto; padding: 2px 6px; }
-  .jny-unlock--reveal .jny-unlock__name { font-size: 18px; }
-  .jny-unlock--reveal .jny-unlock__rate { font-size: 13px; }
-
-  /* 420px of certificate at 76px wide. */
-  .jny-certthumb { margin: 0; width: 76px; gap: 4px; }
-  .jny-certthumb__inner { width: 76px; }
-  .jny-certthumb__inner .cert-wrap { zoom: 0.181; }
-  .jny-certthumb__cap { font-size: 9px; letter-spacing: 0.04em; }
-
-  .jny-reveal__summary { margin-top: 12px; }
-  .jny-reveal__headline,
-  .jny-reveal__summary .jny-reveal__amt,
-  .jny-reveal__summary .jny-reveal__amt span { font-size: 16px; }
-
-  .jny-tiers { margin-top: 18px; gap: 18px; }
-  .jny-tiers .jny-tier {
-    display: grid;
-    /* Resets the desktop subgrid rows, which would stack price over title. */
-    grid-template-rows: auto auto; grid-row: auto;
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: 'price cta' 'title cta';
-    align-items: center; justify-items: start;
-    column-gap: 12px; row-gap: 2px;
-    padding: 16px 12px 12px 14px;
-    text-align: left;
-  }
-  .jny-tiers .jny-tier__price { grid-area: price; text-align: left; font-size: 17px; }
-  .jny-tiers .jny-tier__title { grid-area: title; text-align: left; font-size: 13.5px; line-height: 1.3; }
-  .jny-tiers .jny-tier__desc { display: none; }
-  .jny-tiers .jny-tier__cta {
-    grid-area: cta; width: auto; margin: 0;
-    padding: 10px 12px; font-size: 13px;
-  }
-  .jny-tiers .jny-tier__badge { top: -11px; left: 14px; transform: none; font-size: 10.5px; padding: 2px 10px; }
-
-  /* Expert rows keep their button beside them rather than under them. */
-  .jny-expert { flex-wrap: nowrap; padding: 10px 12px; gap: 10px; }
-  .jny-expert__avatar { width: 38px; height: 38px; font-size: 13px; }
-  .jny-expert__pick { width: auto; padding: 8px 12px; }
-  .jny-expert__blurb { display: none; }
-  .jny-experts { margin-top: 10px; }
-  /* No box of its own on a phone: nested inside the picker's card it cost the
-     date and time controls the width they need to show "Fri 25 Sept". */
-  .jny-pick { margin-top: 12px; padding: 0; border: 0; }
-  .jny-pick > .jny-sub__sub { display: none; }
 
   .jny-sub__title { font-size: 16px; }
   .jny-sub__sub { font-size: 12.5px; margin-top: 3px; }
@@ -922,21 +542,6 @@ body.jny-open .needhelp { display: none; }
 @media (max-height: 760px) {
   .jny__panel { --jny-pad-y: 14px; max-height: 96vh; }
   .jny__head { margin-bottom: 6px; padding-top: 10px; padding-bottom: 8px; }
-  .jny-certthumb__cap { display: none; }
-  .jny-pick > .jny-sub__sub { display: none; }
-  /* "Your expert" and their card sit directly above — the name is on screen. */
-  .jny-pick__title { display: none; }
-  .jny-pick { margin-top: 10px; }
-  .jny-experts { margin-top: 10px; }
-}
-@media (max-width: 720px) {
-  /* A narrower button leaves the title two lines instead of three. */
-  .jny-tiers .jny-tier__cta { padding: 9px 10px; font-size: 12.5px; }
-}
-@media (max-width: 720px) and (max-height: 760px) {
-  .jny-tiers { margin-top: 16px; gap: 16px; }
-  .jny-tiers .jny-tier { padding: 13px 10px 9px 12px; }
-  .jny-reveal__summary { margin-top: 8px; }
 }
 
 /* The pay step under a held time: one full-width button and a single line.
@@ -944,122 +549,30 @@ body.jny-open .needhelp { display: none; }
 .jny-confirmpay { margin-top: 10px; padding: 0; border: 0; background: none; }
 .jny-confirmpay .jny-pay { width: 100%; justify-content: center; }
 .jny-confirmpay .jny-note { margin-top: 6px; }
-/* The chosen expert already heads the panel, so the booking panel needs no box
-   of its own — nested boxes cost the height this screen doesn't have. */
-.jny-pick { border: 0; padding: 0; margin-top: 12px; }
-
-/* ---- Option 3 as sketched: experts as a 2×2 grid of cards ------------------
-   Avatar and name across the top of each card, the select button at its
-   bottom-right. Two columns on a phone too — the cards stack their text, so
-   ~165px each is enough, and a single column would push the date and the pay
-   button off the screen. */
-.jny-experts--grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 12px;
-}
-.jny-experts--grid .jny-expert {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  grid-template-areas: 'avatar body' 'pick pick';
-  align-items: start;
-  gap: 10px;
-  padding: 12px;
-}
-.jny-experts--grid .jny-expert__avatar { grid-area: avatar; width: 40px; height: 40px; font-size: 14px; }
-.jny-experts--grid .jny-expert__body { grid-area: body; }
-.jny-experts--grid .jny-expert__name { font-size: 14px; line-height: 1.25; }
-.jny-experts--grid .jny-expert__role { font-size: 11.5px; line-height: 1.35; }
-.jny-experts--grid .jny-expert__pick {
-  grid-area: pick; justify-self: end;
-  width: auto; padding: 7px 14px; font-size: 12.5px;
-}
-.jny-experts--grid .jny-expert__pick:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* The rule the sketch draws between choosing and paying. */
 .jny-confirmpay--rule { margin-top: 14px; padding-top: 14px; border-top: 1.5px solid var(--line); }
 .jny-pay:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
 
 @media (max-width: 720px) {
-  .jny-experts--grid { gap: 8px; }
-  .jny-experts--grid .jny-expert { padding: 10px; gap: 8px; }
-  .jny-experts--grid .jny-expert__avatar { width: 32px; height: 32px; font-size: 12px; }
-  .jny-experts--grid .jny-expert__name { font-size: 13px; }
-  .jny-experts--grid .jny-expert__role { font-size: 11px; }
-  .jny-experts--grid .jny-expert__pick { padding: 6px 12px; font-size: 12px; }
   .jny-confirmpay--rule { margin-top: 10px; padding-top: 10px; }
 }
 .jny-confirmpay--rule { border-radius: 0; }
-.jny-experts--grid .jny-expert__name,
-.jny-experts--grid .jny-expert__role { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.jny-experts--grid .jny-expert { gap: 8px 10px; padding: 10px 12px; }
-.jny-experts--grid .jny-expert__avatar { width: 36px; height: 36px; }
-/* The sketch's picker is just the two boxes: no sub-line under its heading. */
-.jny-pick .slots__sub { display: none; }
-@media (max-height: 760px) {
-  .jny-pick .slots__zone { display: none; }
-  .jny-experts--grid { margin-top: 8px; }
-}
 .jny__panel { max-height: 96vh; }
-/* The hold on one line under the picker, not a box of its own. */
-.jny-pick .jny-hold { padding: 6px 10px; margin-top: 8px; }
-.jny-pick .jny-hold__when { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 0 8px; }
-.jny-pick .jny-hold__when strong { font-size: 14px; }
-.jny-pick .jny-hold__change { padding: 5px 10px; }
-@media (max-height: 760px) {
-  .jny-pick .slots__head { display: none; }
-  .jny-pick .slots__field--phone { margin-top: 0; }
-}
-.jny-pick .jny-hold__row { flex-wrap: nowrap; }
-.jny-pick .jny-hold__when { flex: 1 1 auto; min-width: 0; }
-.jny-pick .jny-hold__when em { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .jny-confirmpay--rule { padding-top: 10px; }
 .jny-confirmpay--rule .jny-pay { margin-top: 0; }
-
 
 /* Option 3 heading centred over the grid; the company on the button's row,
    left of it, so the card reads name → role → company · Select. */
 .jny-sub__title--center { text-align: center; }
-.jny-experts--grid .jny-expert {
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  grid-template-areas: 'avatar body body' 'company company pick';
-  align-items: center;
-}
-.jny-experts--grid .jny-expert__avatar { align-self: start; }
-.jny-expert__company {
-  grid-area: company; min-width: 0;
-  font-size: 12px; font-weight: 700; color: var(--ink-2);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-/* A narrow phone: one card per row. Half-width cards left the company beside
-   the button as "G…" — full width, each card is two short lines and holds it. */
+
 @media (max-width: 420px) {
-  .jny-experts--grid { grid-template-columns: minmax(0, 1fr); gap: 6px; }
-  .jny-experts--grid .jny-expert {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-areas: 'avatar body pick' 'avatar company pick';
-    row-gap: 0; padding: 8px 10px;
-  }
-  .jny-experts--grid .jny-expert__avatar { align-self: center; }
-}
-@media (max-width: 420px) {
-  .jny-experts--grid .jny-expert { padding: 6px 10px; }
-  .jny-experts--grid .jny-expert__name { font-size: 13px; line-height: 1.2; }
-  .jny-experts--grid .jny-expert__role,
-  .jny-expert__company { font-size: 11px; line-height: 1.25; }
-  .jny-experts--grid .jny-expert__avatar { width: 30px; height: 30px; font-size: 11px; }
   .jny-sub__title--center { font-size: 15px; }
 }
 @media (max-width: 420px) and (max-height: 760px) {
   .jny-confirmpay--rule { margin-top: 8px; padding-top: 8px; }
-  /* The countdown says it all ("14:59 left to confirm"); the heading goes. */
-  .jny-pick .jny-hold__when strong { display: none; }
+  
 }
-
-/* Option 3 paging: ‹ heading › on one row. */
-.jny-expert-head { display: flex; align-items: center; justify-content: center; gap: 10px; }
-.jny-expert-head .jny-sub__title { flex: 0 1 auto; min-width: 0; }
 .jny-expert-count { margin-left: 8px; font-size: 12px; font-weight: 700; color: var(--muted); }
 .jny-expert-nav {
   flex: none; width: 32px; height: 32px; border-radius: 50%;
@@ -1070,51 +583,271 @@ body.jny-open .needhelp { display: none; }
 }
 .jny-expert-nav:hover:not(:disabled) { border-color: var(--accent); }
 .jny-expert-nav:disabled { opacity: 0.35; cursor: not-allowed; }
-
-/* Four experts a page: a phone card is two lines — name, then role · company —
-   with Select on the right. `display: contents` lets the body's own lines sit
-   in the card's grid, so the company can share a row with the role. */
-@media (max-width: 420px) {
-  .jny-experts--grid .jny-expert {
-    grid-template-columns: auto auto minmax(0, 1fr) auto;
-    grid-template-areas: 'avatar name name pick' 'avatar role company pick';
-    column-gap: 0; row-gap: 1px;
-  }
-  .jny-experts--grid .jny-expert__avatar { margin-right: 10px; }
-  .jny-experts--grid .jny-expert__pick { margin-left: 10px; }
-  .jny-experts--grid .jny-expert__body { display: contents; }
-  .jny-experts--grid .jny-expert__name { grid-area: name; }
-  .jny-experts--grid .jny-expert__role { grid-area: role; max-width: 150px; }
-  .jny-experts--grid .jny-expert__body > :not(.jny-expert__name):not(.jny-expert__role) { grid-column: 2 / 4; }
-  .jny-expert__company { font-weight: 600; color: var(--muted); }
-  .jny-expert__company::before { content: ' · '; white-space: pre; }
-}
-@media (max-height: 760px) {
-  .jny-experts--grid { gap: 6px; }
-  .jny-experts--grid .jny-expert { padding-top: 7px; padding-bottom: 7px; }
-}
 @media (max-width: 420px) and (max-height: 760px) {
   .jny-expert-nav { width: 28px; height: 28px; font-size: 18px; }
-  .jny-pick .slots { padding: 10px 12px; }
-  .jny-pick .slots__row { margin-top: 8px; }
-  .jny-pick .slots__label { margin-bottom: 3px; }
 }
 @media (max-width: 420px) and (max-height: 760px) {
-  .jny-pick .jny-hold { margin-top: 6px; }
   .jny-confirmpay .jny-note { margin-top: 4px; }
-}
-@media (max-width: 720px) and (max-height: 760px) {
-  .jny-reveal__label { margin-bottom: 6px; }
-}
-
-/* Option 3's Select is a call to action, so it wears the CTA red (.btn--red).
-   The chosen card's "✓ Selected" keeps the outlined style, now in red too. */
-.jny-experts--grid .jny-expert__pick { background: var(--red-600); color: #fff; }
-.jny-experts--grid .jny-expert__pick:hover:not(:disabled) { background: #b91820; filter: none; }
-.jny-experts--grid .jny-expert--picked { border-color: var(--red-600); box-shadow: 0 0 0 3px color-mix(in srgb, var(--red-600) 14%, transparent); }
-.jny-experts--grid .jny-expert--picked .jny-expert__pick {
-  background: var(--surface); color: var(--red-600);
-  box-shadow: inset 0 0 0 1.5px var(--red-600);
 }
 /* The note that heads the picker while no expert is chosen. */
 .jny-note--lead { margin: 0 0 8px; }
+
+/* ===== Options screen: reveal cards + "Choose how you want to save" ========== */
+.jny-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 12px;
+}
+.jny-top__card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 16px;
+  background: var(--surface);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; text-align: center; min-width: 0;
+}
+.jny-top__label { margin: 0; font-size: 15px; font-weight: 800; color: var(--ink); line-height: 1.3; }
+.jny-top__id { display: flex; align-items: center; justify-content: center; gap: 10px; min-width: 0; }
+.jny-top__verified { flex: none; display: block; }
+.jny-top__logo {
+  display: grid; place-items: center;
+  flex: none; width: 96px; height: 40px; object-fit: contain;
+  border: 1px solid var(--line); border-radius: 10px; background: #fff; padding: 4px 8px;
+}
+.jny-top__logo--blank { font-size: 20px; }
+.jny-top__name { font-size: 18px; font-weight: 800; color: var(--ink); line-height: 1.15; min-width: 0; overflow-wrap: anywhere; }
+.jny-top__note { margin: 0; font-size: 12.5px; color: var(--muted); }
+.jny-top__cert {
+  border: none; background: none; padding: 0; cursor: pointer; font-family: inherit;
+  font-size: 12.5px; font-weight: 700; color: var(--accent);
+}
+.jny-top__cert:hover { text-decoration: underline; }
+.jny-top__amtrow { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.jny-top__coins { flex: none; display: block; width: 42px; height: 42px; }
+.jny-top__amt { margin: 0; white-space: nowrap; font-size: 25px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; line-height: 1.1; }
+.jny-top__amt span { font-size: 15px; font-weight: 700; color: var(--ink-3); letter-spacing: 0; }
+.jny-top__ahead { margin: 0; font-size: 14px; font-weight: 700; color: var(--ink-2); }
+.jny-top__ahead strong { color: var(--accent); }
+
+.jny-choose { margin: 18px 0 22px; text-align: center; font-size: 17px; font-weight: 800; color: var(--ink); }
+
+.jny-plans {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  align-items: stretch;
+}
+.jny-plan {
+  position: relative;
+  display: flex; flex-direction: column; gap: 6px;
+  border: 1.5px solid var(--line);
+  border-radius: 16px;
+  padding: 16px 16px 14px;
+  background: var(--surface);
+  min-width: 0;
+}
+.jny-plan--popular {
+  border-color: var(--blue-600);
+  box-shadow: 0 10px 26px rgba(29, 99, 196, 0.16);
+}
+.jny-plan--owned { background: var(--surface-2); }
+.jny-plan__badge {
+  position: absolute; top: -11px; left: 50%; transform: translateX(-50%);
+  padding: 3px 12px; border-radius: 999px;
+  background: var(--blue-600); color: #fff;
+  font-size: 10.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap;
+}
+/* Wraps rather than overflows: "✓ Purchased" + "Recommended" don't fit side by side in a narrow card. */
+.jny-plan__top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 8px; min-width: 0; }
+.jny-plan__price { font-size: 20px; font-weight: 800; color: var(--ink); white-space: nowrap; }
+.jny-plan--owned .jny-plan__price { font-size: 15px; color: #0f7a44; }
+.jny-plan__tag { font-size: 12px; font-weight: 800; color: var(--muted); white-space: nowrap; }
+.jny-plan--green .jny-plan__tag { color: #1a9d6a; }
+.jny-plan--blue .jny-plan__tag { color: var(--blue-600); }
+.jny-plan--violet .jny-plan__tag { color: #6a34c9; }
+.jny-plan__name { margin-top: 4px; font-size: 16px; font-weight: 800; color: var(--ink); }
+.jny-plan__title { font-size: 13px; font-weight: 600; color: var(--ink-2); line-height: 1.4; }
+.jny-plan__points { list-style: none; margin: 4px 0 12px; padding: 0; display: grid; gap: 5px; }
+.jny-plan__points li {
+  position: relative; padding-left: 20px;
+  font-size: 13px; color: var(--ink-2); line-height: 1.4;
+}
+.jny-plan__points li::before {
+  content: '✓'; position: absolute; left: 0; top: 0;
+  font-weight: 900; color: #1a9d6a;
+}
+.jny-plan__cta {
+  /* Pinned to the card's bottom so the three buttons line up. */
+  margin-top: auto;
+  border: 1.5px solid var(--blue-600); border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--surface); color: var(--blue-600);
+  font-family: inherit; font-size: 14px; font-weight: 800; cursor: pointer;
+}
+.jny-plan__cta:hover { background: var(--blue-50); }
+.jny-plan--popular .jny-plan__cta { background: var(--blue-600); color: #fff; }
+.jny-plan--popular .jny-plan__cta:hover { background: var(--blue-700); }
+.jny-plan--owned .jny-plan__cta { border-color: var(--line); color: var(--ink-2); background: var(--surface); }
+
+@media (max-width: 720px) {
+  .jny-top { grid-template-columns: 1fr; gap: 10px; }
+  .jny-top__label { font-size: 14px; }
+  .jny-top__amt { font-size: 24px; }
+  .jny-choose { margin: 14px 0 18px; font-size: 16px; }
+  .jny-plans { grid-template-columns: 1fr; gap: 20px; }
+}
+
+/* ===== Book a call: heading + estimated-savings box, centred pay button ===== */
+.jny-callhead { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.jny-callhead__text { flex: 1 1 auto; min-width: 0; }
+.jny-callhead__save {
+  flex: none;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  border: 1px solid var(--line); border-radius: 12px;
+  padding: 8px 14px; text-align: center;
+}
+.jny-callhead__save strong { font-size: 18px; font-weight: 800; color: var(--ink); letter-spacing: -0.01em; }
+.jny-callhead__save span { font-size: 11px; font-weight: 700; color: var(--muted); }
+.jny-confirmpay--call { text-align: center; }
+.jny-confirmpay--call .jny-pay {
+  width: auto; min-width: 220px; padding-left: 28px; padding-right: 28px;
+  background: var(--blue-600); box-shadow: 0 8px 20px rgba(29, 99, 196, 0.22);
+}
+.jny-confirmpay--call .jny-pay:hover:not(:disabled) { background: var(--blue-700); }
+.jny-confirmpay--call .jny-note { font-size: 11.5px; }
+@media (max-width: 560px) {
+  .jny-callhead { gap: 10px; }
+  .jny-callhead__save { padding: 6px 10px; }
+  .jny-callhead__save strong { font-size: 16px; }
+}
+
+/* ===== Screen #5: call confirmed ============================================ */
+.jny-done5 { display: flex; flex-direction: column; gap: 12px; }
+.jny-done5__title { margin: 0; font-size: 18px; font-weight: 800; color: var(--ink); line-height: 1.3; }
+.jny-done5__when { margin: 0; display: flex; flex-direction: column; gap: 2px; }
+.jny-done5__when span { font-size: 14.5px; font-weight: 700; color: var(--ink-2); }
+.jny-done5__when strong { font-size: 22px; font-weight: 800; color: var(--ink); letter-spacing: -0.01em; }
+.jny-done5__line { margin: -4px 0 0; font-size: 13.5px; color: var(--ink-2); line-height: 1.45; }
+.jny-done5__note { margin: -4px 0 0; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+
+.jny-done5__actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.jny-done5__act {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  border: 1.5px solid #cfe0f6; border-radius: 12px;
+  background: var(--surface); color: var(--blue-600);
+  font-family: inherit; font-size: 14px; font-weight: 800;
+  padding: 12px 10px; cursor: pointer;
+}
+.jny-done5__act:hover:not(:disabled) { background: var(--blue-50); border-color: var(--blue-600); }
+.jny-done5__act:disabled { opacity: 0.7; cursor: default; }
+.jny-done5__actions > .jny-done5__act:only-child { grid-column: 1 / -1; }
+
+/* Certificate: thumbnail on the left, title + share strip on the right. */
+.jny-done5__cert {
+  display: flex; align-items: center; gap: 14px;
+  border: 1px solid var(--line); border-radius: 14px; padding: 12px;
+}
+.jny-done5__thumb {
+  flex: none; padding: 0; border: 1px solid var(--line); border-radius: 8px;
+  background: #fff; cursor: zoom-in; overflow: hidden;
+  width: 84px; height: 60px;
+}
+.jny-done5__thumb-inner { display: block; width: 84px; height: 60px; overflow: hidden; pointer-events: none; }
+.jny-done5__thumb-inner .cert-wrap { zoom: 0.2; width: 420px; max-width: none; margin: 0; }
+.jny-done5__thumb-inner .certshare { display: none; }
+.jny-done5__thumb:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.jny-done5__certbody { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.jny-done5__certtitle {
+  margin: 0; display: flex; align-items: center; gap: 6px;
+  font-size: 14.5px; font-weight: 800; color: var(--ink);
+}
+.jny-done5__certtitle svg { color: #1a9d6a; }
+.jny-done5__certbody .certshare { margin: 0; padding: 0; background: none; border: 0; }
+
+/* FAQ: native disclosure rows. */
+.jny-done5__faq { border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px; }
+.jny-done5__faq h5 { margin: 0 0 4px; font-size: 13px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.jny-done5__faq details { border-top: 1px solid var(--line); }
+.jny-done5__faq details:first-of-type { border-top: 0; }
+.jny-done5__faq summary {
+  cursor: pointer; list-style: none;
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  padding: 9px 0; font-size: 14px; font-weight: 700; color: var(--ink);
+}
+.jny-done5__faq summary::-webkit-details-marker { display: none; }
+.jny-done5__faq summary::after { content: '+'; font-size: 18px; font-weight: 700; color: var(--muted); }
+.jny-done5__faq details[open] summary::after { content: '–'; }
+.jny-done5__faq details p { margin: 0 0 10px; font-size: 13px; line-height: 1.5; color: var(--ink-2); }
+
+/* "Have you done your financial health checkup?" + two circles. */
+.jny-done5__next { text-align: center; padding-top: 4px; }
+.jny-done5__nexttitle { margin: 0 0 12px; font-size: 16px; font-weight: 800; color: var(--ink); }
+.jny-done5__circles { display: flex; justify-content: center; gap: 28px; }
+.jny-done5__circle-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 110px; }
+.jny-done5__circle {
+  display: grid; place-items: center;
+  width: 76px; height: 76px; border-radius: 50%;
+  border: 2px dashed var(--line); background: var(--surface-2);
+}
+.jny-done5__circle--logo { border: 0; background: #e3f4ec; color: #2f6b55; }
+.jny-done5__circle-label { font-size: 12.5px; font-weight: 700; color: var(--ink-2); line-height: 1.3; }
+a.jny-done5__circle-wrap { text-decoration: none; border-radius: 14px; padding: 4px; }
+a.jny-done5__circle-wrap:hover .jny-done5__circle--logo { background: #cdebdc; }
+a.jny-done5__circle-wrap:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.jny-done5__circle-cta { font-size: 12px; font-weight: 800; color: var(--blue-600); }
+a.jny-done5__circle-wrap:hover .jny-done5__circle-cta { text-decoration: underline; }
+.jny-done5__certbody .certshare { justify-content: flex-start; gap: 6px; box-shadow: none; }
+/* Outside the dark certificate, its generic Share button takes the card's ink. */
+.jny-done5__certbody .certshare .certshare__btn--generic {
+  background: var(--surface); border: 1.5px solid #cfe0f6; color: var(--blue-600);
+}
+.jny-done5__certbody .certshare .certshare__btn--generic:hover { background: var(--blue-50); color: var(--blue-600); }
+.jny-done5__certbody .certshare__note { color: var(--muted); text-align: left; }
+.jny-done5__certbody .certshare__label { display: none; }
+
+/* ===== Option 3: Book an Expert ============================================= */
+.jny-callhead__aside { font-weight: 600; color: var(--muted); font-size: 0.85em; }
+.jny-xlist {
+  border: 1px solid var(--line); border-radius: 16px;
+  padding: 12px 14px 14px; margin-bottom: 12px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.jny-xlist__head { display: flex; align-items: center; justify-content: space-between; }
+.jny-xlist__head .slots__title { margin: 0; }
+.jny-xlist__pager { display: inline-flex; align-items: center; gap: 6px; }
+.jny-xrow {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; text-align: left;
+  border: 1.5px solid var(--line); border-radius: 12px;
+  background: var(--surface); padding: 8px 10px;
+  font-family: inherit; cursor: pointer;
+}
+.jny-xrow:hover:not(:disabled) { border-color: var(--blue-600); }
+.jny-xrow.is-on { border-color: var(--blue-600); background: var(--blue-50); }
+.jny-xrow:disabled { opacity: 0.5; cursor: not-allowed; }
+.jny-xrow__avatar {
+  flex: none; width: 40px; height: 40px; border-radius: 50%;
+  display: grid; place-items: center; object-fit: cover;
+  color: #fff; font-size: 14px; font-weight: 800;
+}
+.jny-xrow__body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.jny-xrow__name {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px;
+  font-size: 14.5px; font-weight: 800; color: var(--ink);
+}
+.jny-xrow__badge {
+  padding: 1px 8px; border-radius: 999px;
+  background: var(--blue-600); color: #fff;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
+}
+.jny-xrow__role { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* The select box on the right; filled when chosen. */
+.jny-xrow__check {
+  flex: none; width: 24px; height: 24px; border-radius: 7px;
+  border: 1.5px solid #cfe0f6; background: var(--surface);
+  display: grid; place-items: center;
+  color: #fff; font-size: 13px; font-weight: 900;
+}
+.jny-xrow.is-on .jny-xrow__check { background: var(--blue-600); border-color: var(--blue-600); }
+.jny-sub > .slots { margin-bottom: 4px; }
+.jny-done5__line--lead { margin-top: -2px; font-size: 14.5px; }

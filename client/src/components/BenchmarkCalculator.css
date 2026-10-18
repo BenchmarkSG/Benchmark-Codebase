@@ -53,9 +53,8 @@
 /* Non-compact page: the wrapper must not affect layout at all */
 .calc-screen--plain { display: contents; }
 
-/* Heading band. Every colour in it is a local token, because the band is blue
-   on the input screen and plain on the ones after it — the same structure in
-   two skins, not two headers. The variant below restates the SET. */
+/* Heading band — navy on every screen. Every colour in it is a local token so
+   the back arrow and meta on the result screen follow the band's ink. */
 .calc-card .calc-card__head {
   --head-bg: linear-gradient(150deg, var(--blue-600) 0%, var(--navy-800) 100%);
   --head-ink: #fff;
@@ -76,18 +75,9 @@
    its space-between layout. */
 .calc-card .calc-card__title { font-size: 18px; font-weight: 800; color: var(--head-ink); text-align: center; }
 
-/* Navbar variant — the result (and later) screens. The blue is the landing
-   screen's signature; repeating it on every screen turned a highlight into
-   wallpaper and cost the result 60-odd pixels of the phone's height. Same band,
-   same contents, now drawn on the card itself and marked off by a hairline. */
+/* Navbar variant — the result (and later) screens. Same navy band; only the
+   layout changes, putting the back arrow beside the step bar. */
 .calc-card .calc-card__head--nav {
-  --head-bg: var(--surface);
-  --head-ink: var(--ink);
-  --head-ink-2: var(--muted);
-  --head-ink-hover: var(--accent);
-  /* No hairline: the step bar already marks the chrome off from the result, and
-     a rule across the phone's width cut the screen in two. */
-  --head-edge: transparent;
   /* The nav row is taller than the title, so it needs no extra bottom room. */
   padding: 12px 14px 10px;
   /* Back arrow and step bar share one line, topped out so the arrow lands on
@@ -98,7 +88,7 @@
 }
 .calc-card .calc-card__head--nav .calc-card__nav { flex: none; width: 32px; }
 .calc-card .calc-card__head--nav .steps { flex: 1 1 auto; min-width: 0; }
-.calc-card .calc-card__head--nav .steps--oncard { margin-top: 0; }
+.calc-card .calc-card__head--nav .steps--onblue { margin-top: 0; }
 /* A spacer the width of the back button, so the bar is centred on the card
    rather than on what is left of it after the arrow. */
 .calc-card .calc-card__head--nav::after { content: ''; flex: none; width: 32px; }
@@ -208,14 +198,9 @@
    comparison, two buttons and their fine print inside one screen beside the
    hero copy. Nothing here changes what is said — only the air between. */
 .calc-card .res__overpay { margin-top: 4px; }
-.calc-card .res__overpay-amt { margin-top: 11px; font-size: 24px; padding: 11px 14px; }
-.calc-card .res__overpay-sub { margin-top: 7px; font-size: 13.5px; }
-.calc-card .res__overpay-lead { font-size: 13.5px; }
-.calc-card .res__cmp-label { font-size: 13.5px; }
-.calc-card .res__piggy { width: 40px; height: 37px; }
+.calc-card .res__overpay-amt { margin-top: 10px; padding: 10px 14px; }
 .calc-card .res__cmp { margin-top: 12px; row-gap: 8px; }
-.calc-card .res__tagline { margin-top: 12px; font-size: 13.5px; }
-.calc-card .res__findout { margin-top: 10px; margin-bottom: 8px; font-size: 13.5px; }
+.calc-card .res__findout { margin-top: 12px; margin-bottom: 8px; }
 .calc-card .res__locked { margin-top: 10px; }
 .calc-card .res__detail { margin-top: 10px; }
 .calc-card .res__reveal-note { margin-top: 6px; }
@@ -378,6 +363,8 @@
 .calcbox__field.is-invalid select:focus,
 .calcbox__field.is-invalid input:focus { border-color: var(--red-600); }
 
+.calcbox__submit { align-self: center; }
+.calcbox__secure { margin: -6px 0 0; text-align: center; font-size: 12px; font-weight: 600; color: var(--muted); }
 .calcbox__error { color: var(--red-600); font-size: 13px; font-weight: 600; }
 
 /* Result side */
@@ -408,13 +395,7 @@
 }
 /* Every line on this screen but the amount is set the same way — one size, one
    weight, one colour — so the figure is the only thing that stands out. */
-.res__overpay-lead { display: block; font-size: 14px; font-weight: 700; color: var(--ink-2); }
-/* One colour, taken from the band it sits on. */
-.res__piggy { flex: none; display: block; color: #438f74; width: 42px; height: 38px; }
-/* A little clear air between each piggy and the amount, so the pair frames
-   the figure rather than crowding it. */
-.res__overpay-amt .res__piggy:first-child { margin-right: 10px; }
-.res__overpay-amt .res__piggy:last-child { margin-left: 10px; }
+.res__overpay-lead { display: block; font-size: 17.5px; font-weight: 700; color: var(--ink-2); }
 /* The emphasised word blends with its neighbours in colour; a red hand-drawn
    brush swoosh underneath does the emphasising instead of a red font. */
 .res__overpay-lead strong { position: relative; color: inherit; font-weight: 800; }
@@ -424,25 +405,17 @@
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 18' fill='none'%3E%3Cpath d='M5 11 C40 5 95 15 135 7' stroke='%23d81e29' stroke-width='7' stroke-linecap='round'/%3E%3Cpath d='M9 14 C46 10 92 16 129 11' stroke='%23d81e29' stroke-width='3.2' stroke-linecap='round' opacity='0.6'/%3E%3C/svg%3E") no-repeat center / 100% 100%;
   pointer-events: none;
 }
-/* The saving is the one number on this screen that decides anything, so it is
-   the thing that gets a panel. It used to be inline-block to fit a brush swoosh
-   that has since gone; as a block it takes the card's width and the wash reads
-   as a band behind the figure rather than a highlighter behind the digits. */
-/* The saving, flanked by the two piggy banks. */
+/* The saving and its caption, together in one rounded box. */
 .res__overpay-amt {
-  display: flex; align-items: center; justify-content: center; gap: 14px;
-  margin-top: 16px; font-size: 26px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em;
+  display: inline-flex; flex-direction: column; align-items: center; gap: 2px;
+  margin-top: 14px; padding: 10px 22px;
   background: var(--blue-50);
   border: 1px solid #c3d8f5;
-  border-radius: 16px;
-  padding: 14px 16px;
+  border-radius: 14px;
 }
-/* Second half of the headline, under the amount: it introduces the comparison
-   panel below, so it is sized between the amount and the panel's labels. */
-.res__overpay-sub {
-  display: block;
-  margin-top: 10px; font-size: 14px; font-weight: 700; color: var(--ink-2);
-}
+.res__overpay-amt strong { font-size: 29px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; line-height: 1.15; }
+.res__overpay-per { font-size: 16.5px; font-weight: 700; color: var(--ink-2); letter-spacing: 0; }
+.res__overpay-sub { font-size: 13px; font-weight: 700; color: var(--muted); }
 
 /* "You vs best" — two rows of label + figure. One shared 2-column grid (rows
    are display:contents) so both figures line up whatever the label width, and
@@ -453,23 +426,27 @@
 .res__cmp {
   margin-top: 16px;
   display: grid;
-  grid-template-columns: auto max-content max-content;
+  /* Content-width columns, centred as a block, so the tile, label and figure
+     sit together instead of being pushed out to the card's edges. */
+  grid-template-columns: max-content max-content max-content;
   justify-content: center;
   align-items: center;
-  column-gap: 10px;
-  row-gap: 10px;
+  column-gap: 14px;
+  row-gap: 8px;
 }
 .res__cmp-row { display: contents; }
-.res__cmp-label { font-size: 14px; font-weight: 700; color: var(--ink-2); text-align: left; }
+.res__cmp-label { font-size: 14px; font-weight: 700; line-height: 1.25; color: var(--ink-2); text-align: left; }
+/* Bank tile with its caption ("Your Current Bank" / "Best Bank") under it. */
+.res__cmp-who { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.res__cmp-who figcaption { font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; }
 /* Tinted, not white: these were white chips read against the blue wash that
    used to sit behind this block. With the wash on the amount above, a white
    chip on a white card is carried by its border alone. */
 .res__cmp-val {
-  display: inline-flex; align-items: center; justify-content: flex-end; gap: 8px;
-  min-width: 62px; text-align: right;
-  border-radius: 9px; padding: 6px 10px; font-size: 15px; font-weight: 800;
-  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  text-align: right; white-space: nowrap;
+  font-size: 17px; font-weight: 800; color: var(--ink);
 }
+.res__cmp-val--best { color: var(--accent); }
 .res__cmp-logo {
   display: block; width: auto; height: 18px; object-fit: contain;
   border-radius: 4px; background: rgba(255, 255, 255, 0.2);
@@ -480,31 +457,19 @@
 .res__cmp-bank {
   position: relative; overflow: hidden;
   display: inline-flex; align-items: center; justify-content: center;
-  width: 96px; height: 34px; padding: 0 8px;
+  width: 104px; height: 40px; padding: 0 8px;
   border-radius: 9px; border: 1px solid var(--line); background: #fff;
 }
 .res__cmp-bank:empty { border-color: transparent; background: transparent; }
 .res__cmp-bank .res__cmp-logo { max-width: 100%; }
 .res__cmp-bankname {
-  font-size: 11.5px; font-weight: 800; color: var(--ink-2); line-height: 1.15;
+  font-size: 12.5px; font-weight: 800; color: var(--ink-2); line-height: 1.15;
   text-align: center; overflow: hidden; display: -webkit-box;
   -webkit-line-clamp: 2; -webkit-box-orient: vertical;
 }
-.res__cmp-bank--masked { background: var(--surface); }
-/* A blurred stand-in "logo" — a wordmark-shaped smudge — under a frost. */
-.res__cmp-mask {
-  position: absolute; inset: 9px 12px;
-  border-radius: 6px;
-  background:
-    linear-gradient(90deg, #1f5fbf 0 22%, transparent 22% 30%, #6b87b5 30% 100%) left center / 100% 55% no-repeat;
-  filter: blur(4px); opacity: 0.55;
-}
-.res__cmp-bank--masked::after {
-  content: ''; position: absolute; inset: 0;
-  background: rgba(255, 255, 255, 0.35);
-  backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
-}
-.res__cmp-lock { position: relative; z-index: 1; font-size: 13px; }
+.res__cmp-bank--masked { background: var(--surface-2); gap: 5px; }
+.res__cmp-lock { font-size: 14px; }
+.res__cmp-locked { font-size: 12.5px; font-weight: 800; color: var(--muted); }
 .res__cmp-bank--revealed { animation: res-unmask 0.45s ease-out; }
 @keyframes res-unmask {
   from { filter: blur(6px); opacity: 0.4; }
@@ -514,22 +479,24 @@
   .res__cmp-bank--revealed { animation: none; }
 }
 
-/* Same size AND weight as every other line here — it used to be the one bold
-   sentence, which set it against the amount rather than with its neighbours. */
-.res__tagline { margin-top: 16px; text-align: center; font-size: 14px; line-height: 1.4; font-weight: 700; color: var(--ink-2); }
 /* Lead-in above the reveal button. Quieter than the tagline so the two don't
    compete, but darker than the fine print below the button. */
 .res__findout {
   margin-top: 18px; margin-bottom: 10px;
-  text-align: center; font-size: 14px; line-height: 1.4; font-weight: 700; color: var(--ink-2);
+  text-align: center; font-size: 17.5px; line-height: 1.4; font-weight: 700; color: var(--ink-2);
 }
 
 /* Primary result CTA — blue (overrides the global red .btn* unification) */
 .res .res__detail { background: var(--blue-600); color: #fff; box-shadow: 0 8px 20px rgba(29, 99, 196, 0.26); }
 .res .res__detail:hover { background: var(--blue-700); }
-/* The paid reveal is the one red call to action on the result. */
-.res .res__detail--reveal { background: var(--red-600); box-shadow: 0 8px 20px rgba(216, 30, 41, 0.26); }
-.res .res__detail--reveal:hover { background: #b8141e; }
+/* The paid reveal: blue, same as the other result CTAs. */
+.res .res__detail--reveal {
+  font-size: 16.5px;
+  /* Sized to its label rather than the card, like the form's CTA. */
+  display: flex; width: fit-content; margin-left: auto; margin-right: auto;
+  padding-left: 28px; padding-right: 24px;
+}
+.res__detail-chev { flex: none; margin-left: -2px; }
 .res__rates { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; margin-top: 14px; }
 .res__rate { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; text-align: center; }
 .res__rate--best { border-color: #c3d8f5; background: var(--blue-50); }
@@ -647,7 +614,7 @@
 .res__lead-err { text-align: center; margin-top: 8px; color: #c0392b; font-size: 12.5px; font-weight: 700; }
 
 .res__detail { margin-top: 14px; }
-.res__reveal-note { text-align: center; margin-top: 8px; color: var(--muted); font-size: 12px; font-weight: 600; }
+.res__reveal-note { text-align: center; margin-top: 8px; color: var(--muted); font-size: 12.5px; font-weight: 600; }
 .res__save { margin-top: 10px; }
 .res__detail-note { display: block; text-align: center; margin-top: 8px; color: var(--muted); font-size: 11.5px; }
 
@@ -685,9 +652,4 @@
   color: var(--ink-3);
   text-align: center;
 }
-/* Narrow phone: the amount needs the width, so the piggies shrink a little. */
-@media (max-width: 420px) {
-  .res__piggy, .calc-card .res__piggy { width: 34px; height: 31px; }
-  .res__overpay-amt .res__piggy:first-child { margin-right: 4px; }
-  .res__overpay-amt .res__piggy:last-child { margin-left: 4px; }
-}
+
