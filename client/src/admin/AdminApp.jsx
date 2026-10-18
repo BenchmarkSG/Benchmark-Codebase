@@ -195,7 +195,7 @@ const SECTIONS = [
       { key: 'company', label: 'Bank / Company' },
       { key: 'years_experience', label: 'Yrs' },
       { key: 'products', label: 'Products', get: (r) => (r.products || []).join(', ') },
-      { key: 'photo_url', label: 'Photo', type: 'link' },
+      { key: 'photo_url', label: 'Avatar', type: 'avatar' },
       // Editable here because it's the fastest place to fix the gap this column
       // exists to expose: without a link, this advisor's bookings fall through
       // to the house Calendly account. supabase/advisor_calendly.sql refuses an

@@ -1,4 +1,5 @@
 import { Fragment, useState } from 'react';
+import { expertAvatar } from '../lib/avatars.js';
 import { safeHttpUrl } from '../lib/safeUrl.js';
 import { formatDate } from '../lib/formatDate.js';
 
@@ -164,6 +165,8 @@ export default function EditableTable({ columns, rows, rowKey, onSave, onVerify,
                         )
                       ) : c.type === 'freshness' ? (
                         <FreshnessChip value={rawValue(c, row)} />
+                      ) : c.type === 'avatar' ? (
+                        <img className="adm-avatar" src={expertAvatar(row)} alt="" width="28" height="28" />
                       ) : c.type === 'link' ? (
                         safeHttpUrl(rawValue(c, row))
                           ? <a className="adm-val" href={safeHttpUrl(rawValue(c, row))} target="_blank" rel="noopener noreferrer">View</a>

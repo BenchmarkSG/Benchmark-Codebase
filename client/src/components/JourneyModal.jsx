@@ -16,6 +16,7 @@ import { markUnlocked } from '../lib/unlocks.js';
 import { getAccessToken } from '../lib/supabase.js';
 import { confirmLink, verificationCode, whatsappReady, looksDialable, missingCountryCode, saveWhatsAppNumber } from '../lib/whatsapp.js';
 import { logoForBank } from './BankLogos.jsx';
+import { expertAvatar } from '../lib/avatars.js';
 import StepBar from './StepBar.jsx';
 import SlotPicker, { zoneShort } from './SlotPicker.jsx';
 import ContactFields from './ContactFields.jsx';
@@ -1100,11 +1101,12 @@ Kind regards,
         id: a.id, real: true, name: a.full_name,
         role: a.specialization || 'Banking specialist',
         company: a.company || '', years: a.years_experience || null,
-        blurb: a.description || '', photo: a.photo_url || null,
+        blurb: a.description || '',
+        photo: expertAvatar({ photo_url: a.photo_url, specialization: a.specialization, id: a.id }),
         calendly_url: a.calendly_url || '', accent: '#2f7bd8',
         away: blackoutsFor(a.id),
       }))
-    : SAMPLE_EXPERTS;
+    : SAMPLE_EXPERTS.map((x) => ({ ...x, photo: expertAvatar({ role: x.role, id: x.id }) }));
 
   /* Four experts on screen at a time — the screen has to fit without scrolling,
      so more than four are paged with arrows rather than stacked. */

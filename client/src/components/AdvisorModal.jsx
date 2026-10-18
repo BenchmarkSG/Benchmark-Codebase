@@ -7,6 +7,8 @@ import { useConfirm } from './ConfirmProvider.jsx';
 import { friendlyError } from '../lib/friendlyError.js';
 import { firstInvalidField, validationMessage } from '../lib/validateForm.js';
 import { calendlyUrl } from '../lib/safeUrl.js';
+import { AVATARS, avatarForSpecialization } from '../lib/avatars.js';
+import AvatarPicker from './AvatarPicker.jsx';
 
 const EMPTY = {
   full_name: '', email: '', phone: '', serves: '',
@@ -15,12 +17,13 @@ const EMPTY = {
   description: '', contact_consent: false, accepted_terms: false,
 };
 
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5 MB
 
 export default function AdvisorModal({ open, onClose }) {
   const [form, setForm] = useState(EMPTY);
   const [products, setProducts] = useState([]);
-  const [photo, setPhoto] = useState(null);
+  // The avatar they picked. Until they pick, the one for their specialisation
+  // is shown selected, and that is what gets saved.
+  const [avatar, setAvatar] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
@@ -35,14 +38,14 @@ export default function AdvisorModal({ open, onClose }) {
     const dirty = !done && (
       form.full_name || form.email || form.phone || form.company || form.serves ||
       form.years_experience || form.specialization || form.calendly_url || form.description ||
-      products.length || photo || form.contact_consent || form.accepted_terms
+      products.length || avatar || form.contact_consent || form.accepted_terms
     );
     if (dirty && !(await confirm({
       title: 'Discard your application?',
       body: 'You’ve started filling this in — closing now will clear everything you entered.',
       confirmLabel: 'Discard', cancelLabel: 'Keep editing',
     }))) return;
-    setForm(EMPTY); setProducts([]); setPhoto(null); setError(''); setDone(false);
+    setForm(EMPTY); setProducts([]); setAvatar(''); setError(''); setDone(false);
     onClose();
   };
 
@@ -56,15 +59,7 @@ export default function AdvisorModal({ open, onClose }) {
   const toggleProduct = (p) =>
     setProducts((list) => (list.includes(p) ? list.filter((x) => x !== p) : [...list, p]));
 
-  const onPhoto = (e) => {
-    setError('');
-    const f = e.target.files?.[0] || null;
-    if (f && f.size > MAX_PHOTO_BYTES) {
-      e.target.value = '';
-      return setError('Photo must be under 5 MB.');
-    }
-    setPhoto(f);
-  };
+  const chosenAvatar = avatar || avatarForSpecialization(form.specialization)?.src || AVATARS[0].src;
 
   const submit = async (e) => {
     e.preventDefault();
@@ -85,16 +80,8 @@ export default function AdvisorModal({ open, onClose }) {
     if (!form.accepted_terms) return setError('Please accept the Terms & Conditions to continue.');
     setBusy(true);
     try {
-      let photo_url = null;
-      if (photo) {
-        const safe = photo.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const path = `${crypto.randomUUID()}-${safe}`;
-        const { error: upErr } = await supabase.storage
-          .from('advisor-photos')
-          .upload(path, photo, { cacheControl: '3600', upsert: false });
-        if (upErr) throw new Error(`Could not upload your photo: ${upErr.message}. Remove the photo and try again, or use a smaller file.`);
-        photo_url = supabase.storage.from('advisor-photos').getPublicUrl(path).data.publicUrl;
-      }
+      // One of the illustrated avatars, saved as its /avatars/… path.
+      const photo_url = chosenAvatar;
 
       const { error: insErr } = await supabase.from('advisors').insert({
         full_name: form.full_name.trim(),
@@ -220,11 +207,10 @@ export default function AdvisorModal({ open, onClose }) {
                 <textarea rows={3} value={form.description} onChange={set('description')} placeholder="A short bio: your background, notable deals, and how you help clients." />
               </label>
 
-              <label className="adv__field">
-                <span>Photo <em>(optional)</em></span>
-                <input className="adv__file" type="file" accept="image/*" onChange={onPhoto} />
-                {photo && <small className="adv__filehint">Selected: {photo.name}</small>}
-              </label>
+              <fieldset className="adv__field adv__fieldset">
+                <span>Your avatar</span>
+                <AvatarPicker value={chosenAvatar} onChange={setAvatar} />
+              </fieldset>
 
               <label className="adv__check">
                 <input type="checkbox" checked={form.contact_consent} onChange={set('contact_consent')} />

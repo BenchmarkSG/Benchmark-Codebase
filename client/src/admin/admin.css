@@ -291,3 +291,6 @@ select.adm-input { background: var(--surface); color: inherit; }
   letter-spacing: 0.04em; color: var(--muted); font-weight: 700;
 }
 .adm-avail__past td { opacity: 0.6; }
+
+/* Advisor avatar in the advisors table. */
+.adm-avatar { display: block; width: 28px; height: 28px; border-radius: 50%; object-fit: cover; object-position: 50% 50%; }

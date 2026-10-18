@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import AvatarPicker from '../components/AvatarPicker.jsx';
+import { expertAvatar } from '../lib/avatars.js';
 import './advisorDashboard.css';
 import DashboardLayout from './DashboardLayout.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -191,8 +193,6 @@ function AdvisorWorkspace({ advisor, onProfileSaved }) {
         <AccountSettings
           role="advisor"
           onProfileSaved={onProfileSaved}
-          /* Mirror the account photo onto the public advisor card. */
-          syncAvatar={advisor?.id ? (url) => updateMyAdvisor(advisor.id, { photo_url: url }) : undefined}
         />
       )}
     </>
@@ -470,6 +470,8 @@ function ProfileEditor({ advisor, onSaved }) {
     description: advisor.description || '',
     calendly_url: advisor.calendly_url || '',
   });
+  // The avatar clients see: one of the illustrated set (lib/avatars.js).
+  const [avatar, setAvatar] = useState(() => expertAvatar(advisor));
   const [products, setProducts] = useState(advisor.products || []);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -497,6 +499,7 @@ function ProfileEditor({ advisor, onSaved }) {
         description: form.description.trim() || null,
         calendly_url: cal,
         products,
+        photo_url: avatar,
       });
       setSaved(true);
       onSaved?.();
@@ -507,7 +510,9 @@ function ProfileEditor({ advisor, onSaved }) {
 
   return (
     <form className="aprof" onSubmit={save}>
-      <p className="aprof__note">This is how clients see you in the expert picker. Your name, photo, mobile and password live in <strong>Account settings</strong>.</p>
+      <p className="aprof__note">This is how clients see you in the expert picker. Your name, mobile and password live in <strong>Account settings</strong>.</p>
+      <div className="aprof__field"><span>Your avatar</span>
+        <AvatarPicker value={avatar} onChange={setAvatar} /></div>
       <div className="aprof__row">
         <label className="aprof__field"><span>Company / background</span>
           <input value={form.company} onChange={set('company')} placeholder="ex-DBS" /></label>
