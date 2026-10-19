@@ -489,7 +489,10 @@ export default function BenchmarkCalculator({ onDetailedFeedback, onReveal, comp
                   aria-label="Go back"
                   onClick={() => { setResult(null); setBack(true); }}
                 >
-                  ←
+                  {/* A chevron: the reveal CTA below carries the arrow. */}
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden="true">
+                    <path d="M15 5 L8 12 L15 19" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
                 </button>
                 <span className="calc-card__meta" aria-hidden="true" />
               </div>
@@ -641,10 +644,11 @@ function Result({ result, product, compact, localCcy, country = 'SG', yourBank =
   // names a bank — those keep the generic wording.
   const namedBank = yourBank && yourBank !== 'Other' ? yourBank : '';
   const productLabel = product?.label || result.product || 'Product';
-  // What each row's figure is — "Overdraft Rate", or the cost for fee products.
-  const metricLabel = crossBorder ? 'All-in cost'
-    : moneyMetric ? 'Annual charges'
-    : `${productLabel} Rate`;
+  // What each row's figure is: the product itself ("Housing Loan"), or the
+  // cost for fee products. Title case, as a label.
+  const metricLabel = crossBorder ? 'All-in Cost'
+    : moneyMetric ? 'Annual Charges'
+    : productLabel.replace(/\b\w/g, (c) => c.toUpperCase());
   // "8% p.a." — the unit rides on the figure when it is an annual rate.
   const perAnnum = !moneyMetric && result.unit === '% p.a.' ? ' p.a.' : '';
   const bankLogo = useMemo(() => (namedBank ? logoForBank(country, namedBank) : null), [country, namedBank]);
@@ -810,11 +814,11 @@ function Result({ result, product, compact, localCcy, country = 'SG', yourBank =
             {revealBusy
               ? (unlockedTier ? 'Opening…' : 'Opening secure checkout…')
               : (unlockedTier ? 'View Your Best Bank' : `Reveal Best Bank for ${revealLabel}`)}
-            {/* A chevron, not "→": the back button in the band above is an arrow,
-                and the two shouldn't read as the same control. */}
+            {/* An arrow, not a chevron: the back button in the band above is the
+                chevron, and the two shouldn't read as the same control. */}
             {!revealBusy && (
               <svg className="res__detail-chev" viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">
-                <path d="M9 5 L16 12 L9 19" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M4.5 12 H19 M13 6 L19 12 L13 18" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             )}
           </button>

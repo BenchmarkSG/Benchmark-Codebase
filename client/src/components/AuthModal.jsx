@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './AuthModal.css';
 import { useAuth } from '../context/AuthContext.jsx';
 import { GoogleIcon } from './BrandIcons.jsx';
@@ -8,7 +8,7 @@ import { friendlyError } from '../lib/friendlyError.js';
 import { firstInvalidField, validationMessage } from '../lib/validateForm.js';
 import { clearAfterAuth } from '../lib/afterAuth.js';
 
-export default function AuthModal({ open, onClose }) {
+export default function AuthModal({ open, onClose, initialMode = 'signin', initialEmail = '' }) {
   const { configured, user, signInWithEmail, signUpWithEmail, signInWithGoogle, resetPassword } = useAuth();
   const [mode, setMode] = useState('signin'); // 'signin' | 'signup' | 'reset'
   const [form, setForm] = useState({ name: '', email: '', phone: '', income: '', password: '', confirm: '' });
@@ -31,6 +31,15 @@ export default function AuthModal({ open, onClose }) {
   };
 
   useModalA11y(open, cardRef, handleClose);
+
+  // Each open starts on the mode the caller asked for ("Sign Up" on a booking
+  // confirmation opens on sign-up), with the email they booked with filled in.
+  useEffect(() => {
+    if (!open) return;
+    setMode(initialMode === 'signup' ? 'signup' : 'signin');
+    setError(''); setNotice('');
+    if (initialEmail) setForm((f) => ({ ...f, email: initialEmail }));
+  }, [open, initialMode, initialEmail]);
 
   if (!open) return null;
 

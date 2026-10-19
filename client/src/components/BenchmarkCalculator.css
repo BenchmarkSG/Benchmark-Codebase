@@ -198,7 +198,7 @@
    comparison, two buttons and their fine print inside one screen beside the
    hero copy. Nothing here changes what is said — only the air between. */
 .calc-card .res__overpay { margin-top: 4px; }
-.calc-card .res__overpay-amt { margin-top: 10px; padding: 10px 14px; }
+.calc-card .res__overpay-amt { margin-top: 10px; padding: 6px 14px; }
 .calc-card .res__cmp { margin-top: 12px; row-gap: 8px; }
 .calc-card .res__findout { margin-top: 12px; margin-bottom: 8px; }
 .calc-card .res__locked { margin-top: 10px; }
@@ -392,6 +392,8 @@
    the two comparison rows (.res__cmp below). */
 .res__overpay {
   text-align: center; margin-top: 16px;
+  /* Shrink-wrapped to the headline, so the amount box below can span it. */
+  width: fit-content; max-width: 100%; margin-left: auto; margin-right: auto;
 }
 /* Every line on this screen but the amount is set the same way — one size, one
    weight, one colour — so the figure is the only thing that stands out. */
@@ -407,8 +409,11 @@
 }
 /* The saving and its caption, together in one rounded box. */
 .res__overpay-amt {
-  display: inline-flex; flex-direction: column; align-items: center; gap: 2px;
-  margin-top: 14px; padding: 10px 22px;
+  display: flex; flex-direction: column; align-items: center; gap: 0;
+  /* As wide as the headline above, inset by about a letter each side — from
+     the "e" of "Hey" to the "n" of "losing". */
+  margin: 14px 0.7em 0 0.75em; padding: 6px 22px;
+  font-size: 17.5px; /* the headline's size, so the em insets match its letters */
   background: var(--blue-50);
   border: 1px solid #c3d8f5;
   border-radius: 14px;
@@ -435,7 +440,11 @@
   row-gap: 8px;
 }
 .res__cmp-row { display: contents; }
-.res__cmp-label { font-size: 14px; font-weight: 700; line-height: 1.25; color: var(--ink-2); text-align: left; }
+.res__cmp-label { font-size: 12.5px; font-weight: 700; line-height: 1.25; color: var(--ink-2); text-align: left; }
+/* Label and figure line up with the bank TILE, not with tile + caption: they
+   sit at the top of the row, as tall as the tile, centred within it. */
+.res__cmp-label,
+.res__cmp-val { align-self: start; min-height: 40px; display: flex; align-items: center; }
 /* Bank tile with its caption ("Your Current Bank" / "Best Bank") under it. */
 .res__cmp-who { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .res__cmp-who figcaption { font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; }
@@ -443,7 +452,7 @@
    used to sit behind this block. With the wash on the amount above, a white
    chip on a white card is carried by its border alone. */
 .res__cmp-val {
-  text-align: right; white-space: nowrap;
+  text-align: left; justify-content: flex-start; white-space: nowrap;
   font-size: 17px; font-weight: 800; color: var(--ink);
 }
 .res__cmp-val--best { color: var(--accent); }

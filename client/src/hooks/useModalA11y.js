@@ -43,7 +43,12 @@ export function useModalA11y(open, cardRef, onRequestClose) {
 
     const onKey = (e) => {
       if (!isTop()) return; // only the topmost modal reacts to keys
-      if (e.key === 'Escape') { e.stopPropagation(); closeRef.current?.(); return; }
+      if (e.key === 'Escape') {
+        // An open dropdown inside the modal (the country-code picker) takes
+        // Escape for itself: it closes the list, not the whole modal.
+        if (e.target?.closest?.('[aria-haspopup="listbox"][aria-expanded="true"]')) return;
+        e.stopPropagation(); closeRef.current?.(); return;
+      }
       if (e.key !== 'Tab' || !card) return;
       const nodes = Array.from(card.querySelectorAll(FOCUSABLE)).filter((n) => n.offsetParent !== null);
       if (!nodes.length) return;

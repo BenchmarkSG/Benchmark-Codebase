@@ -13,14 +13,16 @@ import { useModalA11y } from '../hooks/useModalA11y.js';
 import { useConfirm } from './ConfirmProvider.jsx';
 import { stashJourney, clearJourney } from '../lib/checkoutReturn.js';
 import { markUnlocked } from '../lib/unlocks.js';
+import { storeAfterAuth, clearAfterAuth } from '../lib/afterAuth.js';
 import { getAccessToken } from '../lib/supabase.js';
-import { confirmLink, verificationCode, whatsappReady, looksDialable, missingCountryCode, saveWhatsAppNumber } from '../lib/whatsapp.js';
+import { chatLink, confirmLink, verificationCode, whatsappReady, looksDialable, missingCountryCode, saveWhatsAppNumber } from '../lib/whatsapp.js';
 import { logoForBank } from './BankLogos.jsx';
 import { expertAvatar } from '../lib/avatars.js';
+import { CALL_FAQ, EXPERT_FAQ } from '../lib/faqs.js';
 import StepBar from './StepBar.jsx';
 import SlotPicker, { zoneShort } from './SlotPicker.jsx';
 import ContactFields from './ContactFields.jsx';
-import { holdCallSlot, confirmCallSlot, releaseCallSlot, SlotTakenError, fullLabel, viewerZone, zoneLabel } from '../lib/booking.js';
+import { prefetchCallSlots, holdCallSlot, confirmCallSlot, rescheduleCallSlot, releaseCallSlot, SlotTakenError, fullLabel, viewerZone, zoneLabel } from '../lib/booking.js';
 import { callInvite, downloadInvite } from '../lib/ics.js';
 
 /* How long is left on a held slot.
@@ -31,11 +33,15 @@ import { callInvite, downloadInvite } from '../lib/ics.js';
  * unexplained "that time has gone" on the way back would read as a bug.
  *
  * Ticks every second; `onExpire` fires once, when it actually runs out. */
-function HoldTimer({ until, onExpire }) {
-  const [left, setLeft] = useState(() => Math.max(0, new Date(until).getTime() - Date.now()));
+function HoldTimer({ until, onExpire, idleMins = 10 }) {
+  // No hold yet: the full allowance, standing still, so the box reads the same
+  // before and after — only the clock starting tells them the hold is live.
+  const idle = !until;
+  const [left, setLeft] = useState(() => (idle ? idleMins * 60000 : Math.max(0, new Date(until).getTime() - Date.now())));
   const firedRef = useRef(false);
   useEffect(() => {
     firedRef.current = false;
+    if (idle) { setLeft(idleMins * 60000); return undefined; }
     const tick = () => {
       const ms = Math.max(0, new Date(until).getTime() - Date.now());
       setLeft(ms);
@@ -48,11 +54,11 @@ function HoldTimer({ until, onExpire }) {
     // would restart the countdown each tick.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [until]);
-  if (left <= 0) return null;
+  if (!idle && left <= 0) return null;
   const mins = Math.floor(left / 60000);
   const secs = Math.floor((left % 60000) / 1000);
   return (
-    <span className="jny-hold__timer">
+    <span className={`jny-hold__timer${idle ? ' is-idle' : ''}`}>
       {/* A small clock beside the countdown: the second hand ticks once a
           second, the minute hand sweeps slowly. Decoration only. */}
       <svg className="jny-hold__dial" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
@@ -69,7 +75,7 @@ function HoldTimer({ until, onExpire }) {
 }
 
 /* Screen 3 — the "reveal + act on it" screen. Three vertical tiers: negotiate
-   yourself ($1), get a coaching call ($99), or hire an expert ($199). The paid
+   yourself (free), get a coaching call (US$19 / US$49 SME), or hire an expert (US$49 / US$99 SME). The paid
    tiers charge via Stripe Checkout (server /api/checkout); on return the modal
    resumes to the Calendly scheduler. If Stripe isn't configured, the paid tiers
    fall back to demo scheduling so the flow still works. */
@@ -77,36 +83,15 @@ function HoldTimer({ until, onExpire }) {
 const CALENDLY_URL = import.meta.env.VITE_CALENDLY_URL || '';
 const SEG_LABEL = { individual: 'Individual', sme: 'SME / Corporate' };
 
-// The confirmation screens' FAQs.
-const CALL_FAQ = [
-  {
-    q: 'What will I do in the call?',
-    a: 'A FeeOptima specialist walks through your benchmark with you — where your bank sits against the market, what rate to ask for, and exactly what to say to your bank.',
-  },
-  {
-    q: 'What should I have ready?',
-    a: 'Your latest statement or letter for this product, and your bank contact (relationship manager or branch). We already have your benchmark.',
-  },
-  {
-    q: 'What if I’m not satisfied?',
-    a: 'You get a 100% refund. Just message us on WhatsApp after the call.',
-  },
-];
+// USD list prices, shown only until the localized price loads. The charge
+// itself is always computed server-side (payments.js).
+const LIST_PRICE = {
+  call:   { individual: 'US$19', sme: 'US$49' },
+  expert: { individual: 'US$49', sme: 'US$99' },
+};
 
-const EXPERT_FAQ = [
-  {
-    q: 'What happens next?',
-    a: 'Your expert will reach out on WhatsApp to plan the negotiation with you — your numbers, your bank, and what to ask for.',
-  },
-  {
-    q: 'Will the expert talk to my bank for me?',
-    a: 'Yes. Once you have planned it together and you give the go-ahead, they lead the negotiation with your bank on your behalf.',
-  },
-  {
-    q: 'What if I’m not satisfied?',
-    a: 'You get a 100% refund. Just message us on WhatsApp.',
-  },
-];
+// The confirmation screens' FAQs (CALL_FAQ, EXPERT_FAQ) live in lib/faqs.js,
+// shared with the landing page's FAQ section.
 
 // The booking track for Options 2 and 3, shown in the header while booking.
 const CALL_STEPS = [
@@ -119,22 +104,22 @@ const TIERS = [
   {
     id: 'email', price: 'Free', tag: 'DIY', accent: 'green',
     name: 'Draft my Email',
-    title: 'I’ll negotiate with my bank',
-    points: ['Ready-to-send email template you can send to your RM'],
+    title: 'I’ll negotiate directly with my bank',
+    points: ['Ready-to-send email template you can send to your relationship manager'],
     cta: 'Generate Email',
   },
   {
-    id: 'call', price: 'S$99', tag: 'Recommended', popular: true, accent: 'blue', // price shown is FX-localized at runtime
+    id: 'call', tag: 'Recommended', popular: true, accent: 'blue', // price: LIST_PRICE (USD), FX-localized at runtime
     name: 'Book a Call',
     title: 'Help me negotiate with my bank!',
     points: ['Select a date & time', '15-min 1:1 coaching call'],
     cta: 'Book a Call',
   },
   {
-    id: 'expert', price: 'S$199', tag: 'Best Results', accent: 'violet', // price shown is FX-localized at runtime
+    id: 'expert', tag: 'Best Results', accent: 'violet', // price: LIST_PRICE (USD), FX-localized at runtime
     name: 'Book an Expert',
     title: 'I need an expert to negotiate on my behalf',
-    points: ['Select an expert', 'Prep & planning', 'Expert leads the negotiation'],
+    points: ['Select an expert', 'Preparation & planning', 'Expert leads the negotiation'],
     cta: 'Book an Expert',
   },
 ];
@@ -477,8 +462,37 @@ function AwayNote({ windows, name }) {
   );
 }
 
+/* "Set a password" for an account that was a guest a moment ago. */
+function SetPassword({ onSave }) {
+  const [pw, setPw] = useState('');
+  const [state, setState] = useState(''); // '' | saving | error
+  const save = async (e) => {
+    e.preventDefault();
+    if (pw.length < 6) { setState('short'); return; }
+    setState('saving');
+    try {
+      const { error } = await onSave(pw);
+      setState(error ? 'error' : '');
+    } catch { setState('error'); }
+  };
+  return (
+    <form className="jny-done5__note" onSubmit={save} noValidate>
+      <label className="jny-field">
+        <span className="jny-label">Your account is ready — set a password to sign in with</span>
+        <input type="password" autoComplete="new-password" minLength={6} placeholder="At least 6 characters"
+          value={pw} onChange={(e) => { setPw(e.target.value); setState(''); }} />
+      </label>
+      {state === 'short' && <p className="jny-done5__note">Use 6 or more characters.</p>}
+      {state === 'error' && <p className="jny-done5__note">We couldn&apos;t save that just now. Please try again.</p>}
+      <button type="submit" className="btn btn--primary" disabled={state === 'saving'}>
+        {state === 'saving' ? 'Saving…' : 'Set password'}
+      </button>
+    </form>
+  );
+}
+
 export default function JourneyModal({ open, onClose, context, onRequireAuth, resume }) {
-  const { user, guest, startGuestSession, upgradeGuest, updateUserMetadata } = useAuth();
+  const { user, guest, startGuestSession, upgradeGuest, updateUserMetadata, updatePassword, passwordPending } = useAuth();
   const [view, setView] = useState('options'); // 'options' | 'email' | 'call' | 'expert'
   const [expert, setExpert] = useState(null);
   const [expertPage, setExpertPage] = useState(0); // Option 3 shows experts four at a time
@@ -493,7 +507,7 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
   const [blackouts, setBlackouts] = useState([]); // upcoming advisor unavailability
   const [sentTo, setSentTo] = useState(null); // advisor id once a lead is created
   const [paymentsEnabled, setPaymentsEnabled] = useState(false);
-  const [prices, setPrices] = useState({}); // { call: 'S$99' | '₹6,199', expert: … }
+  const [prices, setPrices] = useState({}); // { call: 'US$19' | '₹1,599', expert: … }
   const [paidTier, setPaidTier] = useState(null); // 'call' | 'expert' once paid (or demo)
   const [busy, setBusy] = useState(false);
   const [payError, setPayError] = useState('');
@@ -504,6 +518,7 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
   // flash up before the confirmation replaces it.
   const [verifying, setVerifying] = useState(false);
   const bookedRef = useRef(null); // Stripe session already logged to the dashboard
+  const paidSessionRef = useRef(null); // the Stripe session this confirmation was paid with
   const leadRef = useRef(null);   // the lead row for THIS engagement, stamped once a slot is booked
   const unlockRef = useRef(null); // benchmark stage already marked for this tier
   const cardRef = useRef(null);
@@ -542,6 +557,11 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
      one; otherwise what the guest typed in "Your Contact Details". */
   const [contactEmail, setContactEmail] = useState('');
   useEffect(() => { if (user?.email) setContactEmail(user.email); }, [user]);
+  /* Read call availability the moment the modal opens, while the options are
+     still being read, so "Book a Call" opens straight onto the times. */
+  useEffect(() => {
+    if (open) prefetchCallSlots().catch(() => { /* SlotPicker retries and reports */ });
+  }, [open]);
   useEffect(() => {
     if (!open || !user || phone) return;
     // The profile row is the other place a number may already live.
@@ -571,10 +591,13 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
     catch { return null; }
   };
 
-  /* Booking no longer asks for an account first: whoever is here — an account,
-     or a guest session started on the spot — owns the booking. Null only when
-     guest sessions are switched off in Supabase; callers then ask to sign in. */
+  /* Booking never asks for an account: whoever is here — an account, or a
+     guest session started on the spot — owns the booking. Signing in or up is
+     only ever offered on the confirmation, after payment. Null only when
+     "Anonymous sign-ins" is switched off in Supabase (or it can't be reached);
+     callers then show NO_SESSION rather than a sign-in prompt. */
   const ensureSession = async () => (await authUser()) || startGuestSession();
+  const NO_SESSION = 'We couldn’t start your booking just now. Please try again in a moment.';
 
   // Persist a confirmed paid tier (Option 2 call / Option 3 expert) so the admin
   // portal can see who bought what. Idempotent per Stripe session so re-renders
@@ -628,9 +651,13 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
   const [slotErr, setSlotErr] = useState('');
   const [slotBusy, setSlotBusy] = useState(false);
   const [slotsKey, setSlotsKey] = useState(0);       // bump to re-read availability
-  // A time clicked while signed out. Held so signing in without leaving the page
-  // picks up where they were instead of dropping them on an empty grid.
-  const pendingSlotRef = useRef(null);
+  // Back from the "you're confirmed" screen: pick a new time for a call that is
+  // already paid for. The booking keeps its current time until a new one is
+  // secured (reschedule_call_slot), so backing out of this changes nothing.
+  const [rescheduling, setRescheduling] = useState(false);
+  // "Manage this" on a paid option: the booking is being read back (the options
+  // stay on screen meanwhile; their buttons are held so it isn't clicked twice).
+  const [restoringBooking, setRestoringBooking] = useState(false);
   /* How long the booked slot runs. Read from the availability the customer
      actually chose from, so an owner who changes booking_settings.slot_minutes
      gets calendar invites that match. 30 is the table's own default, and the
@@ -689,6 +716,8 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
      ownership is a rank comparison, not an equality. */
   const bookingTier = view === 'expert' ? 'expert' : 'call';
   const ownsTier = (tier) => !!paidTier && TIER_RANK[paidTier] >= TIER_RANK[tier];
+  // The expert view is showing its confirmation, not the picker.
+  const expertConfirmed = view === 'expert' && (verifying || paidTier === 'expert');
 
   /* Take a time.
      Already paid (or nothing to pay) → the hold is confirmed on the spot, since
@@ -697,12 +726,10 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
   const pickSlot = async (iso, mins = 0) => {
     setSlotErr('');
     if (mins) slotMinsRef.current = mins;
-    if (!(await ensureSession())) {
-      pendingSlotRef.current = iso;
-      onRequireAuth?.({ kind: 'journey', context, view, expert });
-      return null;
-    }
+    // Busy from the first moment, so the hold box shows "Holding your time…"
+    // while a guest session starts too, not only once the hold is requested.
     setSlotBusy(true);
+    if (!(await ensureSession())) { setSlotBusy(false); setSlotErr(NO_SESSION); return null; }
     try {
       const leadId = await ensureCallLead();
       if (!leadId) throw new Error('We could not start your booking. Please try again.');
@@ -748,21 +775,35 @@ export default function JourneyModal({ open, onClose, context, onRequireAuth, re
     if (leadId) { try { await releaseCallSlot(leadId); } catch { /* it lapses on its own */ } }
   };
 
+  /* Move a paid call to the time just picked. Nothing to pay and no hold: the
+     booking moves in one step, or stays exactly where it was. */
+  const moveCall = async (iso, mins = 0) => {
+    setSlotErr('');
+    if (mins) slotMinsRef.current = mins;
+    const leadId = leadRef.current;
+    if (!leadId) {
+      setSlotErr('We couldn’t find your booking to move it. Message us on WhatsApp and we’ll change it for you.');
+      return;
+    }
+    setSlotBusy(true);
+    try {
+      await rescheduleCallSlot(leadId, iso);
+      setSlotIso(iso);
+      setRescheduling(false);
+      setSlotsKey((n) => n + 1);
+    } catch (e) {
+      if (e instanceof SlotTakenError) setSlotsKey((n) => n + 1);
+      setSlotErr(e.message || 'We could not change your time. Please try again.');
+    } finally {
+      setSlotBusy(false);
+    }
+  };
+
   const onHoldExpired = () => {
     setSlotIso(null); setHoldUntil(null);
     setSlotsKey((n) => n + 1);
     setSlotErr('Your hold ran out, so the time went back into the pool. Pick another — it only takes a moment.');
   };
-
-  // Signed in from the picker itself (no page reload): resume the click they
-  // already made rather than making them find the time again.
-  useEffect(() => {
-    if (!user || !pendingSlotRef.current) return;
-    const iso = pendingSlotRef.current;
-    pendingSlotRef.current = null;
-    pickSlot(iso);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
 
   const addToCalendar = () => {
     if (!slotIso) return;
@@ -886,11 +927,16 @@ Kind regards,
   // first press never dismisses the thing the user paid for.
   const [certOpen, setCertOpen] = useState(false);
   const [signupState, setSignupState] = useState(''); // '' | sending | sent | taken | error
+  // The confirmation's FAQ shows its first question until the drop-down opens it.
+  const [faqOpen, setFaqOpen] = useState(false);
   /* Option 3 has no time slot: the expert contacts the customer. Choosing an
      expert (with contact details in) starts a 10-minute window to pay — kept
      in the browser only; nothing is reserved server-side. */
   const [expertContact, setExpertContact] = useState({ phone: '', valid: false });
   const [expertHoldUntil, setExpertHoldUntil] = useState(null);
+  // The paid-for expert's WhatsApp number. Only ever comes from the server's
+  // check of the Stripe session (see /api/checkout/session) — never stored.
+  const [expertWhatsApp, setExpertWhatsApp] = useState('');
   const [expertNote, setExpertNote] = useState('');
   useEffect(() => {
     if (view !== 'expert' || !expert || !expertContact.valid || expertHoldUntil || paidTier === 'expert') return;
@@ -978,8 +1024,30 @@ Kind regards,
       switchBookingTier(resume.view);
       setExpert(resume.expert || null);
       setSentTo(null); setPaidTier(resume.unlockedTier || null); setPayError('');
+      setSignupState('');
+      // Signed in from a confirmation screen: put the confirmation back.
+      const c = resume.confirmed;
+      if (c?.tier) {
+        bookingOwnerRef.current = c.tier === 'call' || c.tier === 'expert' ? c.tier : null;
+        savedBookingsRef.current = {};
+        leadRef.current = c.leadId || null;
+        setPaidTier(c.tier);
+        setSlotIso(c.slotIso || null);
+        setSlotBooked(!!c.slotBooked);
+        setHoldUntil(null);
+        setRescheduling(false);
+        if (c.phone) setPhone(c.phone);
+        if (c.contactEmail) setContactEmail(c.contactEmail);
+        paidSessionRef.current = c.sessionId || null;
+        if (c.tier === 'expert' && c.sessionId) {
+          getAccessToken().then((tok) => getCheckoutSession(c.sessionId, tok))
+            .then((s) => { if (s?.paid) setExpertWhatsApp(s.expertWhatsApp || ''); })
+            .catch(() => { /* the confirmation reads fine without it */ });
+        }
+      }
       return;
     }
+    setRescheduling(false);
     if (resume) {
       setView(VIEW_FOR_TIER[resume.tier] || resume.tier || 'options');
       bookingOwnerRef.current = resume.tier === 'call' || resume.tier === 'expert' ? resume.tier : null;
@@ -1005,7 +1073,9 @@ Kind regards,
             return;
           }
           // Payment confirmed — log the paid engagement + unlock the source benchmark.
+          paidSessionRef.current = resume.sessionId;
           applyUnlock(resume.tier);
+          if (resume.tier === 'expert') setExpertWhatsApp(s.expertWhatsApp || '');
           if (resume.tier === 'call' || resume.tier === 'expert') {
             // The hold becomes a booking HERE and nowhere else: this is the first
             // point at which the payment is known to have gone through. Until it
@@ -1032,6 +1102,7 @@ Kind regards,
       }
     } else {
       setView('options'); setExpert(null); setSentTo(null); setPaidTier(null); setPayError(''); setSlotBooked(false);
+      setExpertWhatsApp('');
       setSlotIso(null); setHoldUntil(null); setSlotErr('');
       bookingOwnerRef.current = null; savedBookingsRef.current = {}; leadRef.current = null;
     }
@@ -1073,7 +1144,7 @@ Kind regards,
     if (!open) return undefined;
     const ccy = context?.currency || 'SGD';
     let on = true;
-    Promise.all(['call', 'expert'].map((t) => getTierPrice(t, ccy).then((p) => [t, p])))
+    Promise.all(['call', 'expert'].map((t) => getTierPrice(t, ccy, segment).then((p) => [t, p])))
       .then((pairs) => {
         if (!on) return;
         const next = {};
@@ -1084,13 +1155,12 @@ Kind regards,
       })
       .catch(() => {});
     return () => { on = false; };
-  }, [open, context?.currency]);
+  }, [open, context?.currency, segment]);
 
-  // Localized label for a tier. The hardcoded fallback is an SGD price, so it is
-  // only used for an SGD benchmark — anywhere else it put "S$199" in front of an
-  // Indian customer whenever the price call failed. Empty until it loads.
-  const priceOf = (tier, fallback) =>
-    prices[tier] || ((context?.currency || 'SGD') === 'SGD' ? fallback : '');
+  // Localized label for a tier; until it loads (or if the lookup fails), the
+  // USD list price — which is also what checkout charges when FX is down.
+  const priceOf = (tier) =>
+    prices[tier] || LIST_PRICE[tier]?.[segment === 'sme' ? 'sme' : 'individual'] || '';
 
   // Upcoming blocked windows, keyed by advisor (admin → Advisor availability).
   const blackoutsFor = (id) => blackouts.filter((b) => b.advisor_id === id).slice(0, 6);
@@ -1154,17 +1224,63 @@ Kind regards,
 
   // No sign-in to pick an option: contact details are collected in the
   // booking itself, and the account is offered once the booking is confirmed.
-  const chooseTier = (id) => {
+  const chooseTier = async (id, owned = false) => {
     switchBookingTier(id);
+    // Already paid for: go straight to the finished confirmation, with no
+    // loading message or empty panel in between. The expert confirmation needs
+    // nothing from the lookup (the purchase alone confirms it), so it opens at
+    // once and the row fills in the name and number. A call needs its time, so
+    // that waits for the lookup, but never on one that hangs: after a moment
+    // the screen switches anyway.
+    if (owned && id === 'expert') restoreBooking(id);
+    else if (owned && id === 'call') {
+      await Promise.race([restoreBooking(id), new Promise((r) => setTimeout(r, 1500))]);
+      setRestoringBooking(false); // a hung lookup must not leave the buttons dead
+    }
     setView(id);
+  };
+
+  /* Read a paid option's booking back from the database, so "Manage this" opens
+     the confirmation. The browser only remembers THAT it was paid for; the time
+     and expert live on the lead row (readable by its owner, guests included).
+     Matched to this benchmark when it was saved, else to the product. */
+  const restoreBooking = async (tier) => {
+    if (!isSupabaseConfigured) return;
+    setRestoringBooking(true);
+    try {
+      let q = supabase.from('leads')
+        .select('id, slot_start, phone, email, advisor_id, advisor_name, booked')
+        .eq('source', tier)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      // A call counts once its time is booked; an expert has no time to book.
+      if (tier === 'call') q = q.eq('booked', true);
+      q = context?.benchmarkId ? q.eq('benchmark_id', context.benchmarkId) : q.eq('product', context?.productId || '');
+      const { data } = await q;
+      const row = data?.[0];
+      if (!row) return; // paid, nothing booked yet: the form is right after all
+      leadRef.current = row.id;
+      if (row.phone) setPhone(row.phone);
+      if (row.email && !user) setContactEmail(row.email);
+      if (tier === 'call') {
+        setSlotIso(row.slot_start || null);
+        setSlotBooked(true);
+        setHoldUntil(null);
+      } else {
+        setExpert(experts.find((x) => x.id === row.advisor_id)
+          || { id: row.advisor_id || 'expert', name: row.advisor_name || 'Your expert' });
+      }
+    } catch { /* fall back to the form */ } finally {
+      setRestoringBooking(false);
+    }
   };
 
   // Redirect to Stripe Checkout for a paid tier; stash context to resume on return.
   const pay = async (tier, adv, over = {}) => {
     // A guest session is enough to pay: the booking rows are owned by it, and
-    // the Stripe receipt goes to the email from the contact details. Only when
-    // guest sessions are unavailable does this fall back to signing in.
-    if (!(await ensureSession())) { onRequireAuth?.({ kind: 'journey', context, view, expert: adv || expert }); return; }
+    // the Stripe receipt goes to the email from the contact details. No session
+    // means nowhere to record the booking — never take the money then.
+    if (!(await ensureSession())) { setPayError(NO_SESSION); return; }
     setBusy(true); setPayError('');
     const snap = adv ? {
       id: adv.id, real: !!adv.real, name: adv.name, role: adv.role, company: adv.company,
@@ -1329,7 +1445,10 @@ Kind regards,
     // Give a held slot back immediately. It would lapse on its own, but leaving
     // it parked for the full window blocks a customer who is ready to book now.
     if (slotIso && !slotBooked) dropHold({ quiet: true });
-    setView('options'); setExpert(null); setPayError(''); setExpertHoldUntil(null);
+    setRescheduling(false);
+    // A paid expert stays chosen, so "Manage this" reopens the same confirmation.
+    if (!ownsTier('expert')) setExpert(null);
+    setView('options'); setPayError(''); setExpertHoldUntil(null);
   };
 
   // Where to go once a slot is booked. Close first, then navigate: the modal's
@@ -1350,18 +1469,40 @@ Kind regards,
     window.location.hash = `#health-check/${id}`;
   };
 
+  /* Signing in or up from a confirmation screen lands back ON it — including
+     through a Google or email-confirm reload, which throws all of this state
+     away. So the intent carries what the confirmation shows. The expert's
+     WhatsApp number is not stored: it only ever comes from the server's check
+     of the Stripe session, so the session id travels instead and the number
+     is asked for again on the way back. */
+  const confirmedIntent = () => ({
+    kind: 'journey', context, view, expert,
+    confirmed: paidTier ? {
+      tier: paidTier, slotIso, slotBooked, leadId: leadRef.current,
+      phone: phone || null, contactEmail: contactEmail || null,
+      sessionId: paidSessionRef.current,
+    } : null,
+  });
+
   /* "Sign Up" on the confirmation: the guest session becomes an account with
      the email they booked with — same user id, so the booking comes along.
-     Supabase emails a link to confirm it. */
+     Supabase emails a link to confirm it; opening it signs them in and brings
+     them back here. No guest session (Option 1 is free, so nothing started
+     one) or no email to use → the regular sign-up form instead. */
   const signUp = async () => {
-    if (!guest || !contactEmail) { onRequireAuth?.({ kind: 'journey', context, view }); return; }
+    if (!guest || !contactEmail) {
+      onRequireAuth?.(confirmedIntent(), { mode: 'signup', email: contactEmail || '' });
+      return;
+    }
     setSignupState('sending');
+    storeAfterAuth(confirmedIntent());
     try {
       const { error } = await upgradeGuest(contactEmail.trim());
       if (error) {
+        clearAfterAuth();
         setSignupState(/already|registered|exists/i.test(error.message || '') ? 'taken' : 'error');
       } else setSignupState('sent');
-    } catch { setSignupState('error'); }
+    } catch { clearAfterAuth(); setSignupState('error'); }
   };
 
   // Screen #5 for Option 3 — the expert is paid for.
@@ -1370,13 +1511,48 @@ Kind regards,
     body: (
       <p className="jny-done5__line jny-done5__line--lead">
         <strong>{expert?.name || 'Your expert'}</strong>
-        {(expert?.role || expert?.company) ? <> ({[expert?.role, expert?.company].filter(Boolean).join(', ')})</> : null}
+        {/* Their WhatsApp number in the brackets — only there when the server
+            verified the payment and the expert is a real advisor (the sample
+            experts have no number). */}
+        {expertWhatsApp ? (
+          <> ({chatLink(expertWhatsApp)
+            ? <a href={chatLink(expertWhatsApp)} target="_blank" rel="noopener noreferrer"><strong>{expertWhatsApp}</strong></a>
+            : <strong>{expertWhatsApp}</strong>})</>
+        ) : null}
         {' '}will contact you{phone ? <> on <strong>{phone}</strong></> : null} and plan with you to lead the negotiation with your bank.
       </p>
     ),
     calendar: false,
     faq: EXPERT_FAQ,
   });
+
+  /* "Potential Annual Savings": label, coin mark, amount. The options screen's
+     card, and the same thing (smaller) in the Option 2 and 3 headers. */
+  const renderSavings = () => (
+    <>
+      <p className="jny-top__label">
+        {perTransfer ? 'Potential Savings' : isYield ? 'Potential Extra Earnings' : 'Potential Annual Savings'}
+      </p>
+      <div className="jny-top__amtrow">
+        {/* Savings mark: a stack of coins with an up arrow. */}
+        <svg className="jny-top__coins" viewBox="0 0 56 56" width="64" height="64" aria-hidden="true">
+          <rect width="56" height="56" rx="14" fill="#e3f4ec" />
+          <g fill="#3f8a6c">
+            <ellipse cx="24" cy="15" rx="11" ry="4.2" />
+            <path d="M13 18.2 a11 4.2 0 0 0 22 0 v5.6 a11 4.2 0 0 1 -22 0 Z" />
+            <path d="M13 27 a11 4.2 0 0 0 22 0 v5.6 a11 4.2 0 0 1 -22 0 Z" />
+            <path d="M13 35.8 a11 4.2 0 0 0 22 0 v5.6 a11 4.2 0 0 1 -22 0 Z" />
+          </g>
+          <circle cx="38" cy="38" r="9.5" fill="#2f6b55" stroke="#e3f4ec" strokeWidth="2" />
+          <path d="M38 43 V33.4 M34 37.2 L38 33.2 L42 37.2" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        <p className="jny-top__amt">
+          {savings ? fmtSaving(savings) : '—'}
+          {savings ? <span> /{perTransfer ? 'transfer' : 'year'}</span> : null}
+        </p>
+      </div>
+    </>
+  );
 
   // Screen #5 for Option 2 — the call is paid for and booked.
   const renderCallConfirmed = () => {
@@ -1448,40 +1624,58 @@ Kind regards,
         {signupState === 'taken' && (
           <p className="jny-done5__note">
             That email already has an account.{' '}
-            <button type="button" className="jny-linkbtn" onClick={() => onRequireAuth?.({ kind: 'journey', context, view })}>Sign in</button>
+            <button type="button" className="jny-linkbtn" onClick={() => onRequireAuth?.(confirmedIntent(), { mode: 'signin', email: contactEmail || '' })}>Sign in</button>
           </p>
         )}
         {signupState === 'error' && (
           <p className="jny-done5__note">We couldn&apos;t start your sign-up just now. Please try again.</p>
         )}
+        {/* Signed up from here: the email is confirmed, the password is not set
+            yet (Supabase only takes one after the email is verified). */}
+        {user && passwordPending && <SetPassword onSave={updatePassword} />}
 
-        {/* The shareable certificate: a thumbnail that opens it full size, and
-            the same share strip the full certificate carries. */}
+        {/* The shareable certificate: title over a thumbnail that opens it full
+            size on the left; "Share" over the network buttons on the right. */}
         <div className="jny-done5__cert">
-          <button type="button" className="jny-done5__thumb" onClick={() => setCertOpen(true)} aria-label="Open your certificate">
-            <span className="jny-done5__thumb-inner" aria-hidden="true">
-              <Certificate segment={segment} product={context?.product} savingPct={savingPct} company={company} holderName={holderName} />
-            </span>
-          </button>
-          <div className="jny-done5__certbody">
+          <div className="jny-done5__certcol">
             <p className="jny-done5__certtitle">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <circle cx="12" cy="9" r="6" /><path d="M8.5 14 7 22l5-3 5 3-1.5-8" />
               </svg>
               Your certificate
             </p>
-            <CertificateShare segment={segment} caption={CERT_SHARE_TEXT} buildFile={buildCertFile} onShare={shareCertificate} shared={shared} />
+            <button type="button" className="jny-done5__thumb" onClick={() => setCertOpen(true)} aria-label="Open your certificate">
+              <span className="jny-done5__thumb-inner" aria-hidden="true">
+                <Certificate segment={segment} product={context?.product} savingPct={savingPct} company={company} holderName={holderName} />
+              </span>
+            </button>
+          </div>
+          <div className="jny-done5__certbody">
+            <CertificateShare segment={segment} caption={CERT_SHARE_TEXT} buildFile={buildCertFile} onShare={shareCertificate} shared={shared} shareHeading />
           </div>
         </div>
 
-        <div className="jny-done5__faq">
+        <div className={`jny-done5__faq${faqOpen ? ' is-open' : ''}`}>
           <h5>FAQ</h5>
-          {faq.map((f) => (
+          {(faqOpen ? faq : faq.slice(0, 1)).map((f) => (
             <details key={f.q}>
               <summary>{f.q}</summary>
               <p>{f.a}</p>
             </details>
           ))}
+          {/* The drop-down sits on the box's bottom edge: more questions below. */}
+          {faq.length > 1 && (
+            <button
+              type="button" className="jny-done5__faqmore"
+              aria-expanded={faqOpen}
+              aria-label={faqOpen ? 'Show fewer questions' : `Show ${faq.length - 1} more questions`}
+              onClick={() => setFaqOpen((o) => !o)}
+            >
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true">
+                <path d="M6 9.5 L12 15.5 L18 9.5" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          )}
         </div>
 
         <div className="jny-done5__next">
@@ -1491,32 +1685,29 @@ Kind regards,
           <div className="jny-done5__circles">
             {sme ? (
               <>
-                <a className="jny-done5__circle-wrap" href="#health-check/treasury_efficiency" onClick={openCheck('treasury_efficiency')}>
+                <div className="jny-done5__circle-wrap jny-done5__circle-wrap--btn">
                   <span className="jny-done5__circle jny-done5__circle--logo" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M3 10 12 4l9 6" /><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8" /><path d="M3 20h18" />
-                    </svg>
+                    <img className="jny-done5__circle-img" src="/images/treasury-efficiency.png" alt="" width="44" height="44" />
                   </span>
-                  <span className="jny-done5__circle-label">Treasury Efficiency</span>
-                  <span className="jny-done5__circle-cta">Calculate →</span>
-                </a>
-                <a className="jny-done5__circle-wrap" href="#health-check/operational_efficiency" onClick={openCheck('operational_efficiency')}>
+                  {/* Only the button opens the assessment; the icon is decoration. */}
+                  <a className="jny-done5__circle-btn" href="#health-check/treasury_efficiency" onClick={openCheck('treasury_efficiency')}>Treasury<br />Efficiency</a>
+                </div>
+                <div className="jny-done5__circle-wrap jny-done5__circle-wrap--btn">
                   <span className="jny-done5__circle jny-done5__circle--logo" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="3.2" />
-                      <path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" />
-                    </svg>
+                    <img className="jny-done5__circle-img" src="/images/operational-efficiency.png" alt="" width="44" height="44" />
                   </span>
-                  <span className="jny-done5__circle-label">Operational Efficiency</span>
-                  <span className="jny-done5__circle-cta">Calculate →</span>
-                </a>
+                  {/* Only the button opens the assessment; the icon is decoration. */}
+                  <a className="jny-done5__circle-btn" href="#health-check/operational_efficiency" onClick={openCheck('operational_efficiency')}>Operational<br />Efficiency</a>
+                </div>
               </>
             ) : (
-              <>
-                {/* Placeholders — what goes in these is still to be decided. */}
-                <span className="jny-done5__circle" aria-hidden="true" />
-                <span className="jny-done5__circle" aria-hidden="true" />
-              </>
+              <div className="jny-done5__circle-wrap jny-done5__circle-wrap--btn">
+                <span className="jny-done5__circle jny-done5__circle--badge" aria-hidden="true">
+                  <img className="jny-done5__circle-img" src="/images/personal-wealth.png" alt="" width="76" height="76" />
+                </span>
+                {/* Only the button opens the scorecard; the icon is decoration. */}
+                <a className="jny-done5__circle-btn" href="#health-check/personal_wealth" onClick={openCheck('personal_wealth')}>Personal Wealth<br />Scorecard</a>
+              </div>
             )}
           </div>
         </div>
@@ -1536,12 +1727,24 @@ Kind regards,
             className="jny__backarrow"
             onClick={() => {
               if (view === 'options') { requestClose(); return; }
+              // A booked call: back from the confirmation means "change my
+              // time". Back from THAT leaves for the options, booking intact —
+              // nothing moves until a new time is confirmed.
+              if (view === 'call' && ownScheduler && ownsTier('call') && slotBooked && !rescheduling) {
+                setSlotErr('');
+                setRescheduling(true);
+                return;
+              }
               // The expert list is a step inside its own view: back leaves the
-              // chosen expert before it leaves the view.
-              if (expert) { setExpert(null); setPayError(''); return; }
+              // chosen expert before it leaves the view. Not once it is paid
+              // for: then this is the confirmation, and back means the options.
+              if (expert && !expertConfirmed) { setExpert(null); setPayError(''); return; }
               back();
             }}
-            aria-label={view === 'options' ? 'Back to your result' : expert ? 'Back to experts' : 'Back to options'}
+            aria-label={view === 'options' ? 'Back to your result'
+              : (view === 'call' && ownScheduler && ownsTier('call') && slotBooked)
+                ? (rescheduling ? 'Back to options' : 'Change the date and time')
+              : expert && !expertConfirmed ? 'Back to experts' : 'Back to options'}
           >
             {/* An SVG chevron, not a "‹": the glyph's own side bearings sit it
                 off-centre in a round button, and every font moves it again. */}
@@ -1559,8 +1762,9 @@ Kind regards,
                negotiation itself. */
             <StepBar
               steps={CALL_STEPS}
-              current={view === 'call'
-                ? ((paidTier === 'call' && slotBooked) ? 'negotiate' : slotIso ? 'confirm' : 'book')
+              current={verifying ? 'negotiate' /* back from paying: no jump */
+                : view === 'call'
+                ? ((ownsTier('call') && slotBooked && !rescheduling) ? 'negotiate' : rescheduling ? 'book' : slotIso ? 'confirm' : 'book')
                 : (paidTier === 'expert' ? 'negotiate' : expertHoldUntil ? 'confirm' : 'book')}
               className="steps--jny steps--onblue"
             />
@@ -1583,9 +1787,11 @@ Kind regards,
         <div className="jny-top">
           <div className="jny-top__card jny-top__card--bank">
             <p className="jny-top__label">Here’s the bank that beats your bank</p>
-            <div className="jny-top__id">
+            {/* Icon on the left, spanning both lines; the logo + name on the
+                first line and the note under them, starting below the logo. */}
+            <div className="jny-top__body">
               {/* "Verified bank" mark: a bank building with a tick, on a mint disc. */}
-              <svg className="jny-top__verified" viewBox="0 0 56 56" width="52" height="52" aria-hidden="true">
+              <svg className="jny-top__verified" viewBox="0 0 56 56" width="64" height="64" aria-hidden="true">
                 <circle cx="28" cy="28" r="28" fill="#e3f4ec" />
                 <g fill="#3f8a6c">
                   <path d="M28 12 L42 19.5 V22 H14 V19.5 Z" />
@@ -1598,14 +1804,16 @@ Kind regards,
                 <circle cx="39.5" cy="38.5" r="8.5" fill="#2f6b55" stroke="#e3f4ec" strokeWidth="2" />
                 <path d="M35.6 38.6 L38.4 41.3 L43.4 35.9" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              {bankLogo
-                ? <img className="jny-top__logo" src={bankLogo.img} alt="" width="120" height="40" />
-                : <span className="jny-top__logo jny-top__logo--blank" aria-hidden="true">🏦</span>}
-              <span className="jny-top__name">{bank || 'Your best-match bank'}</span>
+              <div className="jny-top__id">
+                {bankLogo
+                  ? <img className="jny-top__logo" src={bankLogo.img} alt="" width="120" height="40" />
+                  : <span className="jny-top__logo jny-top__logo--blank" aria-hidden="true">🏦</span>}
+                <span className="jny-top__name">{bank || 'Your best-match bank'}</span>
+              </div>
+              <p className="jny-top__note">
+                Based on the details you provided
+              </p>
             </div>
-            <p className="jny-top__note">
-              (Based on the details you provided{context?.benchmarkRate != null ? <> · {withUnit(context.benchmarkRate)}</> : null})
-            </p>
           </div>
           <div className="jny-top__card jny-top__card--save">
             {ahead ? (
@@ -1616,27 +1824,7 @@ Kind regards,
               </>
             ) : (
               <>
-                <p className="jny-top__label">
-                  {perTransfer ? 'Potential Savings' : isYield ? 'Potential Extra Earnings' : 'Potential Annual Savings'}
-                </p>
-                <div className="jny-top__amtrow">
-                  {/* Savings mark: a stack of coins with an up arrow. */}
-                  <svg className="jny-top__coins" viewBox="0 0 56 56" width="48" height="48" aria-hidden="true">
-                    <rect width="56" height="56" rx="14" fill="#e3f4ec" />
-                    <g fill="#3f8a6c">
-                      <ellipse cx="24" cy="15" rx="11" ry="4.2" />
-                      <path d="M13 18.2 a11 4.2 0 0 0 22 0 v5.6 a11 4.2 0 0 1 -22 0 Z" />
-                      <path d="M13 27 a11 4.2 0 0 0 22 0 v5.6 a11 4.2 0 0 1 -22 0 Z" />
-                      <path d="M13 35.8 a11 4.2 0 0 0 22 0 v5.6 a11 4.2 0 0 1 -22 0 Z" />
-                    </g>
-                    <circle cx="38" cy="38" r="9.5" fill="#2f6b55" stroke="#e3f4ec" strokeWidth="2" />
-                    <path d="M38 43 V33.4 M34 37.2 L38 33.2 L42 37.2" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  <p className="jny-top__amt">
-                    {savings ? fmtSaving(savings) : '—'}
-                    {savings ? <span> /{perTransfer ? 'transfer' : 'year'}</span> : null}
-                  </p>
-                </div>
+                {renderSavings()}
               </>
             )}
           </div>
@@ -1686,7 +1874,7 @@ Kind regards,
                     )}
                     <div className="jny-plan__top">
                       <span className="jny-plan__price">
-                        {owned ? (current ? '✓ Purchased' : '✓ Included') : (priceOf(t.id, t.price) || '…')}
+                        {owned ? (current ? '✓ Purchased' : '✓ Included') : ((t.id === 'email' ? t.price : priceOf(t.id)) || '…')}
                       </span>
                       <span className="jny-plan__tag">{t.tag}</span>
                     </div>
@@ -1695,7 +1883,7 @@ Kind regards,
                     <ul className="jny-plan__points">
                       {t.points.map((pt) => <li key={pt}>{pt}</li>)}
                     </ul>
-                    <button className="jny-plan__cta" onClick={() => chooseTier(t.id)}>
+                    <button className="jny-plan__cta" disabled={restoringBooking} onClick={() => chooseTier(t.id, owned)}>
                       {owned ? (current ? 'Manage this' : 'Open') : t.cta}
                     </button>
                   </div>
@@ -1761,27 +1949,34 @@ Kind regards,
             </label>
 
             <div className="jny-actions">
-              <button className="btn btn--primary" onClick={copyEmail}>{copied ? 'Copied ✓' : 'Copy email'}</button>
-              <a className="btn btn--red" href={mailtoHref}>Open in mail app →</a>
+              <button className="btn btn--primary jny-btn-blue" onClick={copyEmail}>{copied ? 'Copied ✓' : 'Copy email'}</button>
+              <a className="btn btn--red jny-btn-blue" href={mailtoHref}>Open in mail app →</a>
             </div>
             <p className="jny-note">You send this yourself from your own inbox — we never email your bank on your behalf.</p>
+            {/* Option 1's equivalent of the confirmation screen's "Sign Up". */}
+            {!user && (
+              <p className="jny-note">
+                Want this saved to a dashboard?{' '}
+                <button type="button" className="jny-linkbtn" onClick={() => onRequireAuth?.(confirmedIntent(), { mode: 'signup' })}>Sign up</button>
+                {' '}or{' '}
+                <button type="button" className="jny-linkbtn" onClick={() => onRequireAuth?.(confirmedIntent(), { mode: 'signin' })}>sign in</button>
+                {' '}— you&apos;ll come straight back here.
+              </p>
+            )}
           </div>
         )}
 
-        {/* BOOK A CALL ($99) */}
+        {/* BOOK A CALL (US$19 individual · US$49 SME) */}
         {view === 'call' && (
           <div className="jny-sub">
-            {!(paidTier === 'call' && slotBooked) && (
+            {!(verifying && slotIso) && !(ownsTier('call') && slotBooked && !rescheduling) && (
             <div className="jny-callhead">
               <div className="jny-callhead__text">
                 <h4 className="jny-sub__title">Book your call with a specialist</h4>
                 <p className="jny-sub__sub">A FeeOptima specialist reviews your numbers and coaches you.</p>
               </div>
               {savings ? (
-                <div className="jny-callhead__save">
-                  <strong>{fmtSaving(savings)}</strong>
-                  <span>{perTransfer ? 'Est. savings / transfer' : isYield ? 'Est. extra / year' : 'Est. savings / year'}</span>
-                </div>
+                <div className="jny-callhead__save">{renderSavings()}</div>
               ) : null}
             </div>
             )}
@@ -1793,7 +1988,7 @@ Kind regards,
                 <a href={checkoutUrl} rel="noopener noreferrer">Open secure checkout →</a>
               </div>
             )}
-            {/* ORDER: time first, payment second. Nobody is asked for S$99
+            {/* ORDER: time first, payment second. Nobody is asked to pay
                 before they know a slot exists that suits them.
 
                 With our own calendar that is now safe: picking a time takes a
@@ -1801,11 +1996,44 @@ Kind regards,
                 customer never comes back out of Checkout. The Calendly fallback
                 below cannot do that — it books for good the moment they pick —
                 which is exactly why this exists. */}
-            {verifying ? (
-              <div className="jny-note" role="status">Payment received — confirming your booking…</div>
+            {/* Back from Stripe with a held time: show the confirmation straight
+                away while the payment is checked behind it. The check almost
+                always passes; if it doesn't, this falls back to the form with
+                the error, exactly as before. */}
+            {verifying && slotIso ? (
+              renderCallConfirmed()
             ) : ownScheduler ? (
               <>
-                {paidTier === 'call' && slotBooked ? (
+                {ownsTier('call') && slotBooked && rescheduling ? (
+                  /* Changing the time of a paid call. The same picker, but a
+                     pick MOVES the booking — it never makes a second one. */
+                  <>
+                    <div className="jny-note jny-note--ok">
+                      Your call is booked for <strong>{fullLabel(slotIso)} {zoneShort(viewerZone())}</strong>.
+                      Pick a new time below — your current time stays booked until you confirm the new one.
+                    </div>
+                    {slotErr && <div className="jny-note jny-note--warn">{slotErr}</div>}
+                    <SlotPicker
+                      onPick={moveCall}
+                      busy={slotBusy}
+                      refreshKey={slotsKey}
+                      phone={phone}
+                      onPhoneSaved={setPhone}
+                      email={contactEmail}
+                      onEmailChange={user ? undefined : setContactEmail}
+                      prepare={ensureSession}
+                      country={context?.country}
+                      cta="Move my call to this time →"
+                      busyLabel="Moving your call…"
+                    />
+                    <p className="jny-note" style={{ textAlign: 'center' }}>
+                      <button type="button" className="jny-linkbtn" disabled={slotBusy}
+                        onClick={() => { setRescheduling(false); setSlotErr(''); }}>
+                        Keep my current time
+                      </button>
+                    </p>
+                  </>
+                ) : ownsTier('call') && slotBooked ? (
                   /* Paid AND timed — the whole job is done. Showing the picker
                      again here is how you get two bookings for one call. */
                   renderCallConfirmed()
@@ -1816,10 +2044,10 @@ Kind regards,
                         customer to "pick a time below" is what made people book
                         twice. Only someone who paid WITHOUT a time still has to
                         choose one. */}
-                    {paidTier === 'call' && !slotIso && (
+                    {ownsTier('call') && !slotIso && (
                       <div className="jny-note jny-note--ok">✓ Payment received — pick a time below.</div>
                     )}
-                    {paidTier === 'call' && slotIso && !slotBooked && !slotErr && (
+                    {ownsTier('call') && slotIso && !slotBooked && !slotErr && (
                       <div className="jny-note jny-note--ok">✓ Payment received — confirming your time…</div>
                     )}
                     {/* The phone number is what the specialist actually calls, so
@@ -1857,19 +2085,31 @@ Kind regards,
                       busyLabel="Holding your time…"
                     />
 
-                    {slotIso && (
-                      <div className="jny-hold">
+                    {/* On screen from the start, not swapped in once a time is
+                        held: until then it sits idle with the clock at full
+                        time, and the countdown starts only when the hold is
+                        taken — i.e. once a time AND the contact details are in. */}
+                    {(slotIso || (paymentsEnabled && !ownsTier('call'))) && (() => {
+                      /* Three states, not two: "holding…" sits between idle and
+                         held while the hold is being taken, so the box eases
+                         through the change instead of snapping. The text is
+                         keyed on the state so each swap fades in (CSS). */
+                      const holdState = slotIso ? 'held' : slotBusy ? 'pending' : 'idle';
+                      return (
+                      <div className={`jny-hold jny-hold--${holdState}`} aria-live="polite">
                         <div className="jny-hold__row">
                           {/* The date and the zone are in the picker directly
                               above, so this says only what the picker cannot:
                               that the time is now held, and for how long. */}
-                          <span className="jny-hold__when">
-                            <strong>{slotBooked ? '✓ Your time is booked' : '✓ Your time is held'}</strong>
-                            {holdUntil && !slotBooked && (
+                          <span className="jny-hold__when" key={holdState}>
+                            <strong>{slotBooked ? '✓ Your time is booked' : slotIso ? '✓ Your time is held' : slotBusy ? 'Holding your time…' : 'Your time will be held here'}</strong>
+                            {!slotIso ? (
+                              <em><HoldTimer until={null} /> {slotBusy ? 'reserving it for you now.' : 'to confirm once you pick a time and add your details.'}</em>
+                            ) : holdUntil && !slotBooked && (
                               <em><HoldTimer until={holdUntil} onExpire={onHoldExpired} /> left to confirm — nobody else can take it.</em>
                             )}
                           </span>
-                          <button type="button" className="jny-hold__change" onClick={() => dropHold()} disabled={slotBusy}>
+                          <button type="button" className="jny-hold__change" onClick={() => dropHold()} disabled={slotBusy || !slotIso}>
                             Change time
                           </button>
                         </div>
@@ -1877,19 +2117,21 @@ Kind regards,
                           <p className="jny-hold__note">✓ Booked. We&apos;ll message you on WhatsApp before the call.</p>
                         )}
                       </div>
-                    )}
+                      );
+                    })()}
 
                     {/* Payment, only once a time is actually held — and the
                         same panel when they come back from Checkout without
                         paying, since the hold is still live. */}
-                    {slotIso && !slotBooked && paymentsEnabled && !ownsTier('call') && (
+                    {!slotBooked && paymentsEnabled && !ownsTier('call') && (
                       /* Just the button and one line: the box above already says
                          the time is held and for how long, and the screen has to
-                         fit without scrolling. */
+                         fit without scrolling. Shown before a hold too — disabled
+                         until there is one — so nothing pops in later. */
                       <div className="jny-confirmpay jny-confirmpay--call">
-                        <button className="btn btn--primary jny-pay" disabled={busy} onClick={() => pay('call')}>
+                        <button className="btn btn--primary jny-pay" disabled={busy || !slotIso || slotBusy} onClick={() => pay('call')}>
                           {busy ? 'Redirecting to secure checkout…'
-                            : `Confirm & Pay${priceOf('call', 'S$99') ? ` ${priceOf('call', 'S$99')}` : ''}`}
+                            : `Confirm & Pay${priceOf('call') ? ` ${priceOf('call')}` : ''}`}
                         </button>
                         <p className="jny-note">100% refund if not satisfied · Secure payment via Stripe</p>
                       </div>
@@ -1903,7 +2145,7 @@ Kind regards,
                 )}
               </>
             ) : /* ---- Fallback: supabase/call_booking.sql has not been run ---- */
-            paidTier === 'call' ? (
+            ownsTier('call') ? (
               <>
                 {slotBooked ? renderCallConfirmed() : (
                   <>
@@ -1945,7 +2187,7 @@ Kind regards,
                           {busy ? 'Redirecting to secure checkout…' : 'Confirm →'}
                         </button>
                         <p className="jny-note">
-                          {priceOf('call', 'S$99') && <>{priceOf('call', 'S$99')} to pay · </>}
+                          {priceOf('call') && <>{priceOf('call')} to pay · </>}
                           Full refund if not satisfied. Secure payment via Stripe
                         </p>
                       </div>
@@ -1957,15 +2199,14 @@ Kind regards,
           </div>
         )}
 
-        {/* GET ME AN EXPERT ($199) — one screen, as sketched: the experts as a
+        {/* GET ME AN EXPERT (US$49 individual · US$99 SME) — one screen, as sketched: the experts as a
             grid of cards, date & time under them, then a rule and the pay
             button. Nothing opens or folds as you go; each part is simply
             enabled once the part above it is done. */}
         {view === 'expert' && (
           <div className="jny-sub">
-            {verifying ? (
-              <div className="jny-note" role="status">Payment received — confirming your booking…</div>
-            ) : paidTier === 'expert' ? (
+            {/* Same on a Stripe return: the confirmation, checked behind it. */}
+            {verifying || paidTier === 'expert' ? (
               renderExpertConfirmed()
             ) : (
               <>
@@ -1975,10 +2216,7 @@ Kind regards,
                     <p className="jny-sub__sub">An expert will lead the negotiation with your bank. They know how banks move.</p>
                   </div>
                   {savings ? (
-                    <div className="jny-callhead__save">
-                      <strong>{fmtSaving(savings)}</strong>
-                      <span>{perTransfer ? 'Est. savings / transfer' : isYield ? 'Est. extra / year' : 'Est. annual savings'}</span>
-                    </div>
+                    <div className="jny-callhead__save">{renderSavings()}</div>
                   ) : null}
                 </div>
 
@@ -2034,7 +2272,8 @@ Kind regards,
                           </span>
                           <AwayNote windows={x.away} />
                         </span>
-                        <span className="jny-xrow__check" aria-hidden="true">{picked ? '✓' : ''}</span>
+                        {/* Looks like a button; the whole row is the actual button. */}
+                        <span className="jny-xrow__pick" aria-hidden="true">{picked ? '✓ Selected' : 'Select Me'}</span>
                       </button>
                     );
                   })}
@@ -2055,29 +2294,31 @@ Kind regards,
                   <p className="slots__hint slots__hint--center">Add your WhatsApp number and email to hold {expert.name}.</p>
                 )}
 
-                {expertHoldUntil && (
-                  <div className="jny-hold">
-                    <div className="jny-hold__row">
-                      <span className="jny-hold__when">
-                        <strong>✓ Your expert is held</strong>
-                        <em><HoldTimer until={expertHoldUntil} onExpire={onExpertHoldExpired} /> left to confirm.</em>
-                      </span>
-                      <button type="button" className="jny-hold__change" onClick={() => { setExpertHoldUntil(null); setExpert(null); }}>
-                        Change
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {expertHoldUntil && (
-                  <div className="jny-confirmpay jny-confirmpay--call">
-                    <button className="btn btn--primary jny-pay" disabled={busy} onClick={payExpert}>
-                      {busy ? 'Redirecting to secure checkout…'
-                        : `Confirm & Pay${priceOf('expert', 'S$199') ? ` ${priceOf('expert', 'S$199')}` : ''}`}
+                {/* Same as Option 2: the hold box and the pay button are there
+                    from the start, idle until an expert is chosen and the
+                    contact details are in — that is when the clock starts. */}
+                <div className={`jny-hold${expertHoldUntil ? '' : ' jny-hold--idle'}`}>
+                  <div className="jny-hold__row">
+                    <span className="jny-hold__when">
+                      <strong>{expertHoldUntil ? '✓ Your expert is held' : 'Your expert will be held here'}</strong>
+                      {expertHoldUntil
+                        ? <em><HoldTimer until={expertHoldUntil} onExpire={onExpertHoldExpired} /> left to confirm.</em>
+                        : <em><HoldTimer until={null} /> to confirm once you pick an expert and add your details.</em>}
+                    </span>
+                    <button type="button" className="jny-hold__change" disabled={!expertHoldUntil}
+                      onClick={() => { setExpertHoldUntil(null); setExpert(null); }}>
+                      Change
                     </button>
-                    <p className="jny-note">100% refund if not satisfied · Secure payment via Stripe</p>
                   </div>
-                )}
+                </div>
+
+                <div className="jny-confirmpay jny-confirmpay--call">
+                  <button className="btn btn--primary jny-pay" disabled={busy || !expertHoldUntil} onClick={payExpert}>
+                    {busy ? 'Redirecting to secure checkout…'
+                      : `Confirm & Pay${priceOf('expert') ? ` ${priceOf('expert')}` : ''}`}
+                  </button>
+                  <p className="jny-note">100% refund if not satisfied · Secure payment via Stripe</p>
+                </div>
               </>
             )}
           </div>

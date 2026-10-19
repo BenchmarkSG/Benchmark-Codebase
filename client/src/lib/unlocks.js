@@ -42,7 +42,14 @@ function keysFor(ctx) {
   if (!ctx) return [];
   const keys = [];
   if (ctx.benchmarkId) keys.push(`id:${ctx.benchmarkId}`);
-  const sig = [ctx.segment, ctx.product, ctx.currency, ctx.yourRate, ctx.benchmarkRate]
+  // Specific enough that a DIFFERENT benchmark can't match: the rates alone
+  // repeat across benchmarks (same product, same rate, another loan amount), and
+  // a match there showed an unpaid call as "Payment received".
+  // The saving is whole-number-normalised: a row read back from the database
+  // can carry it as "1718.00" where the live result had 1718.
+  const saving = Number.isFinite(Number(ctx.annualSaving)) && ctx.annualSaving !== null && ctx.annualSaving !== ''
+    ? Math.round(Number(ctx.annualSaving)) : '';
+  const sig = [ctx.segment, ctx.product, ctx.currency, ctx.yourRate, ctx.benchmarkRate, saving]
     .map((v) => (v === null || v === undefined ? '' : String(v)))
     .join('|');
   if (sig.replace(/\|/g, '').trim()) keys.push(`sig:${sig}`);

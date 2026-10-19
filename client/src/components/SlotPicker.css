@@ -44,7 +44,7 @@
   padding: 8px 10px;
   cursor: pointer;
   text-align: center;
-  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease, opacity 0.3s ease;
 }
 .slots__chip:hover:not(:disabled) { border-color: var(--blue-600); }
 .slots__chip:focus-visible { outline: 2px solid var(--blue-600); outline-offset: 1px; }
@@ -63,11 +63,42 @@
 /* ---- Contact details: number and email side by side ---- */
 .slots__contact { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
 .slots__field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-.slots__field > span { font-size: 12.5px; font-weight: 700; color: var(--ink-2); }
-.slots__field > span i { font-style: normal; color: var(--red-600); }
+.slots__field > span, .slots__field > label { font-size: 12.5px; font-weight: 700; color: var(--ink-2); }
+.slots__field > span i, .slots__field > label i { font-style: normal; color: var(--red-600); }
 .slots__telrow { display: flex; gap: 6px; min-width: 0; }
 .slots__telrow input { min-width: 0; }
-.slots__telrow input.slots__dial { flex: 0 0 58px; text-align: center; padding-left: 6px; padding-right: 6px; }
+/* Country code with its flag inside the box, on the left. */
+/* Country-code dropdown: flag + code + caret on the button, a list under it. */
+.slots__dialwrap { position: relative; flex: 0 0 auto; display: flex; min-width: 0; }
+.slots__dial {
+  display: flex; align-items: center; gap: 6px;
+  border: 1.5px solid #cfe0f6; border-radius: 10px; background: var(--surface);
+  color: var(--ink); font-family: inherit; font-size: 14.5px;
+  padding: 10px 10px; cursor: pointer; white-space: nowrap;
+}
+.slots__dial:hover:not(:disabled), .slots__dial.is-open { border-color: var(--blue-600); }
+.slots__dial:focus-visible { outline: 2px solid var(--blue-600); outline-offset: 1px; }
+.slots__dial:disabled { opacity: 0.6; cursor: not-allowed; }
+.slots__caret { width: 12px; height: 12px; color: var(--muted); flex: none; transition: transform 0.15s ease; }
+.slots__dial.is-open .slots__caret { transform: rotate(180deg); }
+.slots__flag { flex: none; display: flex; width: 20px; height: 14px; color: var(--muted); }
+.slots__dialmenu {
+  position: absolute; z-index: 30; top: calc(100% + 4px); left: 0;
+  width: 250px; max-height: 240px; overflow-y: auto;
+  margin: 0; padding: 4px; list-style: none;
+  background: var(--surface); border: 1.5px solid var(--line); border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+}
+.slots__dialopt {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: 8px; cursor: pointer; font-size: 13.5px; color: var(--ink);
+}
+.slots__dialopt.is-active { background: var(--blue-50); }
+.slots__dialopt.is-on { font-weight: 800; }
+.slots__dialname { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slots__dialnum { flex: none; color: var(--muted); font-variant-numeric: tabular-nums; }
+.slots__flag svg { display: block; width: 100%; height: 100%; border-radius: 2px; box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.08); }
+.slots__flag svg.slots__globe { width: 16px; height: 16px; margin: -1px 2px; box-shadow: none; }
 .slots__telrow input:not(.slots__dial) { flex: 1 1 auto; }
 .slots__field input {
   width: 100%;
@@ -81,14 +112,22 @@
 }
 .slots__field input[readonly] { background: var(--surface-2); color: var(--ink-2); }
 .slots__field input:focus-visible { outline: 2px solid var(--blue-600); outline-offset: 1px; }
+.slots__field input { transition: opacity 0.3s ease, background-color 0.3s ease; }
 .slots__field input:disabled { opacity: 0.7; }
 .slots__hint { margin: 6px 0 0; font-size: 11.5px; line-height: 1.45; color: var(--muted); }
 .slots__hint--center { margin-top: 12px; text-align: center; font-size: 12.5px; font-weight: 600; }
 
 .slots .jny-note { margin-top: 12px; }
-.slots__go { width: 100%; margin-top: 14px; justify-content: center; }
-/* Blue, like the result screen's CTA. */
-.slots .slots__go { background: var(--blue-600); box-shadow: 0 8px 20px rgba(29, 99, 196, 0.22); }
+.slots__go { margin-top: 14px; justify-content: center; }
+/* Blue, like the result screen's CTA, and sized like Confirm & Pay: fit to
+   its label and centred, not stretched across the card. */
+.slots .slots__go {
+  display: flex; width: fit-content; min-width: 220px; max-width: 100%;
+  margin-inline: auto; padding-left: 28px; padding-right: 28px;
+  background: var(--blue-600); box-shadow: 0 8px 20px rgba(29, 99, 196, 0.22);
+}
+/* Disabled ("Moving your call…") stays blue under the pointer too. */
+.slots .slots__go:hover:disabled { background: var(--blue-600); }
 .slots .slots__go:hover:not(:disabled) { background: var(--blue-700); }
 .slots__foot { margin: 8px 0 0; text-align: center; font-size: 12px; line-height: 1.45; color: var(--muted); }
 
@@ -103,4 +142,11 @@
   .slots__chip--date span { font-size: 10.5px; }
   .slots__chip--date strong { font-size: 13px; }
   .slots__chip { padding: 7px 4px; font-size: 13.5px; }
+}
+
+/* The hint above the hold appears and leaves gently rather than popping. */
+.slots__hint--center { animation: slots-fade 0.25s ease both; }
+@keyframes slots-fade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .slots__chip, .slots__field input, .slots__hint--center { transition: none; animation: none; }
 }

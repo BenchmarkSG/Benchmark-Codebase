@@ -33,7 +33,7 @@ import { getAccessToken } from './lib/supabase.js';
 // After-auth resume intents live in lib/afterAuth.js (shared with AuthModal,
 // which clears a pending intent when the user dismisses sign-in without
 // authenticating — so a stale intent can't reopen a pay screen later).
-import { readAfterAuth, storeAfterAuth, clearAfterAuth } from './lib/afterAuth.js';
+import { consumeAfterAuth, storeAfterAuth } from './lib/afterAuth.js';
 
 export default function App() {
   const { user } = useAuth();
@@ -41,6 +41,7 @@ export default function App() {
   const [context, setContext] = useState(null);
   const [resume, setResume] = useState(null); // set when returning from Stripe Checkout / after auth
   const [authOpen, setAuthOpen] = useState(false);
+  const [authPrefill, setAuthPrefill] = useState(null); // { mode, email } for the auth modal
   const [advisorOpen, setAdvisorOpen] = useState(false);
   const [calcSelection, setCalcSelection] = useState(null);
   const [market, setMarket] = useState('SG'); // market picked in the calculator; drives the partner-logo marquee + the products grid
@@ -160,13 +161,16 @@ export default function App() {
 
   // Open the auth modal. If a `resumeIntent` is given (e.g. from inside the
   // journey), stash it so we can return the user to that exact screen post-auth.
-  const requireAuth = useCallback((resumeIntent) => {
+  // `prefill` opens it on sign-up (the confirmation's "Sign Up") with the
+  // email they booked with already filled in.
+  const requireAuth = useCallback((resumeIntent, prefill = null) => {
     if (resumeIntent && ['journey', 'save', 'reveal'].includes(resumeIntent.kind)) {
       storeAfterAuth(resumeIntent);
     }
+    setAuthPrefill(prefill);
     setAuthOpen(true);
   }, []);
-  const openAuth = useCallback(() => setAuthOpen(true), []);
+  const openAuth = useCallback(() => { setAuthPrefill(null); setAuthOpen(true); }, []);
   const closeAuth = useCallback(() => setAuthOpen(false), []);
 
   // The ~$1 reveal. SIGN IN FIRST: an account is what the purchase, the saved
@@ -280,33 +284,37 @@ export default function App() {
 
   // Once the user is authenticated (in-session sign-in, or after an email-confirm
   // / OAuth reload), reopen the journey exactly where they left off.
+  // `user` is a new object on every token refresh / profile update, and a
+  // journey intent stays readable for a short while (lib/afterAuth.js) — so
+  // remember which one this tab already acted on, or closing the modal
+  // wouldn't stick.
+  const handledIntentRef = useRef(null);
   useEffect(() => {
     if (!user) return;
-    const intent = readAfterAuth();
-    if (!intent) return;
+    const intent = consumeAfterAuth();
+    if (!intent || handledIntentRef.current === intent.at) return;
+    handledIntentRef.current = intent.at;
     // Signed in specifically to reveal → carry straight on to the ~$1 checkout,
     // using the benchmark they'd already computed. Nothing to re-enter.
     if (intent.kind === 'reveal') {
-      clearAfterAuth();
       setAuthOpen(false);
       revealBank(intent.context || null);
       return;
     }
     // Signed in from "Save to my dashboard" → persist the benchmark they computed.
     if (intent.kind === 'save') {
-      clearAfterAuth();
       setAuthOpen(false);
       if (intent.saveRow) saveBenchmark(intent.saveRow).catch(() => {});
       return;
     }
     if (intent.kind !== 'journey') return;
-    clearAfterAuth();
     setAuthOpen(false);
     setContext(intent.context || null);
     // They signed in from inside the journey — which is where an anonymous
     // reveal finally gets an account to belong to.
     claimAnonymousReveal(intent.context);
-    setResume({ afterAuth: true, view: intent.view || 'options', expert: intent.expert || null });
+    // `confirmed`: they signed in from a confirmation screen — back onto it.
+    setResume({ afterAuth: true, view: intent.view || 'options', expert: intent.expert || null, confirmed: intent.confirmed || null });
     setTiersOpen(true);
   }, [user, revealBank, claimAnonymousReveal]);
 
@@ -345,7 +353,7 @@ export default function App() {
       </main>
       <Footer />
       <JourneyModal open={tiersOpen} onClose={closeTiers} context={context} onRequireAuth={requireAuth} resume={resume} />
-      <AuthModal open={authOpen} onClose={closeAuth} />
+      <AuthModal open={authOpen} onClose={closeAuth} initialMode={authPrefill?.mode} initialEmail={authPrefill?.email} />
       <CompleteProfileModal />
       <ResetPasswordModal />
       <AdvisorModal open={advisorOpen} onClose={closeAdvisor} />

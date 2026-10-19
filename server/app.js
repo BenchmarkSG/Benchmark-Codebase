@@ -62,6 +62,22 @@ async function sendClaimLink(to, req) {
   } catch { /* see above: never block the return */ }
 }
 
+/* The booked expert's WhatsApp number (supabase/expert_contact.sql). Advisors'
+   numbers are admin-only, and this runtime has only the anon key, so the
+   definer function is unlocked with EXPERT_CONTACT_KEY instead. Unset key,
+   unknown advisor (the sample experts) or any failure: null, and the
+   confirmation screen simply leaves the number out. */
+async function expertWhatsApp(advisorId) {
+  const key = process.env.EXPERT_CONTACT_KEY || '';
+  if (!isSupabaseConfigured || !key || !/^[0-9a-f-]{36}$/i.test(String(advisorId))) return null;
+  try {
+    const { data, error } = await supabase.rpc('paid_expert_whatsapp', { p_advisor_id: advisorId, p_key: key });
+    return error ? null : (data || null);
+  } catch {
+    return null;
+  }
+}
+
 // Wrap an async handler so rejected promises become clean 5xx responses.
 // The raw error is logged server-side only; the client gets a generic message
 // (no err.message) so internal DB/upstream details never leak.
@@ -237,7 +253,8 @@ export function createApp({ repo = ratesRepo, fx = fxModule, pay = payments } = 
   app.get('/api/checkout/price', asyncRoute(async (req, res) => {
     const tier = String(req.query.tier || 'reveal');
     if (!pay.getTier(tier)) return res.status(400).json({ error: 'Unknown tier' });
-    res.json(await pay.amountFor(tier, String(req.query.currency || 'SGD')));
+    const segment = req.query.segment === 'sme' ? 'sme' : 'individual';
+    res.json(await pay.amountFor(tier, String(req.query.currency || 'SGD'), segment));
   }));
 
   // Back-compat for the reveal button's original endpoint.
@@ -270,7 +287,15 @@ export function createApp({ repo = ratesRepo, fx = fxModule, pay = payments } = 
       // works without it (the session id is the key).
       if (!viewer) sendClaimLink(result.email, req);
     }
-    res.json(publicSession(result, viewer));
+    const pub = publicSession(result, viewer);
+    // Paid for an expert: hand back that expert's WhatsApp number, for the
+    // confirmation screen. Only here — after Stripe says paid, for THIS
+    // advisor — and never in the session's metadata or anywhere earlier.
+    if (result?.paid && result.tier === 'expert' && result.advisorId) {
+      const phone = await expertWhatsApp(result.advisorId);
+      if (phone) pub.expertWhatsApp = phone;
+    }
+    res.json(pub);
   }));
 
   // Internal trigger for the REMINDER (before a session) and FEEDBACK (after)

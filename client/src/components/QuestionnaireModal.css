@@ -1,3 +1,21 @@
+/* The same orange bezel as the hero calculator and the journey modal
+   (JourneyModal.css explains the two-background trick: unlike border-image
+   it follows the rounded corners, and it stays put while the card scrolls). */
+.adv__card.qn-card {
+  border: 7px solid transparent;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(165deg, #ea9440 0%, var(--orange-500) 52%, #9c4f08 100%) border-box;
+  border-radius: 30px;
+  box-shadow:
+    0 30px 70px rgba(11, 31, 58, 0.35),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.42),
+    inset 0 -1.5px 0 rgba(120, 60, 0, 0.35);
+}
+@media (max-width: 560px) {
+  .adv__card.qn-card { border-width: 5px; border-radius: 24px; }
+}
+
 .qn-score { text-align: center; padding: 8px 4px 4px; }
 .qn-ring {
   width: 128px; height: 128px;
@@ -11,6 +29,10 @@
 .qn-ring--foundational { background: linear-gradient(140deg, #e0574b, #b91820); }
 .qn-ring--developing  { background: linear-gradient(140deg, #f0a739, #d8801e); }
 .qn-ring--advanced    { background: linear-gradient(140deg, #1a9d6a, #0d7d51); }
+/* The personal scorecard's tiers. */
+.qn-ring--green { background: linear-gradient(140deg, #1a9d6a, #0d7d51); }
+.qn-ring--blue  { background: linear-gradient(140deg, #3b82f6, #1d4ed8); }
+.qn-ring--amber { background: linear-gradient(140deg, #f0a739, #d8801e); }
 .qn-ring__num { font-size: 40px; font-weight: 800; line-height: 1; }
 .qn-ring__of { font-size: 13px; font-weight: 700; opacity: 0.85; }
 
@@ -24,3 +46,84 @@
   cursor: pointer;
 }
 .qn-textbtn:hover { color: var(--ink-2); text-decoration: underline; }
+
+/* ---- A–D questions (treasury efficiency) ---- */
+.qn-q { gap: 8px; padding: 14px 0 4px; border-top: 1px solid var(--line); }
+.qn-q:first-of-type { border-top: 0; padding-top: 0; }
+/* Floated so it is laid out as ordinary content: a legend left in its usual
+   place sits ON the fieldset's top border, and the divider runs through it. */
+.qn-q__title {
+  float: left; width: 100%;
+  display: flex; align-items: baseline; gap: 8px; padding: 0;
+  font-size: 14.5px; font-weight: 800; color: var(--ink);
+}
+.qn-q__num {
+  flex: none; display: inline-grid; place-items: center;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--blue-50); color: var(--blue-600); font-size: 12px; font-weight: 800;
+}
+.qn-q__prompt { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.45; }
+.qn-q__opts { display: flex; flex-direction: column; gap: 6px; }
+.qn-opt {
+  position: relative; display: flex; align-items: flex-start; gap: 10px;
+  border: 1.5px solid var(--line); border-radius: 10px; background: var(--surface);
+  padding: 9px 12px; cursor: pointer; text-align: left;
+  font-size: 13px; line-height: 1.4; color: var(--ink-2);
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.qn-opt:hover { border-color: var(--blue-500); }
+.qn-opt.is-on { border-color: var(--blue-600); background: var(--blue-50); color: var(--ink); }
+/* The native radio stays for keyboard and screen readers, drawn as the letter. */
+.qn-opt input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.qn-opt:focus-within { outline: 2px solid var(--blue-600); outline-offset: 1px; }
+.qn-opt__letter {
+  flex: none; display: inline-grid; place-items: center;
+  width: 22px; height: 22px; border-radius: 6px;
+  border: 1.5px solid var(--line); font-size: 11.5px; font-weight: 800; color: var(--muted);
+}
+.qn-opt.is-on .qn-opt__letter { background: var(--blue-600); border-color: var(--blue-600); color: #fff; }
+.qn-opt__text { min-width: 0; }
+
+.qn-tag {
+  display: inline-block; margin: -2px 0 8px; padding: 3px 10px; border-radius: 999px;
+  background: #e3f4ec; color: #0d7d51; font-size: 12px; font-weight: 800;
+}
+
+/* ---- Instructions screen ---- */
+.qn-intro__head { margin: 14px 0 6px; font-size: 14.5px; font-weight: 800; color: var(--ink); }
+.qn-intro__list { margin: 0 0 18px; padding-left: 20px; display: grid; gap: 6px; font-size: 13.5px; line-height: 1.5; color: var(--ink-2); }
+
+/* Blue buttons, like the journey's CTAs (the site's .btn--primary is red). */
+.qn-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-width: 132px; padding: 11px 22px; border: 0; border-radius: 12px;
+  background: var(--blue-600); color: #fff; cursor: pointer;
+  font-family: inherit; font-size: 14.5px; font-weight: 800;
+  box-shadow: 0 8px 20px rgba(29, 99, 196, 0.22);
+  transition: background 0.12s ease, opacity 0.15s ease;
+}
+.qn-btn:hover:not(:disabled) { background: var(--blue-700); }
+.qn-btn:focus-visible { outline: 2px solid var(--blue-600); outline-offset: 2px; }
+.qn-btn:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+.qn-intro .qn-btn--go { display: flex; margin: 0 auto; min-width: 200px; }
+
+/* ---- One question per screen ---- */
+.qn-progress { margin: 4px 0 16px; }
+.qn-progress__row { display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
+.qn-progress__bar { height: 8px; border-radius: 999px; background: var(--blue-50); overflow: hidden; }
+.qn-progress__bar span { display: block; height: 100%; border-radius: inherit; background: var(--blue-600); transition: width 0.3s ease; }
+.qn-q--solo { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: 8px; animation: qn-in 0.25s ease both; }
+.qn-q--solo .qn-q__title { font-size: 16px; }
+.qn-q--solo .qn-opt { padding: 11px 12px; font-size: 13.5px; }
+@keyframes qn-in { from { opacity: 0; transform: translateX(10px); } }
+.qn-nav { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 18px; }
+@media (prefers-reduced-motion: reduce) {
+  .qn-q--solo { animation: none; }
+  .qn-progress__bar span, .qn-btn { transition: none; }
+}
+
+/* Personal scorecard extras on the score screen. */
+.qn-desc { margin: -2px 0 6px; font-size: 13.5px; font-weight: 700; color: var(--ink-2); }
+.qn-next { text-align: left; margin: 0 0 18px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
+.qn-next h3 { margin: 0 0 6px; font-size: 13px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.qn-next ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 13.5px; line-height: 1.45; color: var(--ink-2); }

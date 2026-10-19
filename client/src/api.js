@@ -82,8 +82,9 @@ export const getCheckoutSession = (id, token = null) =>
     .catch(() => null);
 // Localized price for a tier, for display (the charge is recomputed server-side
 // at checkout, so these can never be used to pay less).
-export const getTierPrice = (tier, currency) =>
-  fetch(`${BASE}/checkout/price?tier=${encodeURIComponent(tier || 'reveal')}&currency=${encodeURIComponent(currency || 'SGD')}`)
+// `segment` matters for the service tiers: SMEs & corporates pay more.
+export const getTierPrice = (tier, currency, segment = 'individual') =>
+  fetch(`${BASE}/checkout/price?tier=${encodeURIComponent(tier || 'reveal')}&currency=${encodeURIComponent(currency || 'SGD')}&segment=${segment === 'sme' ? 'sme' : 'individual'}`)
     .then((r) => (r.ok ? r.json() : null))
     .catch(() => null);
 export const getRevealPrice = (currency) => getTierPrice('reveal', currency);

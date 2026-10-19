@@ -60,12 +60,49 @@ export async function listCallSlots(days = null) {
   };
 }
 
+/* The last availability read, kept so the picker can open already filled in.
+   The modal starts this load as soon as it opens, so by the time someone taps
+   "Book a Call" the times are usually here — and nobody sees a loading line
+   that makes the screen look like it skipped a step. */
+let slotCache = null;     // last { slots, reason } returned
+let slotInflight = null;  // a read already on its way
+
+/** What the last read returned, or null. Synchronous — for first paint. */
+export const cachedCallSlots = () => slotCache;
+
+/**
+ * Read availability into the cache. Joins a read already in flight unless
+ * `force` — a refresh after a slot was taken must not reuse an older answer.
+ */
+export function prefetchCallSlots({ force = false } = {}) {
+  if (slotInflight && !force) return slotInflight;
+  const p = listCallSlots()
+    .then((value) => { slotCache = value; return value; })
+    .finally(() => { if (slotInflight === p) slotInflight = null; });
+  slotInflight = p;
+  return p;
+}
+
 /** Take a slot for this lead. Returns the ISO instant the hold expires. */
 export const holdCallSlot = (leadId, slotStartIso) =>
   rpc('hold_call_slot', { p_lead_id: leadId, p_slot_start: slotStartIso });
 
 /** Payment landed — the hold becomes a booking. */
 export const confirmCallSlot = (leadId) => rpc('confirm_call_slot', { p_lead_id: leadId });
+
+/**
+ * Move a confirmed (paid) call to another time. The old time is only freed
+ * once the new one is secured — if it has gone, the booking is unchanged.
+ * supabase/call_reschedule.sql; until that is run, says so plainly.
+ */
+export async function rescheduleCallSlot(leadId, slotStartIso) {
+  if (!isSupabaseConfigured) throw new Error('Booking is not available right now.');
+  const { error } = await supabase.rpc('reschedule_call_slot', { p_lead_id: leadId, p_slot_start: slotStartIso });
+  if (!error) return;
+  if (isMissingFunction(error)) throw new Error('Changing the time online isn’t available yet. Message us on WhatsApp and we’ll move it for you.');
+  if (error.code === 'P0001') throw new SlotTakenError(error.message);
+  throw new Error(error.message || 'We could not change your time. Please try again.');
+}
 
 /** Give an unconfirmed hold back. Never touches a booking already paid for. */
 export const releaseCallSlot = (leadId) => rpc('release_call_slot', { p_lead_id: leadId });

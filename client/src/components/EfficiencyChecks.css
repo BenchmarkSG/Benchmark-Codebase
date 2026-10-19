@@ -1,14 +1,27 @@
 .effc { background: var(--bg-soft); }
 .effc__eyebrow { display: block; text-align: center; margin-bottom: 8px; }
-.effc__segment { text-align: center; font-weight: 800; color: var(--ink); font-size: 15px; margin: 20px 0 2px; }
+/* Audience columns: each is as wide as its cards (SMEs two, individuals one),
+   with its heading sitting over its own cards. */
+.effc__groups {
+  margin: 34px auto 0;
+  max-width: 1200px;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+}
+/* Each audience is its own outlined box, so it is clear at a glance which
+   checks are for a business and which for a person. */
+.effc__group {
+  min-width: 0; display: flex; flex-direction: column;
+  border: 1.5px solid var(--line); border-radius: 20px; padding: 18px 18px 20px;
+}
+.effc__segment { margin: 0 0 14px; text-align: center; font-size: 17px; font-weight: 800; color: var(--ink); line-height: 1.25; }
 
 .effc__grid {
-  margin-top: 34px;
+  flex: 1;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr));
   gap: 18px;
-  max-width: 860px;
-  margin-inline: auto;
 }
 .effc__card {
   display: flex;
@@ -32,11 +45,26 @@
   display: grid; place-items: center;
   font-size: 24px;
 }
+/* The logos have a white background, so their tile is white too. */
+.effc__icon--logo { background: #fff; border: 1px solid var(--line); }
+.effc__icon--logo img { display: block; width: 34px; height: 34px; }
+/* The wealth logo is a circle of its own, so it fills a round tile. */
+.effc__icon--badge { border: 0; border-radius: 50%; overflow: hidden; }
+.effc__icon--badge img { width: 100%; height: 100%; }
 .effc__body { display: flex; flex-direction: column; gap: 4px; }
 .effc__title { font-size: 17px; font-weight: 800; color: var(--ink); }
 .effc__desc { font-size: 13.5px; color: var(--muted); line-height: 1.45; }
 .effc__cta { margin-top: 2px; font-size: 14px; font-weight: 800; color: var(--accent); }
 
+/* Tablet: the individuals' column drops under the SME pair. */
+@media (max-width: 960px) {
+  .effc__groups { grid-template-columns: 1fr; max-width: 860px; gap: 22px; }
+  .effc__group--individual .effc__grid { max-width: calc((100% - 18px) / 2); }
+}
+@media (max-width: 620px) {
+  .effc__group { padding: 14px 12px 16px; border-radius: 16px; }
+}
 @media (max-width: 620px) {
   .effc__grid { grid-template-columns: 1fr; }
+  .effc__group--individual .effc__grid { max-width: none; }
 }

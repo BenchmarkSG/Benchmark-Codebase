@@ -59,7 +59,9 @@ function ShareIcon() {
   );
 }
 
-export default function CertificateShare({ segment = 'individual', caption = '', buildFile, onShare, shared = false }) {
+// `shareHeading` swaps the label for a "Share" heading that is itself the
+// network-less button, so the strip reads as a titled column of networks.
+export default function CertificateShare({ segment = 'individual', caption = '', buildFile, onShare, shared = false, shareHeading = false }) {
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState('');
   const timer = useRef(null);
@@ -122,7 +124,21 @@ export default function CertificateShare({ segment = 'individual', caption = '',
 
   return (
     <div className={`certshare certshare--${segment === 'sme' ? 'sme' : 'individual'}`}>
-      <span className="certshare__label">Share your certificate</span>
+      {shareHeading && onShare ? (
+        <button
+          type="button"
+          className="certshare__head"
+          onClick={shareGeneric}
+          disabled={busy === 'generic'}
+          title="Share or save the certificate"
+          aria-label={shared ? 'Certificate shared' : 'Share or save the certificate'}
+        >
+          {shared ? <span className="certshare__ok" aria-hidden="true">✓</span> : <ShareIcon />}
+          {shared ? 'Shared' : 'Share'}
+        </button>
+      ) : (
+        <span className="certshare__label">Share your certificate</span>
+      )}
       <div className="certshare__btns">
         {ids.map((id) => {
           const net = NETWORKS[id];
@@ -141,7 +157,7 @@ export default function CertificateShare({ segment = 'individual', caption = '',
             </button>
           );
         })}
-        {onShare && (
+        {onShare && !shareHeading && (
           <button
             type="button"
             className="certshare__btn certshare__btn--generic"

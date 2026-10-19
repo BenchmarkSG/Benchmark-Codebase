@@ -9,6 +9,11 @@ export function firstInvalidField(formEl) {
   for (const c of formEl.querySelectorAll('input, select, textarea')) {
     if (c.disabled || c.type === 'hidden') continue;
     if (c.type === 'checkbox') { if (c.required && !c.checked) return c; continue; }
+    // A radio group is answered when any one of its buttons is checked.
+    if (c.type === 'radio') {
+      if (c.required && !formEl.querySelector(`input[type="radio"][name="${CSS.escape(c.name)}"]:checked`)) return c;
+      continue;
+    }
     const val = String(c.value ?? '').trim();
     if (c.required && !val) return c;
     if (c.type === 'email' && val && !EMAIL_RE.test(val)) return c;
@@ -20,8 +25,12 @@ export function firstInvalidField(formEl) {
 // A human label for a control, from its wrapping <label><span>…</span></label>.
 export function labelFor(el) {
   if (!el) return 'This field';
-  const span = el.closest('label')?.querySelector('span');
-  return (span?.textContent || el.getAttribute('aria-label') || el.name || 'This field')
+  // A radio's own <label> is one answer; the question is the fieldset's legend.
+  const legend = el.type === 'radio' ? el.closest('fieldset')?.querySelector('legend') : null;
+  const span = legend ? null : el.closest('label')?.querySelector('span');
+  // The legend carries the question number in its own span; skip past it.
+  const legendText = legend ? Array.from(legend.childNodes).filter((n) => n.nodeType === 3).map((n) => n.textContent).join('') : '';
+  return (legendText || span?.textContent || el.getAttribute('aria-label') || el.name || 'This field')
     .replace(/\s*\*\s*$/, '')
     .replace(/\s*\(optional\)\s*$/i, '')
     .trim();
@@ -32,6 +41,7 @@ export function validationMessage(el) {
   if (!el) return '';
   const name = labelFor(el);
   if (el.type === 'checkbox') return `Please tick “${name}” to continue.`;
+  if (el.type === 'radio') return `Please answer “${name}”.`;
   if (el.type === 'email' && String(el.value).trim()) return 'Please enter a valid email address.';
   if (el.minLength > 0 && String(el.value).length < el.minLength) return `${name} must be at least ${el.minLength} characters.`;
   return `Please fill in ${name}.`;

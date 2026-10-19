@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ALL_FAQ } from '../lib/faqs.js';
 import './Sections.css';
 import { getReference, getFxRate } from '../api.js';
 import { subscribeNewsletter } from '../lib/dashboardApi.js';
@@ -452,24 +453,12 @@ export function Founding({ onBecomeMember }) {
 }
 
 /* -------- FAQ -------- */
-const FAQS = [
-  {
-    q: 'Is it really free?',
-    a: 'Benchmarking your rates, fees and FX margins is completely free with no sign-up. Revealing your best-match bank costs a small one-off fee — and drafting your negotiation email is then included. If you want hands-on help, a coaching call and an expert-led negotiation are also available. Every price is shown in your local currency before you pay, and the paid help is fully refundable if we don’t find you savings.',
-  },
-  {
-    q: 'Do you store my bank statements or personal data?',
-    a: 'No. We don’t keep personal or account-identifying data. When you paste or upload transaction data we process it to benchmark and keep only anonymised metrics (fees, margins, volumes). Please mask beneficiary names and references before sharing.',
-  },
-  {
-    q: 'How does the expert negotiation work?',
-    a: 'An ex-banker contacts your bank armed with your specific benchmarking data and negotiates on your behalf. The fee is fully refundable if no savings are delivered — so there’s no risk in trying.',
-  },
-];
+// The questions live in lib/faqs.js, shared with the booking confirmation screens.
+const FAQS = ALL_FAQ;
 
 export function FAQ() {
   // Every answer starts closed. Opening the first one for the reader decides
-  // which question they had, and pushes the other two down the page.
+  // which question they had, and pushes the others down the page.
   const [open, setOpen] = useState(null);
   return (
     <section className="section section--blue faq" id="faq">

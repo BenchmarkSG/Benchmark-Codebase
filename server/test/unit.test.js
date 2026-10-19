@@ -126,23 +126,84 @@ test('crossBorderCostPct: all-in cost vs mid-market', () => {
   assert.equal(crossBorderCostPct({ sent: 1000, received: 740, midRate: 0 }), null);
 });
 
-test('scoreQuestionnaire: maturity score + expert hand-off', () => {
-  const top = scoreQuestionnaire('operational_efficiency', {
-    data_channel: 3, reconciliation: 3, connectivity: 3, payables: 3, obo_structure: 3,
-  });
+test('scoreQuestionnaire: operational efficiency points and tiers', () => {
+  const q = getQuestionnaire('operational_efficiency');
+  assert.equal(q.scoreKeys.length, 10);
+  const all = (v) => Object.fromEntries(q.scoreKeys.map((k) => [k, v]));
+  const r = (a) => scoreQuestionnaire('operational_efficiency', a);
+
+  const top = r(all(4));
+  assert.equal(top.points, 40);
   assert.equal(top.score, 100);
-  assert.equal(top.band, 'Advanced');
+  assert.equal(top.band, 'Best-in-Class Operations');
+  assert.equal(top.tag, 'Market Leader');
   assert.equal(top.recommendExpert, false);
 
-  const low = scoreQuestionnaire('operational_efficiency', {
-    data_channel: 1, reconciliation: 1, connectivity: 1, payables: 1, obo_structure: 1,
-  });
-  assert.equal(low.score, 33);
-  assert.equal(low.band, 'Foundational');
+  const low = r(all(1));
+  assert.equal(low.points, 10);
+  assert.equal(low.band, 'Reactive Operations');
   assert.equal(low.recommendExpert, true);
 
+  // Band edges: 19/20, 29/30, 35/36.
+  assert.equal(r({ ...all(2), ap_automation: 1 }).band, 'Reactive Operations');        // 19
+  assert.equal(r(all(2)).band, 'Standard Operations');                                  // 20
+  assert.equal(r({ ...all(3), ap_automation: 2 }).band, 'Standard Operations');        // 29
+  assert.equal(r(all(3)).band, 'High-Performing Operations');                           // 30
+  assert.equal(r({ ...all(4), ap_automation: 1, close_cycle: 2 }).band, 'High-Performing Operations'); // 35
+  assert.equal(r({ ...all(4), ap_automation: 1, close_cycle: 3 }).band, 'Best-in-Class Operations');   // 36
+
   assert.equal(scoreQuestionnaire('nope', {}).error, 'Unknown questionnaire');
-  assert.ok(QUESTIONNAIRES.length >= 2 && getQuestionnaire('treasury_efficiency'));
+  assert.ok(QUESTIONNAIRES.length >= 3 && getQuestionnaire('treasury_efficiency'));
+});
+
+test('scoreQuestionnaire: treasury efficiency points and tiers', () => {
+  const q = getQuestionnaire('treasury_efficiency');
+  assert.equal(q.scoreKeys.length, 10);
+  const all = (v) => Object.fromEntries(q.scoreKeys.map((k) => [k, v]));
+  const tier = (answers) => scoreQuestionnaire('treasury_efficiency', answers);
+
+  assert.equal(tier(all(1)).points, 10);
+  assert.equal(tier(all(1)).band, 'Tactical Treasury');
+  assert.equal(tier(all(4)).points, 40);
+  assert.equal(tier(all(4)).band, 'Value-Centric Treasury');
+  assert.equal(tier(all(4)).recommendExpert, false);
+  assert.equal(tier(all(4)).score, 100);
+
+  // Band edges: 19/20, 29/30, 35/36.
+  const withPoints = (pts) => {
+    const a = all(1); let left = pts - 10;
+    for (const k of q.scoreKeys) { const add = Math.min(3, left); a[k] += add; left -= add; }
+    return a;
+  };
+  assert.equal(tier(withPoints(19)).band, 'Tactical Treasury');
+  assert.equal(tier(withPoints(20)).band, 'Operational Treasury');
+  assert.equal(tier(withPoints(29)).band, 'Operational Treasury');
+  assert.equal(tier(withPoints(30)).band, 'Strategic Treasury');
+  assert.equal(tier(withPoints(35)).band, 'Strategic Treasury');
+  assert.equal(tier(withPoints(36)).band, 'Value-Centric Treasury');
+  assert.equal(tier(withPoints(30)).recommendExpert, true);
+
+  // An answer outside A–D is ignored rather than inflating the score.
+  assert.equal(tier({ ...all(1), systems: 9 }).points, 9);
+});
+
+test('scoreQuestionnaire: personal wealth scorecard (individuals)', () => {
+  const q = getQuestionnaire('personal_wealth');
+  assert.equal(q.segment, 'individual');
+  assert.equal(q.scoreKeys.length, 10);
+  const all = (v) => Object.fromEntries(q.scoreKeys.map((k) => [k, v]));
+  const r = (a) => scoreQuestionnaire('personal_wealth', a);
+  assert.equal(r(all(1)).points, 10);
+  assert.equal(r(all(1)).band, 'Financially Vulnerable');
+  assert.equal(r(all(1)).recommendExpert, true);
+  assert.equal(r(all(2)).band, 'Financially Stable');
+  assert.equal(r(all(3)).band, 'Financially Healthy');
+  assert.equal(r(all(4)).band, 'Financially Independent / Ultra-Resilient');
+  assert.equal(r(all(4)).recommendExpert, false);
+  // 35 is still Healthy; 36 tips into the top tier.
+  assert.equal(r({ ...all(4), emergency_fund: 1, savings_rate: 3, credit_score: 3 }).points, 35);
+  assert.equal(r({ ...all(4), emergency_fund: 1, savings_rate: 3, credit_score: 3, budgeting: 4 }).band, 'Financially Healthy');
+  assert.equal(r({ ...all(4), emergency_fund: 1, credit_score: 3 }).band, 'Financially Independent / Ultra-Resilient');
 });
 
 

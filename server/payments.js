@@ -1,5 +1,8 @@
-// Stripe payments for the JourneyModal tiers (coaching call S$99, expert S$199,
-// both FX-localized into the user's market currency).
+// Stripe payments for the JourneyModal tiers, FX-localized into the user's
+// market currency. The reveal is priced in SGD (~S$1). The two service tiers
+// are priced in USD, by segment:
+//   coaching call   US$19 individual · US$49 SME/corporate
+//   expert-led      US$49 individual · US$99 SME/corporate
 //
 // The Stripe SDK is loaded LAZILY and only when STRIPE_SECRET_KEY is set, so the
 // app and its tests run without the package or a key — routes just report
@@ -9,8 +12,10 @@
 //   STRIPE_SECRET_KEY          enables payments (sk_test_… / sk_live_…)
 //   STRIPE_CURRENCY            default 'sgd'
 //   STRIPE_PRICE_REVEAL_CENTS        default 100   (~S$1 reveal — FX-localized per market)
-//   STRIPE_PRICE_CALL_CENTS          default 9900  (S$99 coaching call — FX-localized)
-//   STRIPE_PRICE_EXPERT_CENTS        default 19900 (S$199 expert-led — FX-localized)
+//   STRIPE_PRICE_CALL_CENTS          default 1900  (US$19 coaching call, individuals)
+//   STRIPE_PRICE_CALL_SME_CENTS      default 4900  (US$49 coaching call, SMEs & corporates)
+//   STRIPE_PRICE_EXPERT_CENTS        default 4900  (US$49 expert-led, individuals)
+//   STRIPE_PRICE_EXPERT_SME_CENTS    default 9900  (US$99 expert-led, SMEs & corporates)
 //   PUBLIC_BASE_URL            success/cancel origin (falls back to request origin)
 
 import { getMidRate } from './fx.js';
@@ -24,10 +29,25 @@ const CURRENCY = (process.env.STRIPE_CURRENCY || 'sgd').toLowerCase();
 const REVEAL_SGD_CENTS = Number(process.env.STRIPE_PRICE_REVEAL_CENTS || 100);
 const TIERS = {
   reveal: { amount: REVEAL_SGD_CENTS, name: 'Reveal best bank & price' },
-  call:   { amount: Number(process.env.STRIPE_PRICE_CALL_CENTS   || 9900),  name: 'Negotiation coaching call' },
-  expert: { amount: Number(process.env.STRIPE_PRICE_EXPERT_CENTS || 19900), name: 'Expert-led negotiation' },
+  call: {
+    base: 'USD',
+    amount: Number(process.env.STRIPE_PRICE_CALL_CENTS || 1900),
+    smeAmount: Number(process.env.STRIPE_PRICE_CALL_SME_CENTS || 4900),
+    name: 'Negotiation coaching call',
+  },
+  expert: {
+    base: 'USD',
+    amount: Number(process.env.STRIPE_PRICE_EXPERT_CENTS || 4900),
+    smeAmount: Number(process.env.STRIPE_PRICE_EXPERT_SME_CENTS || 9900),
+    name: 'Expert-led negotiation',
+  },
 };
 export const getTier = (t) => TIERS[t] || null;
+
+// A tier's list price in cents of its base currency (t.base, default SGD) for a
+// segment ('sme' or anything else = individual). Tiers without an SME price
+// charge everyone the same.
+const listCentsFor = (t, segment) => (segment === 'sme' && t.smeAmount ? t.smeAmount : t.amount);
 
 // Stripe "zero-decimal" currencies take amounts in whole units, not cents.
 // Exported so email.js formats amounts with the same rules (no drift).
@@ -47,23 +67,27 @@ function nicePrice(raw) {
 
 // A tier's price in the user's market currency, from live mid-market FX (cached
 // in fx.js). Returns { currency, amount (Stripe minor units), major }.
-// Falls back to the SGD list price when the currency is unknown, unsupported or
-// a rate is unavailable, so checkout never fails closed on an FX hiccup.
+// Falls back to the list price in its base currency (SGD for the reveal, USD
+// for the service tiers) when the currency is unknown, unsupported or a rate
+// is unavailable, so checkout never fails closed on an FX hiccup.
 //
 // The ~S$1 reveal converts EXACTLY (it's a token amount, and "about a dollar" is
-// the promise); the S$99 / S$199 service tiers get the nice-price treatment.
-export async function amountFor(tier, currency) {
+// the promise); the service tiers get the nice-price treatment.
+export async function amountFor(tier, currency, segment = 'individual') {
   const t = getTier(tier);
   if (!t) throw new Error('Unknown tier');
-  const sgdMajor = t.amount / 100;
-  const fallback = { currency: CURRENCY, amount: t.amount, major: sgdMajor };
+  const base = t.base || 'SGD';
+  const cents = listCentsFor(t, segment);
+  const baseMajor = cents / 100;
+  // No usable conversion: charge the list price in its own currency.
+  const fallback = { currency: base === 'SGD' ? CURRENCY : base.toLowerCase(), amount: cents, major: baseMajor };
   const cur = String(currency || 'SGD').toUpperCase();
-  if (cur === 'SGD' || cur === CURRENCY.toUpperCase()
+  if (cur === base || (base === 'SGD' && cur === CURRENCY.toUpperCase())
       || !/^[A-Z]{3}$/.test(cur) || THREE_DECIMAL.has(cur.toLowerCase())) return fallback;
-  const rate = await getMidRate('SGD', cur); // local units per 1 SGD
+  const rate = await getMidRate(base, cur); // local units per 1 unit of the base currency
   if (!rate) return fallback;
   const lc = cur.toLowerCase();
-  const localMajor = tier === 'reveal' ? sgdMajor * rate : nicePrice(sgdMajor * rate);
+  const localMajor = tier === 'reveal' ? baseMajor * rate : nicePrice(baseMajor * rate);
   if (ZERO_DECIMAL.has(lc)) {
     const amount = Math.max(1, Math.round(localMajor));
     return { currency: lc, amount, major: amount };
@@ -102,7 +126,8 @@ export async function createCheckout({ tier, origin, email, advisorId, product, 
   if (!t) throw new Error('Unknown tier');
   const base = cleanBase(origin);
   const s = await stripe();
-  const price = await amountFor(tier, currency);
+  // Priced by the segment the benchmark was run for (individual vs SME).
+  const price = await amountFor(tier, currency, segment);
   const session = await s.checkout.sessions.create({
     mode: 'payment',
     line_items: [{

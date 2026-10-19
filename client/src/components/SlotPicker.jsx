@@ -20,11 +20,12 @@
  * Every time on screen is in the VIEWER'S OWN zone, named in full underneath.
  * A bare "09:00" on a cross-border product is a booking made for the wrong hour.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import './SlotPicker.css';
+import DialCodeField from './DialCodeField.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import {
-  listCallSlots, NOT_INSTALLED, viewerZone, zoneLabel,
+  prefetchCallSlots, cachedCallSlots, NOT_INSTALLED, viewerZone, zoneLabel,
   dayKey, dayLabel, relativeDayLabel, timeIn, slotMinutes,
 } from '../lib/booking.js';
 import { looksDialable, missingCountryCode, saveWhatsAppNumber, confirmLink } from '../lib/whatsapp.js';
@@ -84,9 +85,12 @@ export default function SlotPicker({
   prepare,
 }) {
   const { updateUserMetadata } = useAuth();
-  const [slots, setSlots] = useState(null);
+  const telId = useId();
+  // Start from whatever the modal already fetched, so the grid is there on the
+  // first frame; the load below then refreshes it quietly in the background.
+  const [slots, setSlots] = useState(() => cachedCallSlots()?.slots || null);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !cachedCallSlots()?.slots);
   const [retry, setRetry] = useState(0);
   const [day, setDay] = useState('');
   const [choice, setChoice] = useState(selected || '');
@@ -107,23 +111,40 @@ export default function SlotPicker({
   const [code, setCode] = useState('');     // issued once the number is saved
   const [formErr, setFormErr] = useState('');
   const [saving, setSaving] = useState(false);
+  // A hold has been attempted for the current choice. With holdOnSelect the
+  // caller's hold box and pay button are the whole commit UI, so this card's
+  // own button only appears as a retry once an attempt didn't take.
+  const [tried, setTried] = useState(false);
+  // Once a hold lands the attempt is over; a later "Change time" starts clean.
+  useEffect(() => { if (held) setTried(false); }, [held]);
 
   // onUnavailable swaps the whole screen back to Calendly. Held in a ref so a
   // parent that re-creates the callback each render can't re-trigger the load.
   const unavailableRef = useRef(onUnavailable);
   unavailableRef.current = onUnavailable;
 
+  const firstLoad = useRef(true);
   useEffect(() => {
     let alive = true;
-    setLoading(true);
+    // Times already on screen stay there while fresh ones load — the loading
+    // line is only for when there is genuinely nothing to show yet.
+    const shown = !!cachedCallSlots()?.slots;
+    if (!shown) setLoading(true);
     setError('');
-    listCallSlots()
+    // The first load joins the modal's prefetch if it is still in flight; a
+    // refresh (slot taken, hold dropped, retry) always asks again.
+    const force = !firstLoad.current;
+    firstLoad.current = false;
+    prefetchCallSlots({ force })
       .then(({ slots: rows, reason }) => {
         if (!alive) return;
         if (reason === NOT_INSTALLED) { unavailableRef.current?.(); return; }
         setSlots(rows);
       })
-      .catch((e) => { if (alive) setError(e.message || 'Could not load available times.'); })
+      .catch((e) => {
+        // A background refresh failing leaves the times already shown alone.
+        if (alive && !shown) setError(e.message || 'Could not load available times.');
+      })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, [refreshKey, retry]);
@@ -203,6 +224,7 @@ export default function SlotPicker({
 
   async function commit(iso) {
     setFormErr('');
+    setTried(true);
     if (!iso) { setFormErr('Pick a time first.'); return; }
     if (!(await ensureNumber())) return;
     // The duration travels with the time: the calendar invite is written from
@@ -218,6 +240,7 @@ export default function SlotPicker({
   function chooseTime(iso) {
     setChoice(iso);
     setFormErr('');
+    setTried(false);
     // Hold now if the number is ready; otherwise numberDone() holds it once
     // the number is filled in.
     if (holdOnSelect && iso && emailOk && looksDialable(fullNumber(dialCode, num)) && !missingCountryCode(dialCode)) commit(iso);
@@ -311,26 +334,19 @@ export default function SlotPicker({
       <div className="slots__sec">
         <h5 className="slots__title">Your Contact Details</h5>
         <div className="slots__contact">
-          <label className="slots__field">
-            <span>WhatsApp number <i aria-hidden="true">*</i></span>
+          <div className="slots__field">
+            <label htmlFor={telId}>WhatsApp number <i aria-hidden="true">*</i></label>
             <span className="slots__telrow">
+              <DialCodeField value={dialCode} onChange={setDialCode} onBlur={numberDone} disabled={off} />
               <input
-                className="slots__dial"
-                type="tel" value={dialCode} onChange={(e) => setDialCode(e.target.value)}
-                onBlur={numberDone}
-                placeholder="+65" autoComplete="tel-country-code" inputMode="tel"
-                aria-label="Country code" required
-                disabled={off}
-              />
-              <input
-                type="tel" value={num} onChange={(e) => setNum(e.target.value)}
+                id={telId} type="tel" value={num} onChange={(e) => setNum(e.target.value)}
                 onBlur={numberDone}
                 placeholder="9123 4567" autoComplete="tel-national" inputMode="tel"
                 aria-label="WhatsApp number" required
                 disabled={off}
               />
             </span>
-          </label>
+          </div>
           <label className="slots__field">
             <span>Email <i aria-hidden="true">*</i></span>
             <input
@@ -358,7 +374,7 @@ export default function SlotPicker({
       )}
       {/* Without holdOnSelect this is the commit; with it, a retry for when the
           automatic hold didn't go through. */}
-      {!held && choice && (!holdOnSelect || numberOk) && (
+      {!held && choice && (!holdOnSelect || (numberOk && tried && !busy && !saving)) && (
         <>
           <button className="btn btn--primary slots__go" disabled={busy || saving || !choice}>
             {saving ? 'Saving…' : busy ? busyLabel : cta}

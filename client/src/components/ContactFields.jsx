@@ -4,14 +4,16 @@
  * Same look as the block inside SlotPicker. Reports the full number and whether
  * the pair is usable; saving the number is the caller's job, at pay time.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import './SlotPicker.css';
+import DialCodeField from './DialCodeField.jsx';
 import { splitPhone, fullNumber, EMAIL_RE } from './SlotPicker.jsx';
 import { looksDialable, missingCountryCode } from '../lib/whatsapp.js';
 
 export default function ContactFields({ phone = '', email = '', onEmailChange, country = 'SG', disabled = false, onChange, onDone }) {
   const [dialCode, setDialCode] = useState(() => splitPhone(phone, country).code);
   const [num, setNum] = useState(() => splitPhone(phone, country).rest);
+  const telId = useId();
 
   // A number that arrives later (the profile loads after first render).
   useEffect(() => {
@@ -29,23 +31,18 @@ export default function ContactFields({ phone = '', email = '', onEmailChange, c
       <div className="slots__sec">
         <h5 className="slots__title">Your Contact Details</h5>
         <div className="slots__contact">
-          <label className="slots__field">
-            <span>WhatsApp number <i aria-hidden="true">*</i></span>
+          <div className="slots__field">
+            <label htmlFor={telId}>WhatsApp number <i aria-hidden="true">*</i></label>
             <span className="slots__telrow">
+              <DialCodeField value={dialCode} onChange={setDialCode} onBlur={() => onDone?.()} disabled={disabled} />
               <input
-                className="slots__dial" type="tel" value={dialCode}
-                onChange={(e) => setDialCode(e.target.value)} onBlur={() => onDone?.()}
-                placeholder="+65" autoComplete="tel-country-code" inputMode="tel"
-                aria-label="Country code" required disabled={disabled}
-              />
-              <input
-                type="tel" value={num}
+                id={telId} type="tel" value={num}
                 onChange={(e) => setNum(e.target.value)} onBlur={() => onDone?.()}
                 placeholder="9123 4567" autoComplete="tel-national" inputMode="tel"
                 aria-label="WhatsApp number" required disabled={disabled}
               />
             </span>
-          </label>
+          </div>
           <label className="slots__field">
             <span>Email <i aria-hidden="true">*</i></span>
             <input

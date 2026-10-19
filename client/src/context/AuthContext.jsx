@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase.js';
 import { clearUnlocks, clearRevealSessions } from '../lib/unlocks.js';
+import { mintGuestClaim, redeemGuestClaim } from '../lib/guestClaim.js';
 
 // Everything this browser remembers about what has been paid for.
 const forgetPurchases = () => { clearUnlocks(); clearRevealSessions(); };
@@ -28,6 +29,12 @@ export function AuthProvider({ children }) {
       // ANOTHER tab, or when the session expires. Those paths never reach
       // signOut(), and a paid reveal must not survive any of them.
       if (event === 'SIGNED_OUT') forgetPurchases();
+      // Signed in to an account from a guest session: bring the guest's booking
+      // along (lib/guestClaim.js). Deferred — Supabase calls made inside this
+      // callback deadlock the auth client.
+      if (s?.user && !s.user.is_anonymous && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+        setTimeout(redeemGuestClaim, 0);
+      }
       // Back from an OAuth redirect: restore the hash route the user signed in
       // from (e.g. #dashboard) — the provider round-trip lands on the bare origin.
       if (event === 'SIGNED_IN') {
@@ -46,16 +53,19 @@ export function AuthProvider({ children }) {
   const redirectTo =
     typeof window !== 'undefined' ? window.location.origin : undefined;
 
+  // Every sign-in / sign-up path mints a guest claim first (a no-op unless a
+  // guest session is live), so a booking made as a guest follows them in.
   const signInWithEmail = useCallback(
-    (email, password) => supabase.auth.signInWithPassword({ email, password }),
+    async (email, password) => { await mintGuestClaim(); return supabase.auth.signInWithPassword({ email, password }); },
     []
   );
 
   // profile: { full_name, phone, monthly_income } — stored in user metadata and
   // copied into public.user_profiles by the on_auth_user_created trigger.
   const signUpWithEmail = useCallback(
-    (email, password, profile = {}) =>
-      supabase.auth.signUp({
+    async (email, password, profile = {}) => {
+      await mintGuestClaim();
+      return supabase.auth.signUp({
         email,
         password,
         options: {
@@ -66,12 +76,14 @@ export function AuthProvider({ children }) {
           },
           emailRedirectTo: redirectTo,
         },
-      }),
+      });
+    },
     [redirectTo]
   );
 
   const signInWithProvider = useCallback(
-    (provider) => {
+    async (provider) => {
+      await mintGuestClaim();
       // OAuth reloads the page at the bare origin, dropping the hash route (e.g.
       // the #dashboard gate the user was signing in from). Stash it; the auth
       // listener below restores it after SIGNED_IN.
@@ -92,15 +104,17 @@ export function AuthProvider({ children }) {
   // user never hits a sign-in screen — they enter name + email, pay, and this
   // email becomes their login. No password, and (crucially) no service-role key.
   const signInWithOtp = useCallback(
-    (email, profile = {}) =>
-      supabase.auth.signInWithOtp({
+    async (email, profile = {}) => {
+      await mintGuestClaim();
+      return supabase.auth.signInWithOtp({
         email,
         options: {
           shouldCreateUser: true,
           emailRedirectTo: redirectTo,
           data: { full_name: profile.full_name },
         },
-      }),
+      });
+    },
     [redirectTo]
   );
 
@@ -136,8 +150,11 @@ export function AuthProvider({ children }) {
 
   /* Turn the guest into a real account with the email they booked with. Same
      user id, so the booking stays theirs. Supabase mails a confirmation link. */
+  // Email only — Supabase won't take a password until the email is confirmed —
+  // so the account is flagged as still needing one; the confirmation screen
+  // and account settings ask for it once they are back.
   const upgradeGuest = useCallback(
-    (email) => supabase.auth.updateUser({ email }, { emailRedirectTo: redirectTo }),
+    (email) => supabase.auth.updateUser({ email, data: { password_pending: true } }, { emailRedirectTo: redirectTo }),
     [redirectTo]
   );
 
@@ -170,7 +187,7 @@ export function AuthProvider({ children }) {
 
   // Set a new password for the currently-authenticated (recovery) user.
   const updatePassword = useCallback(
-    (password) => supabase.auth.updateUser({ password }),
+    (password) => supabase.auth.updateUser({ password, data: { password_pending: false } }),
     []
   );
 
@@ -201,9 +218,11 @@ export function AuthProvider({ children }) {
       signOutEverywhere,
       // True when the account can sign in with a password. OAuth-only users have
       // no password yet, so settings offers "set a password" instead of "change".
+      // A guest converted from a booking has an email identity but no password.
       hasPasswordIdentity: Boolean(
         session?.user?.identities?.some((i) => i.provider === 'email')
-      ),
+      ) && !session?.user?.user_metadata?.password_pending,
+      passwordPending: Boolean(session?.user?.user_metadata?.password_pending),
       providers: (session?.user?.identities || []).map((i) => i.provider),
       clearRecovery,
       signOut,

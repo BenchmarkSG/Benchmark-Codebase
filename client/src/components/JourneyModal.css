@@ -336,6 +336,7 @@ body.jny-open .needhelp { display: none; }
 /* Equal head heights → buttons line up across both cards; notes sit below. */
 .jny-path .jny-pay { width: 100%; margin-top: 12px; font-size: 14px; padding-left: 12px; padding-right: 12px; }
 .jny-path .jny-note { margin-top: 10px; margin-bottom: 0; }
+.jny .jny-pay { transition: opacity 0.3s ease, background-color 0.2s ease, box-shadow 0.3s ease; }
 .jny-pay:disabled { opacity: 0.6; cursor: not-allowed; }
 /* Star rating asked after a booking. */
 .jny-rate { padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px dashed #c3d2ea; }
@@ -469,7 +470,18 @@ body.jny-open .needhelp { display: none; }
   border-radius: 14px;
   padding: 12px 14px;
   margin-top: 4px;
+  /* Idle → holding → held eases between colours rather than snapping. */
+  transition: border-color 0.35s ease, background-color 0.35s ease, box-shadow 0.35s ease;
 }
+/* Each state's text fades up into place (the span is keyed on the state). */
+.jny-hold__when { animation: jny-hold-swap 0.3s ease both; }
+@keyframes jny-hold-swap { from { opacity: 0; transform: translateY(4px); } }
+/* Taking the hold: a quiet breathing border while the request is out. */
+.jny-hold--pending { border-color: var(--blue-600); background: var(--surface); animation: jny-hold-wait 1.2s ease-in-out infinite; }
+@keyframes jny-hold-wait { 50% { box-shadow: 0 0 0 4px rgba(29, 99, 196, 0.12); } }
+/* Just held: one soft ring that settles, so the change is seen, not jolted. */
+.jny-hold--held { animation: jny-hold-got 0.7s ease-out; }
+@keyframes jny-hold-got { from { box-shadow: 0 0 0 6px rgba(29, 99, 196, 0.18); } to { box-shadow: 0 0 0 0 rgba(29, 99, 196, 0); } }
 .jny-hold__row {
   display: flex;
   align-items: center;
@@ -505,9 +517,14 @@ body.jny-open .needhelp { display: none; }
 .jny-hold__hand { transform-origin: 12px 12px; }
 .jny-hold__hand--sec { animation: jny-hand 60s steps(60) infinite; }
 .jny-hold__hand--min { animation: jny-hand 600s linear infinite; }
+/* No hold yet: same box, quieter, and the clock stands still. */
+.jny-hold--idle { border-color: var(--line); background: var(--surface); }
+.jny-hold--idle .jny-hold__when strong { color: var(--muted); }
+.jny-hold__timer.is-idle .jny-hold__hand { animation: none; }
 @keyframes jny-hand { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
   .jny-hold__hand { animation: none; }
+  .jny-hold, .jny-hold__when, .jny-hold--pending, .jny-hold--held, .jny .jny-pay { animation: none; transition: none; }
 }
 /* Tabular figures so the countdown doesn't jitter the line as digits change. */
 .jny-hold__clock {
@@ -603,12 +620,18 @@ body.jny-open .needhelp { display: none; }
   border-radius: 14px;
   padding: 12px 16px;
   background: var(--surface);
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  /* Top-aligned, so both cards' headings sit on the same line. */
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
   gap: 6px; text-align: center; min-width: 0;
 }
 .jny-top__label { margin: 0; font-size: 15px; font-weight: 800; color: var(--ink); line-height: 1.3; }
-.jny-top__id { display: flex; align-items: center; justify-content: center; gap: 10px; min-width: 0; }
-.jny-top__verified { flex: none; display: block; }
+.jny-top__body {
+  display: grid; grid-template-columns: auto minmax(0, auto);
+  column-gap: 12px; row-gap: 6px; align-items: center; min-width: 0;
+}
+/* The icon spans both lines — the logo row and the note under it. */
+.jny-top__verified { grid-row: 1 / span 2; display: block; width: 64px; height: 64px; }
+.jny-top__id { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .jny-top__logo {
   display: grid; place-items: center;
   flex: none; width: 96px; height: 40px; object-fit: contain;
@@ -616,14 +639,27 @@ body.jny-open .needhelp { display: none; }
 }
 .jny-top__logo--blank { font-size: 20px; }
 .jny-top__name { font-size: 18px; font-weight: 800; color: var(--ink); line-height: 1.15; min-width: 0; overflow-wrap: anywhere; }
-.jny-top__note { margin: 0; font-size: 12.5px; color: var(--muted); }
+.jny-top__note { margin: 0; font-size: 12.5px; color: var(--muted); text-align: left; }
 .jny-top__cert {
   border: none; background: none; padding: 0; cursor: pointer; font-family: inherit;
   font-size: 12.5px; font-weight: 700; color: var(--accent);
 }
 .jny-top__cert:hover { text-decoration: underline; }
-.jny-top__amtrow { display: flex; align-items: center; justify-content: center; gap: 8px; }
-.jny-top__coins { flex: none; display: block; width: 42px; height: 42px; }
+.jny-top__amtrow { display: flex; align-items: center; justify-content: center; gap: 10px; }
+/* Same size as the bank icon in the card beside it. */
+.jny-top__coins { flex: none; display: block; width: 64px; height: 64px; }
+
+/* Side by side, the two cards share their rows: heading on row 1, the icon
+   rows on row 2, centred — so the coins and the amount sit level with the
+   bank icon and logo next door. */
+@supports (grid-template-rows: subgrid) {
+  .jny-top { grid-template-rows: auto auto; row-gap: 0; }
+  .jny-top__card {
+    display: grid; grid-row: span 2; grid-template-rows: subgrid; grid-template-columns: minmax(0, 1fr);
+    justify-items: center; align-items: start; row-gap: 6px;
+  }
+  .jny-top__body, .jny-top__amtrow { align-self: center; }
+}
 .jny-top__amt { margin: 0; white-space: nowrap; font-size: 25px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; line-height: 1.1; }
 .jny-top__amt span { font-size: 15px; font-weight: 700; color: var(--ink-3); letter-spacing: 0; }
 .jny-top__ahead { margin: 0; font-size: 14px; font-weight: 700; color: var(--ink-2); }
@@ -661,11 +697,8 @@ body.jny-open .needhelp { display: none; }
 .jny-plan__top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 8px; min-width: 0; }
 .jny-plan__price { font-size: 20px; font-weight: 800; color: var(--ink); white-space: nowrap; }
 .jny-plan--owned .jny-plan__price { font-size: 15px; color: #0f7a44; }
-.jny-plan__tag { font-size: 12px; font-weight: 800; color: var(--muted); white-space: nowrap; }
-.jny-plan--green .jny-plan__tag { color: #1a9d6a; }
-.jny-plan--blue .jny-plan__tag { color: var(--blue-600); }
-.jny-plan--violet .jny-plan__tag { color: #6a34c9; }
-.jny-plan__name { margin-top: 4px; font-size: 16px; font-weight: 800; color: var(--ink); }
+.jny-plan__tag { font-size: 12px; font-weight: 800; color: var(--ink); white-space: nowrap; }
+.jny-plan__name { margin-top: 4px; font-size: 13px; font-weight: 800; color: var(--ink); }
 .jny-plan__title { font-size: 13px; font-weight: 600; color: var(--ink-2); line-height: 1.4; }
 .jny-plan__points { list-style: none; margin: 4px 0 12px; padding: 0; display: grid; gap: 5px; }
 .jny-plan__points li {
@@ -698,34 +731,53 @@ body.jny-open .needhelp { display: none; }
 }
 
 /* ===== Book a call: heading + estimated-savings box, centred pay button ===== */
-.jny-callhead { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
-.jny-callhead__text { flex: 1 1 auto; min-width: 0; }
+/* Top-aligned, and the heading is the savings card's label size, so its first
+   line sits level with the label once nudged down by the card's 8px padding +
+   1px border. */
+.jny-callhead { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 12px; padding-top: 10px; }
+.jny-callhead__text { flex: 1 1 auto; min-width: 0; padding-top: 9px; }
+.jny-callhead .jny-sub__title { margin: 0; font-size: 15px; line-height: 1.3; }
+@media (max-width: 720px) {
+  .jny-callhead .jny-sub__title { font-size: 14px; }
+}
+/* The options screen's "Potential Annual Savings" card, scaled to sit beside
+   the heading. */
 .jny-callhead__save {
   flex: none;
-  display: flex; flex-direction: column; align-items: center; gap: 1px;
-  border: 1px solid var(--line); border-radius: 12px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  border: 1px solid var(--line); border-radius: 14px; background: var(--surface);
   padding: 8px 14px; text-align: center;
 }
-.jny-callhead__save strong { font-size: 18px; font-weight: 800; color: var(--ink); letter-spacing: -0.01em; }
-.jny-callhead__save span { font-size: 11px; font-weight: 700; color: var(--muted); }
+.jny-callhead__save .jny-top__amtrow { gap: 8px; }
+.jny-callhead__save .jny-top__coins { width: 40px; height: 40px; }
+.jny-callhead__save .jny-top__amt { font-size: 20px; }
+.jny-callhead__save .jny-top__amt span { font-size: 12.5px; }
 .jny-confirmpay--call { text-align: center; }
 .jny-confirmpay--call .jny-pay {
   width: auto; min-width: 220px; padding-left: 28px; padding-right: 28px;
   background: var(--blue-600); box-shadow: 0 8px 20px rgba(29, 99, 196, 0.22);
 }
 .jny-confirmpay--call .jny-pay:hover:not(:disabled) { background: var(--blue-700); }
+/* Stay blue while disabled ("Redirecting to secure checkout…", or no hold
+   yet). global.css's red .btn--primary:hover is bundled after this file and
+   would otherwise win whenever the pointer rests on a disabled button. */
+.jny .jny-confirmpay--call .jny-pay,
+.jny .jny-confirmpay--call .jny-pay:hover:disabled { background: var(--blue-600); }
+.jny .jny-confirmpay--call .jny-pay:hover:not(:disabled) { background: var(--blue-700); }
 .jny-confirmpay--call .jny-note { font-size: 11.5px; }
 @media (max-width: 560px) {
   .jny-callhead { gap: 10px; }
   .jny-callhead__save { padding: 6px 10px; }
-  .jny-callhead__save strong { font-size: 16px; }
+  .jny-callhead__text { padding-top: 7px; }
+  .jny-callhead__save .jny-top__coins { width: 32px; height: 32px; }
+  .jny-callhead__save .jny-top__amt { font-size: 17px; }
 }
 
 /* ===== Screen #5: call confirmed ============================================ */
-.jny-done5 { display: flex; flex-direction: column; gap: 12px; }
+.jny-done5 { display: flex; flex-direction: column; gap: 12px; padding-top: 10px; }
 .jny-done5__title { margin: 0; font-size: 18px; font-weight: 800; color: var(--ink); line-height: 1.3; }
 .jny-done5__when { margin: 0; display: flex; flex-direction: column; gap: 2px; }
-.jny-done5__when span { font-size: 14.5px; font-weight: 700; color: var(--ink-2); }
+.jny-done5__when span { font-size: 22px; letter-spacing: -0.01em; font-weight: 700; color: var(--ink-2); }
 .jny-done5__when strong { font-size: 22px; font-weight: 800; color: var(--ink); letter-spacing: -0.01em; }
 .jny-done5__line { margin: -4px 0 0; font-size: 13.5px; color: var(--ink-2); line-height: 1.45; }
 .jny-done5__note { margin: -4px 0 0; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
@@ -736,43 +788,45 @@ body.jny-open .needhelp { display: none; }
   border: 1.5px solid #cfe0f6; border-radius: 12px;
   background: var(--surface); color: var(--blue-600);
   font-family: inherit; font-size: 14px; font-weight: 800;
-  padding: 12px 10px; cursor: pointer;
+  padding: 8px 10px; cursor: pointer;
 }
 .jny-done5__act:hover:not(:disabled) { background: var(--blue-50); border-color: var(--blue-600); }
 .jny-done5__act:disabled { opacity: 0.7; cursor: default; }
 .jny-done5__actions > .jny-done5__act:only-child { grid-column: 1 / -1; }
 
-/* Certificate: thumbnail on the left, title + share strip on the right. */
+/* Certificate: title with the thumbnail centred right under it on the left;
+   "Share" over the network buttons, flush right. Kept tight. */
 .jny-done5__cert {
-  display: flex; align-items: center; gap: 14px;
-  border: 1px solid var(--line); border-radius: 14px; padding: 12px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  border: 1px solid var(--line); border-radius: 14px; padding: 5px 12px;
 }
+.jny-done5__certcol { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
 .jny-done5__thumb {
   flex: none; padding: 0; border: 1px solid var(--line); border-radius: 8px;
   background: #fff; cursor: zoom-in; overflow: hidden;
-  width: 84px; height: 60px;
+  width: 51px; height: 34px;
 }
-.jny-done5__thumb-inner { display: block; width: 84px; height: 60px; overflow: hidden; pointer-events: none; }
-.jny-done5__thumb-inner .cert-wrap { zoom: 0.2; width: 420px; max-width: none; margin: 0; }
+.jny-done5__thumb-inner { display: block; width: 51px; height: 34px; overflow: hidden; pointer-events: none; }
+.jny-done5__thumb-inner .cert-wrap { zoom: 0.1218; width: 420px; max-width: none; margin: 0; }
 .jny-done5__thumb-inner .certshare { display: none; }
 .jny-done5__thumb:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.jny-done5__certbody { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.jny-done5__certbody { flex: none; display: flex; flex-direction: column; }
 .jny-done5__certtitle {
   margin: 0; display: flex; align-items: center; gap: 6px;
-  font-size: 14.5px; font-weight: 800; color: var(--ink);
+  font-size: 14px; font-weight: 800; color: var(--ink); line-height: 16px;
 }
-.jny-done5__certtitle svg { color: #1a9d6a; }
+.jny-done5__certtitle svg { color: #1a9d6a; width: 16px; height: 16px; }
 .jny-done5__certbody .certshare { margin: 0; padding: 0; background: none; border: 0; }
 
 /* FAQ: native disclosure rows. */
-.jny-done5__faq { border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px; }
-.jny-done5__faq h5 { margin: 0 0 4px; font-size: 13px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.jny-done5__faq { border: 1px solid var(--line); border-radius: 14px; padding: 6px 14px; }
+.jny-done5__faq h5 { margin: 0 0 2px; font-size: 13px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 .jny-done5__faq details { border-top: 1px solid var(--line); }
 .jny-done5__faq details:first-of-type { border-top: 0; }
 .jny-done5__faq summary {
   cursor: pointer; list-style: none;
   display: flex; justify-content: space-between; align-items: center; gap: 10px;
-  padding: 9px 0; font-size: 14px; font-weight: 700; color: var(--ink);
+  padding: 6px 0; font-size: 14px; font-weight: 700; color: var(--ink);
 }
 .jny-done5__faq summary::-webkit-details-marker { display: none; }
 .jny-done5__faq summary::after { content: '+'; font-size: 18px; font-weight: 700; color: var(--muted); }
@@ -789,20 +843,40 @@ body.jny-open .needhelp { display: none; }
   width: 76px; height: 76px; border-radius: 50%;
   border: 2px dashed var(--line); background: var(--surface-2);
 }
-.jny-done5__circle--logo { border: 0; background: #e3f4ec; color: #2f6b55; }
+/* White, like the logos' own background; a hairline keeps the circle visible
+   on the white card. */
+.jny-done5__circle--logo { border: 1px solid var(--line); background: #fff; color: #2f6b55; }
+.jny-done5__circle-img { display: block; width: 44px; height: 44px; }
+/* A logo that is itself a circle fills the circle edge to edge. */
+.jny-done5__circle--badge { border: 0; background: none; overflow: hidden; }
+.jny-done5__circle--badge .jny-done5__circle-img { width: 100%; height: 100%; }
 .jny-done5__circle-label { font-size: 12.5px; font-weight: 700; color: var(--ink-2); line-height: 1.3; }
-a.jny-done5__circle-wrap { text-decoration: none; border-radius: 14px; padding: 4px; }
-a.jny-done5__circle-wrap:hover .jny-done5__circle--logo { background: #cdebdc; }
-a.jny-done5__circle-wrap:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.jny-done5__circle-cta { font-size: 12px; font-weight: 800; color: var(--blue-600); }
-a.jny-done5__circle-wrap:hover .jny-done5__circle-cta { text-decoration: underline; }
-.jny-done5__certbody .certshare { justify-content: flex-start; gap: 6px; box-shadow: none; }
-/* Outside the dark certificate, its generic Share button takes the card's ink. */
-.jny-done5__certbody .certshare .certshare__btn--generic {
-  background: var(--surface); border: 1.5px solid #cfe0f6; color: var(--blue-600);
+
+/* Under each icon, a filled blue button (same look as the dashboard's
+   "Manage your expert →"). The icon itself is not a link. */
+.jny-done5__circle-wrap--btn { width: auto; gap: 10px; }
+.jny-done5__circle-btn {
+  display: inline-block; white-space: nowrap; text-align: center; line-height: 1.15; text-decoration: none;
+  background: var(--blue-600); color: #fff; border-radius: 8px;
+  padding: 3px 8px; font-size: 13px; font-weight: 800;
 }
-.jny-done5__certbody .certshare .certshare__btn--generic:hover { background: var(--blue-50); color: var(--blue-600); }
-.jny-done5__certbody .certshare__note { color: var(--muted); text-align: left; }
+.jny-done5__circle-btn:hover { background: var(--blue-700); }
+.jny-done5__circle-btn:focus-visible { outline: 2px solid var(--blue-600); outline-offset: 2px; }
+.jny-done5__certbody .certshare {
+  flex-direction: column; flex-wrap: nowrap; align-items: flex-end; justify-content: center;
+  gap: 4px; box-shadow: none;
+}
+.jny-done5__certbody .certshare__btns { gap: 8px; }
+.jny-done5__certbody .certshare__btn { width: 30px; height: 30px; }
+/* "Share" heading: reads like the certificate title, acts as the OS-sheet button. */
+.jny-done5__certbody .certshare__head {
+  display: inline-flex; align-items: center; gap: 6px; padding: 0;
+  border: 0; background: none; cursor: pointer;
+  font-family: inherit; font-size: 14.5px; font-weight: 800; color: var(--blue-600);
+}
+.jny-done5__certbody .certshare__head:hover:not(:disabled) { text-decoration: underline; }
+.jny-done5__certbody .certshare__head:disabled { opacity: 0.6; cursor: default; }
+.jny-done5__certbody .certshare__note { color: var(--muted); text-align: right; }
 .jny-done5__certbody .certshare__label { display: none; }
 
 /* ===== Option 3: Book an Expert ============================================= */
@@ -841,13 +915,55 @@ a.jny-done5__circle-wrap:hover .jny-done5__circle-cta { text-decoration: underli
   font-size: 10px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
 }
 .jny-xrow__role { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* The select box on the right; filled when chosen. */
-.jny-xrow__check {
-  flex: none; width: 24px; height: 24px; border-radius: 7px;
-  border: 1.5px solid #cfe0f6; background: var(--surface);
-  display: grid; place-items: center;
-  color: #fff; font-size: 13px; font-weight: 900;
+/* "Select Me" on the right: filled blue, and outlined "✓ Selected" once chosen. */
+.jny-xrow__pick {
+  flex: none; white-space: nowrap;
+  background: var(--blue-600); color: #fff; font-weight: 800; font-size: 13px;
+  padding: 9px 14px; border-radius: 10px;
 }
-.jny-xrow.is-on .jny-xrow__check { background: var(--blue-600); border-color: var(--blue-600); }
+.jny-xrow:hover:not(:disabled) .jny-xrow__pick { filter: brightness(1.06); }
+.jny-xrow.is-on .jny-xrow__pick { background: var(--surface); color: var(--blue-600); box-shadow: inset 0 0 0 1.5px var(--blue-600); }
+@media (max-width: 560px) {
+  .jny-xrow__pick { padding: 7px 10px; font-size: 12px; }
+}
 .jny-sub > .slots { margin-bottom: 4px; }
 .jny-done5__line--lead { margin-top: -2px; font-size: 14.5px; }
+
+/* Every block on the confirmation the same height: the two action buttons, the
+   certificate card, and the FAQ box while it shows one question. */
+.jny-done5 { --done5-h: 64px; }
+.jny-done5__act { min-height: var(--done5-h); }
+.jny-done5__cert { min-height: var(--done5-h); box-sizing: border-box; }
+.jny-done5__faq {
+  position: relative; min-height: var(--done5-h); box-sizing: border-box;
+  display: flex; flex-direction: column; justify-content: center;
+  margin-bottom: 14px; /* room for the drop-down hanging off the bottom edge */
+}
+.jny-done5__faq.is-open { justify-content: flex-start; }
+.jny-done5__faq details:last-of-type summary { padding-bottom: 4px; }
+.jny-done5__faqmore {
+  position: absolute; left: 50%; bottom: 0; transform: translate(-50%, 50%);
+  width: 28px; height: 28px; border-radius: 50%;
+  display: grid; place-items: center; padding: 0;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink-3);
+  cursor: pointer; box-shadow: 0 2px 6px rgba(11, 31, 58, 0.08);
+}
+.jny-done5__faqmore:hover { color: var(--blue-600); border-color: var(--blue-600); }
+.jny-done5__faqmore svg { transition: transform 0.2s ease; }
+.jny-done5__faq.is-open .jny-done5__faqmore svg { transform: rotate(180deg); }
+
+/* The confirmation arrives gently rather than snapping in. */
+.jny-done5 { animation: jny-rise-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes jny-rise-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .jny-done5 { animation: none; }
+}
+
+/* While "Manage this" reads the booking back: held, not hidden. */
+.jny-plan__cta:disabled { cursor: progress; opacity: 0.85; }
+
+/* Option 1's email buttons: blue like the journey's other CTAs (the site's
+   .btn--primary / .btn--red are red). */
+.jny-actions .jny-btn-blue { background: var(--blue-600); box-shadow: 0 8px 20px rgba(29, 99, 196, 0.22); }
+.jny-actions .jny-btn-blue:hover { background: var(--blue-700); }

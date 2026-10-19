@@ -87,15 +87,18 @@ test('POST /api/benchmark -> no data for selection 404', async () => {
   assert.equal(r.status, 404);
 });
 
-test('POST /api/questionnaire/score -> maturity score', async () => {
+test('POST /api/questionnaire/score -> points and tier', async () => {
+  const keys = ['ap_automation', 'close_cycle', 'ar_dso', 'fpa_agility', 'expenses',
+    'cash_visibility', 'compliance', 'integration', 'error_rate', 'team_focus'];
   const r = await post('/api/questionnaire/score', {
     id: 'operational_efficiency',
-    answers: { data_channel: 3, reconciliation: 3, connectivity: 3, payables: 3, obo_structure: 3 },
+    answers: Object.fromEntries(keys.map((k) => [k, 4])),
   });
   assert.equal(r.status, 200);
   const j = await r.json();
   assert.equal(j.score, 100);
-  assert.equal(j.band, 'Advanced');
+  assert.equal(j.points, 40);
+  assert.equal(j.band, 'Best-in-Class Operations');
 });
 
 test('POST /api/reveal -> 402 without proof of payment', async () => {
