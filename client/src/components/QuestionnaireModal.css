@@ -71,7 +71,7 @@
   font-size: 13px; line-height: 1.4; color: var(--ink-2);
   transition: border-color 0.12s ease, background 0.12s ease;
 }
-.qn-opt:hover { border-color: var(--blue-500); }
+@media (hover: hover) { .qn-opt:hover { border-color: var(--blue-500); } }
 .qn-opt.is-on { border-color: var(--blue-600); background: var(--blue-50); color: var(--ink); }
 /* The native radio stays for keyboard and screen readers, drawn as the letter. */
 .qn-opt input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
