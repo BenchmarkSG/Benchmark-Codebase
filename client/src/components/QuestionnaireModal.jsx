@@ -85,7 +85,6 @@ export default function QuestionnaireModal({ questionnaire, onClose }) {
     <div className="adv" role="dialog" aria-modal="true" aria-label={q.label}>
       <div className="adv__overlay" onClick={onClose} />
       <div className="adv__card qn-card" ref={cardRef}>
-        <button className="adv__close" onClick={onClose} aria-label="Close">×</button>
         <div className="adv__brand"><span>Fee</span>Optima · Health Check</div>
 
         {/* 1. How the test works, before any question. */}
@@ -113,7 +112,10 @@ export default function QuestionnaireModal({ questionnaire, onClose }) {
             <div className="qn-progress">
               <div className="qn-progress__row">
                 <span>Question {idx + 1} of {total}</span>
-                <span>{total - answered === 0 ? 'All answered' : `${total - answered} left`}</span>
+                {/* Questions left, in a circle in the card's top-right corner. */}
+                <span className="qn-left" aria-label={total - answered === 0 ? 'All answered' : `${total - answered} left`}>
+                  {total - answered === 0 ? <b>✓</b> : <><b>{total - answered}</b>left</>}
+                </span>
               </div>
               <div className="qn-progress__bar" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={answered}
                    aria-label={`${answered} of ${total} answered`}>
